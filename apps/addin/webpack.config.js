@@ -7,6 +7,26 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const urlDev = "https://localhost:3000/";
 const urlProd = "https://app.slidecheck.io/";
 
+/**
+ * Task-pane Content-Security-Policy (U10). Deck content is untrusted: it is rendered only as text,
+ * and this policy is the second line of defence. Only development builds may talk to localhost.
+ */
+function contentSecurityPolicy(dev) {
+  const connect = ["'self'", "https://api.slidecheck.io"];
+  if (dev) connect.push("https://localhost:*", "wss://localhost:*");
+  return [
+    "default-src 'self'",
+    "script-src 'self' https://appsforoffice.microsoft.com",
+    "style-src 'self' 'unsafe-inline'",
+    `connect-src ${connect.join(" ")}`,
+    "img-src 'self' data: blob:",
+    "worker-src 'self' blob:",
+    "frame-src 'none'",
+    "object-src 'none'",
+    "base-uri 'self'",
+  ].join("; ");
+}
+
 async function getHttpsOptions() {
   const httpsOptions = await devCerts.getHttpsServerOptions();
   return { ca: httpsOptions.ca, key: httpsOptions.key, cert: httpsOptions.cert };
@@ -53,7 +73,10 @@ module.exports = async (env, options) => {
     plugins: [
       new HtmlWebpackPlugin({
         filename: "taskpane.html",
-        template: "./src/taskpane/taskpane.html",
+        // "!!" + the plugin's own lodash loader, so html-loader (used for the HMR entry) does not
+        // swallow the template and `<%= csp %>` is interpolated from templateParameters.
+        template: `!!${require.resolve("html-webpack-plugin/lib/loader.js")}!./src/taskpane/taskpane.html`,
+        templateParameters: { csp: contentSecurityPolicy(dev) },
         chunks: ["taskpane"],
       }),
       new HtmlWebpackPlugin({

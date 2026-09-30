@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      Strict CSP (review decisions: untrusted deck strings render only as text). The policy is
+      built in webpack.config.js (templateParameters.csp): production allows only 'self',
+      office.js, and the license API; development builds add https://localhost:* to connect-src.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="<%= csp %>" />
     <title>SlideCheck</title>
     <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
   </head>
