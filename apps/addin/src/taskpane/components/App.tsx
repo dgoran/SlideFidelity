@@ -111,8 +111,9 @@ export default function App({ slots = {}, treeViewportHeight }: AppProps) {
   return (
     <PaneSlotsContext.Provider value={slots}>
       <div className={s.root}>
-        <Header scan={scan} onScan={scanNow} accountSlot={slots.accountSlot} />
+        <Header scan={scan} onScan={scanNow} accountSlot={slots.accountSlot} settingsSlot={slots.settingsSlot} />
         <main className={s.main} aria-busy={scan.status === "scanning"}>
+          {slots.noticeSlot}
           {body}
         </main>
       </div>

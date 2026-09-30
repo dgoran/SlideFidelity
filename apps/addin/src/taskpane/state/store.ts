@@ -4,6 +4,7 @@
  * (`license/gate.ts`) so gating has a single source of truth.
  */
 import { AREAS, type Area, type AuditResult, type ProgressEvent } from "@slidecheck/audit-core";
+import type { ScanInventory } from "../../inspector/model";
 import type { ScanErrorKind, ScanPhase } from "../../office/scan";
 
 export type AreaProgress = "pending" | "done";
@@ -15,6 +16,10 @@ export interface ReadyState {
   scannedAt: number;
   /** Optional D4 hint ("may be out of date"); never blocks anything. */
   possiblyOutdated: boolean;
+  /** Every scanned slide and shape (U11 Inspector), when the worker built it. */
+  inventory?: ScanInventory;
+  /** The scan options (brand profile, D9) changed after this scan: a rescan applies them. */
+  optionsChanged?: boolean;
 }
 
 export type ScanState =
@@ -48,10 +53,12 @@ export type PaneAction =
   | { type: "scan/started" }
   | { type: "scan/phase"; phase: ScanPhase }
   | ({ type: "scan/progress" } & ProgressEvent)
-  | { type: "scan/succeeded"; result: AuditResult; scannedAt: number }
+  | { type: "scan/succeeded"; result: AuditResult; scannedAt: number; inventory?: ScanInventory }
   | { type: "scan/failed"; kind: ScanErrorKind; message: string }
   | { type: "scan/cancelled" }
   | { type: "scan/possibly-outdated" }
+  /** The audit options (brand profile) changed; results stay, with a "rescan to apply" hint. */
+  | { type: "scan/options-changed" }
   | { type: "area/selected"; area: Area }
   | { type: "filter/severity"; severity: SeverityFilter }
   | { type: "filter/search"; search: string }
@@ -98,7 +105,13 @@ function scanReducer(s: ScanState, a: PaneAction): ScanState {
         ? { ...s, phase: "auditing", areas: { ...s.areas, [a.area]: "done" }, completed: a.completed, total: a.total }
         : s;
     case "scan/succeeded":
-      return { status: "ready", result: a.result, scannedAt: a.scannedAt, possiblyOutdated: false };
+      return {
+        status: "ready",
+        result: a.result,
+        scannedAt: a.scannedAt,
+        possiblyOutdated: false,
+        ...(a.inventory ? { inventory: a.inventory } : {}),
+      };
     case "scan/failed": {
       const previous = previousResults(s);
       return { status: "failed", kind: a.kind, message: a.message, ...(previous ? { previous } : {}) };
@@ -108,6 +121,8 @@ function scanReducer(s: ScanState, a: PaneAction): ScanState {
       return s.previous ?? { status: "not-scanned" };
     case "scan/possibly-outdated":
       return s.status === "ready" && !s.possiblyOutdated ? { ...s, possiblyOutdated: true } : s;
+    case "scan/options-changed":
+      return s.status === "ready" && !s.optionsChanged ? { ...s, optionsChanged: true } : s;
     default:
       return s;
   }

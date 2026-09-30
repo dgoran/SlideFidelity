@@ -4,6 +4,7 @@
  * scans so its snapshot-hash cache (KTD6) survives; it is recreated after cancel or a crash.
  */
 import type { AuditOptions, AuditResult, PackageErrorCode, ProgressEvent } from "@slidecheck/audit-core";
+import type { ScanInventory } from "../inspector/model";
 
 // ---------------------------------------------------------------------------------------------
 // Protocol (shared with audit.worker.ts)
@@ -23,7 +24,7 @@ export type WorkerErrorCode = PackageErrorCode | "bad-request" | "internal";
 
 export type WorkerResponse =
   | ({ type: "progress"; id: number } & ProgressEvent)
-  | { type: "result"; id: number; result: AuditResult }
+  | { type: "result"; id: number; result: AuditResult; inventory?: ScanInventory }
   | { type: "error"; id: number; code: WorkerErrorCode; message: string };
 
 // ---------------------------------------------------------------------------------------------
@@ -53,6 +54,12 @@ export function defaultWorkerFactory(): WorkerLike {
   return new Worker(new URL("./audit.worker.ts", import.meta.url)) as unknown as WorkerLike;
 }
 
+/** One scan's output: the audit result plus the scan inventory (U11), when it could be built. */
+export interface AuditScan {
+  result: AuditResult;
+  inventory?: ScanInventory;
+}
+
 export interface ScanOptions {
   onProgress?: (e: ProgressEvent) => void;
   signal?: AbortSignal;
@@ -64,7 +71,7 @@ export interface AuditClient {
    * caller's view becomes detached (length 0); otherwise the bytes are copied. A new scan
    * cancels a running one.
    */
-  scan(bytes: Uint8Array | ArrayBuffer, hash: string, options: AuditOptions, scan?: ScanOptions): Promise<AuditResult>;
+  scan(bytes: Uint8Array | ArrayBuffer, hash: string, options: AuditOptions, scan?: ScanOptions): Promise<AuditScan>;
   /** Cancel the running scan (terminates the worker). No-op when idle. */
   cancel(): void;
   /** Cancel and release the worker. */
@@ -78,7 +85,7 @@ export interface AuditClientConfig {
 
 interface Pending {
   id: number;
-  resolve: (r: AuditResult) => void;
+  resolve: (r: AuditScan) => void;
   reject: (e: AuditClientError) => void;
   onProgress?: (e: ProgressEvent) => void;
   cleanup: () => void;
@@ -121,7 +128,7 @@ export function createAuditClient(config: AuditClientConfig = {}): AuditClient {
       if (msg.type === "progress") {
         pending.onProgress?.({ area: msg.area, completed: msg.completed, total: msg.total });
       } else if (msg.type === "result") {
-        settle()?.resolve(msg.result);
+        settle()?.resolve(msg.inventory ? { result: msg.result, inventory: msg.inventory } : { result: msg.result });
       } else {
         settle()?.reject(new AuditClientError(msg.code, msg.message));
       }
@@ -152,7 +159,7 @@ export function createAuditClient(config: AuditClientConfig = {}): AuditClient {
     scan(bytes, hash, options, scan = {}) {
       cancel();
       if (scan.signal?.aborted) return Promise.reject(new AuditClientError("cancelled", "Scan cancelled"));
-      return new Promise<AuditResult>((resolve, reject) => {
+      return new Promise<AuditScan>((resolve, reject) => {
         const id = nextId++;
         const onAbort = (): void => {
           if (pending?.id === id) cancel();

@@ -39,6 +39,8 @@ module.exports = async (env, options) => {
     entry: {
       taskpane: ["./src/taskpane/index.tsx", "./src/taskpane/taskpane.html"],
       commands: "./src/commands/commands.ts",
+      // Sign-in dialog page (U15): served beside taskpane.html so `messageParent` needs no config.
+      signin: "./src/dialog/signin.ts",
     },
     output: {
       clean: true,
@@ -78,6 +80,13 @@ module.exports = async (env, options) => {
         template: `!!${require.resolve("html-webpack-plugin/lib/loader.js")}!./src/taskpane/taskpane.html`,
         templateParameters: { csp: contentSecurityPolicy(dev) },
         chunks: ["taskpane"],
+      }),
+      new HtmlWebpackPlugin({
+        filename: "signin.html",
+        // Same CSP as the task pane (the dialog calls the license API cross-origin under connect-src).
+        template: `!!${require.resolve("html-webpack-plugin/lib/loader.js")}!./src/dialog/signin.html`,
+        templateParameters: { csp: contentSecurityPolicy(dev) },
+        chunks: ["signin"],
       }),
       new HtmlWebpackPlugin({
         filename: "commands.html",

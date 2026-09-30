@@ -16,7 +16,7 @@ import { Input, Label, Select, makeStyles, tokens } from "@fluentui/react-compon
 import { Search16Regular } from "@fluentui/react-icons";
 import type { Area, Finding, FindingTarget } from "@slidecheck/audit-core";
 import { primaryTarget, type NavigateResult } from "../../office/navigate";
-import { AREA_LABELS, usePaneServices, usePaneSlots } from "../context";
+import { AREA_LABELS, navigateFromPane, usePaneServices, usePaneSlots } from "../context";
 import { describeTarget, filterFindings, flattenTree, groupFindings, type TreeRow } from "../model/tree";
 import { usePane } from "../state/PaneContext";
 import type { SeverityFilter } from "../state/store";
@@ -86,7 +86,8 @@ export interface FindingsTreeProps {
 export function FindingsTree({ area, findings, viewportHeight, overscan = 4 }: FindingsTreeProps) {
   const s = useStyles();
   const { state, dispatch } = usePane();
-  const { navigator, capabilities } = usePaneServices();
+  const services = usePaneServices();
+  const { capabilities } = services;
   const { renderRowActions } = usePaneSlots();
   const baseId = useId();
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -156,7 +157,7 @@ export function FindingsTree({ area, findings, viewportHeight, overscan = 4 }: F
 
   const show = async (target: FindingTarget) => {
     setStatus("");
-    const r = await navigator.navigate(target);
+    const r = await navigateFromPane(services, target);
     setStatus(describeNavigation(r, target, (f) => capabilities.explain(f)));
   };
 

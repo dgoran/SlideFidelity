@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { PackageError, summarize, type AuditOptions, type AuditResult, type ProgressEvent } from "@slidecheck/audit-core";
-import { AuditClientError, type AuditClient } from "../worker/client";
+import { AuditClientError, type AuditClient, type AuditScan } from "../worker/client";
 import { SnapshotError, type Snapshot } from "./snapshot";
 import { ScanError, createScanService, toScanError } from "./scan";
 
@@ -20,7 +20,7 @@ function fakeClient(impl?: ScanFn) {
       (async (_bytes, hash, _opts, s) => {
         s?.onProgress?.({ area: "overview", completed: 1, total: 7 });
         s?.onProgress?.({ area: "fonts", completed: 2, total: 7 });
-        return result(hash);
+        return { result: result(hash) };
       }),
   );
   return { scan, cancel: vi.fn(), dispose: vi.fn(), busy: false } satisfies AuditClient;
@@ -45,7 +45,7 @@ describe("scan service", () => {
     const client = fakeClient(async (bytes, hash) => {
       // Simulate transfer: zero the caller's view.
       if (bytes instanceof Uint8Array) bytes.fill(0);
-      return result(hash);
+      return { result: result(hash) };
     });
     const svc = createScanService({ readSnapshot: async () => snapshot("h1", [7, 8]), client });
     await svc.scan();
@@ -64,7 +64,7 @@ describe("scan service", () => {
     let rejectScan: ((e: unknown) => void) | undefined;
     const client = fakeClient(
       (_b, _h, _o, s) =>
-        new Promise<AuditResult>((_res, rej) => {
+        new Promise<AuditScan>((_res, rej) => {
           rejectScan = rej;
           s?.signal?.addEventListener("abort", () => rej(new AuditClientError("cancelled", "Scan cancelled")));
         }),
@@ -160,6 +160,30 @@ describe("scan service", () => {
       const r = await svc.rescanForFix();
       expect(r.changed).toBe(true);
       expect(client.scan).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("scan inventory (U11)", () => {
+    const inventory = { slides: [{ slideId: 256, index: 0, number: 1, partName: "ppt/slides/slide1.xml", shapes: [] }] };
+
+    it("keeps the worker's inventory on last and returns it from rescanForFix (cache hit and miss)", async () => {
+      const client = fakeClient(async (_b, hash) => ({ result: result(hash), inventory }));
+      const hashes = ["a", "a", "b"];
+      const svc = createScanService({ readSnapshot: async () => snapshot(hashes.shift()!), client });
+      await svc.scan();
+      expect(svc.last?.inventory).toEqual(inventory);
+      const hit = await svc.rescanForFix();
+      expect(hit.changed).toBe(false);
+      expect(hit.inventory).toEqual(inventory);
+      const miss = await svc.rescanForFix();
+      expect(miss.changed).toBe(true);
+      expect(miss.inventory).toEqual(inventory);
+    });
+
+    it("leaves inventory absent when the worker sent none", async () => {
+      const svc = createScanService({ readSnapshot: async () => snapshot("h"), client: fakeClient() });
+      await svc.scan();
+      expect(svc.last && "inventory" in svc.last).toBe(false);
     });
   });
 });

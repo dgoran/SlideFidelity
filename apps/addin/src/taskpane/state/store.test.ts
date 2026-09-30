@@ -70,6 +70,22 @@ describe("pane reducer (D10)", () => {
     expect(run([{ type: "scan/possibly-outdated" }]).scan.status).toBe("not-scanned");
   });
 
+  it("keeps the scan inventory with the results (U11)", () => {
+    const inventory = { slides: [] };
+    const s = run([{ type: "scan/started" }, { type: "scan/succeeded", result: fakeResult([]), scannedAt: 1, inventory }]);
+    expect(s.scan).toMatchObject({ status: "ready", inventory });
+  });
+
+  it("a brand change marks results as needing a rescan until the next scan (D9)", () => {
+    const ready = run([{ type: "scan/started" }, { type: "scan/succeeded", result: fakeResult([]), scannedAt: 1 }]);
+    const changed = run([{ type: "scan/options-changed" }], ready);
+    expect(changed.scan).toMatchObject({ optionsChanged: true });
+    expect(run([{ type: "scan/options-changed" }], changed)).toBe(changed);
+    const rescanned = run([{ type: "scan/started" }, { type: "scan/succeeded", result: fakeResult([]), scannedAt: 2 }], changed);
+    expect(rescanned.scan).not.toHaveProperty("optionsChanged");
+    expect(run([{ type: "scan/options-changed" }]).scan.status).toBe("not-scanned");
+  });
+
   it("area selection and filters", () => {
     const s = run([
       { type: "area/selected", area: "links" },

@@ -16,7 +16,8 @@ export interface PaneContextValue {
   selectArea: (area: Area) => void;
   /**
    * The scan service itself, for U12: `rescanForFix()` before every fix (D4) and `last.bytes`
-   * (D16 pre-fix copy). After a fix, U12 should dispatch `scan/succeeded` with the new result.
+   * (D16 pre-fix copy). After a fix, U12 should dispatch `scan/succeeded` with the new result
+   * and its `inventory` (from `RescanForFixResult.inventory` / `scanService.last.inventory`).
    */
   scanService: ScanService;
 }
@@ -49,7 +50,13 @@ export function PaneProvider({ scanService, initialState, now, subscribeActivity
         onProgress: (e) => live() && dispatch({ type: "scan/progress", ...e }),
       });
       if (!live()) return;
-      dispatch({ type: "scan/succeeded", result, scannedAt: scanService.last?.scannedAt ?? (now ?? Date.now)() });
+      const last = scanService.last;
+      dispatch({
+        type: "scan/succeeded",
+        result,
+        scannedAt: last?.scannedAt ?? (now ?? Date.now)(),
+        ...(last?.result === result && last.inventory ? { inventory: last.inventory } : {}),
+      });
     } catch (e) {
       if (!live()) return;
       const err = toScanError(e);

@@ -6,7 +6,8 @@ import type { Plan } from "../license/gate";
 import { PlanProvider } from "../license/gate";
 import type { ScanService } from "../office/scan";
 import App from "./components/App";
-import { PaneServicesContext, type PaneServices, type PaneSlots } from "./context";
+import { useMemo } from "react";
+import { createSelectionEchoGuard, PaneServicesContext, type PaneServices, type PaneSlots } from "./context";
 import { PaneProvider } from "./state/PaneContext";
 import type { PaneState } from "./state/store";
 
@@ -26,7 +27,12 @@ export interface TaskPaneRootProps {
 }
 
 export function TaskPaneRoot(props: TaskPaneRootProps) {
-  const { services, scanService, slots, initialState, subscribeActivity, treeViewportHeight } = props;
+  const { services: given, scanService, slots, initialState, subscribeActivity, treeViewportHeight } = props;
+  // Every pane gets a selection echo guard so the tree's navigation and the Inspector share one.
+  const services = useMemo<PaneServices>(
+    () => (given.selectionGuard ? given : { ...given, selectionGuard: createSelectionEchoGuard() }),
+    [given],
+  );
   return (
     <PlanProvider
       {...(props.plan !== undefined ? { plan: props.plan } : {})}

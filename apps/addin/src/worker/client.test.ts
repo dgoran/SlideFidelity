@@ -7,7 +7,9 @@ import {
   type WorkerLike,
   type WorkerResponse,
 } from "./client";
-import { handleWorkerMessage } from "./audit.worker";
+import { createAuditCache, runChecksCached } from "@slidecheck/audit-core";
+import { corpusDeck } from "../../../../packages/audit-core/test/helpers/corpus";
+import { createInventoryCache, handleWorkerMessage } from "./audit.worker";
 
 /** A controllable Worker double: records posts; tests push responses with `emit`. */
 class FakeWorker implements WorkerLike {
@@ -68,7 +70,7 @@ describe("audit worker client", () => {
     expect(transfer).toEqual([msg.bytes]);
     AREAS.forEach((area, i) => w.emit({ type: "progress", id: msg.id, area, completed: i + 1, total: AREAS.length }));
     w.emit({ type: "result", id: msg.id, result: fakeResult("hash1") });
-    await expect(p).resolves.toMatchObject({ hash: "hash1" });
+    await expect(p).resolves.toMatchObject({ result: { hash: "hash1" } });
     expect(progress).toEqual([...AREAS]);
   });
 
@@ -157,7 +159,7 @@ describe("audit worker client", () => {
     await expect(p1).rejects.toMatchObject({ code: "cancelled" });
     const w = workers[workers.length - 1]!;
     w.emit({ type: "result", id: w.lastId, result: fakeResult("h2") });
-    await expect(p2).resolves.toMatchObject({ hash: "h2" });
+    await expect(p2).resolves.toMatchObject({ result: { hash: "h2" } });
   });
 
   it("dispose() terminates the worker", async () => {
@@ -192,7 +194,7 @@ describe("audit worker handler", () => {
     });
     const client = createAuditClient({ createWorker: () => new InProcessWorker({ run }) });
     const areas: string[] = [];
-    const result = await client.scan(new Uint8Array([5, 6]), "hh", {}, { onProgress: (e) => areas.push(e.area) });
+    const { result } = await client.scan(new Uint8Array([5, 6]), "hh", {}, { onProgress: (e) => areas.push(e.area) });
     expect(result.hash).toBe("hh");
     expect(areas).toEqual([...AREAS]);
     expect(run).toHaveBeenCalledTimes(1);
@@ -219,5 +221,55 @@ describe("audit worker handler", () => {
     const posted: WorkerResponse[] = [];
     await handleWorkerMessage({ type: "nope" } as unknown as ScanRequest, (m) => posted.push(m));
     expect(posted).toEqual([expect.objectContaining({ type: "error", code: "bad-request" })]);
+  });
+});
+
+describe("audit worker scan inventory (U11)", () => {
+  function realWorker() {
+    const cache = createAuditCache();
+    const inventoryCache = createInventoryCache();
+    const parse = vi.fn(async (b: Uint8Array) => (await import("@slidecheck/audit-core")).loadPresentation(b));
+    const run: typeof runChecksCached = (bytes, hash, options, o) => runChecksCached(bytes, hash, options, { ...o, cache });
+    const client = createAuditClient({ createWorker: () => new InProcessWorker({ run, parse, inventoryCache }) });
+    return { client, parse, inventoryCache };
+  }
+
+  it("returns the inventory with the result, parsing the deck once", async () => {
+    const { client, parse } = realWorker();
+    const bytes = await corpusDeck("fonts-hidden");
+    const { result, inventory } = await client.scan(bytes.slice(), "fh", {});
+    expect(result.fromCache).toBe(false);
+    expect(parse).toHaveBeenCalledTimes(1);
+    expect(inventory?.slides.length).toBe(result.stats.slides);
+    expect(inventory?.slides[0]?.shapes.map((s) => s.shapeId)).toContain(4);
+  });
+
+  it("a result-cache hit returns the cached inventory without re-parsing", async () => {
+    const { client, parse } = realWorker();
+    const bytes = await corpusDeck("fonts-hidden");
+    const first = await client.scan(bytes.slice(), "fh", {});
+    const again = await client.scan(bytes.slice(), "fh", {});
+    expect(again.result.fromCache).toBe(true);
+    expect(parse).toHaveBeenCalledTimes(1);
+    expect(again.inventory).toEqual(first.inventory);
+  });
+
+  it("rebuilds an evicted inventory on a result-cache hit", async () => {
+    const { client, parse, inventoryCache } = realWorker();
+    const bytes = await corpusDeck("fonts-hidden");
+    const first = await client.scan(bytes.slice(), "fh", {});
+    inventoryCache.entries.clear();
+    const again = await client.scan(bytes.slice(), "fh", {});
+    expect(again.result.fromCache).toBe(true);
+    expect(parse).toHaveBeenCalledTimes(2);
+    expect(again.inventory).toEqual(first.inventory);
+  });
+
+  it("omits the inventory (without failing) when it cannot be built", async () => {
+    const run = vi.fn(async (_b: unknown, hash: string) => fakeResult(hash));
+    const client = createAuditClient({ createWorker: () => new InProcessWorker({ run, inventoryCache: createInventoryCache() }) });
+    const out = await client.scan(new Uint8Array([1, 2]), "nope", {});
+    expect(out.result.hash).toBe("nope");
+    expect(out.inventory).toBeUndefined();
   });
 });

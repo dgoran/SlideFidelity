@@ -40,13 +40,15 @@ export interface HeaderProps {
   scan: ScanState;
   onScan: () => void;
   accountSlot?: ReactNode;
+  settingsSlot?: ReactNode;
   formatTime?: (t: number) => string;
 }
 
-export function Header({ scan, onScan, accountSlot, formatTime = defaultFormatTime }: HeaderProps) {
+export function Header({ scan, onScan, accountSlot, settingsSlot, formatTime = defaultFormatTime }: HeaderProps) {
   const s = useStyles();
   const hasResults = scan.status === "ready" || (scan.status !== "not-scanned" && scan.previous !== undefined);
   const outdated = scan.status === "ready" && scan.possiblyOutdated;
+  const optionsChanged = scan.status === "ready" && scan.optionsChanged === true;
   return (
     <header className={s.header}>
       <div className={s.brand}>
@@ -56,18 +58,25 @@ export function Header({ scan, onScan, accountSlot, formatTime = defaultFormatTi
           <p className={s.status} data-scan-status="">
             {statusText(scan, formatTime)}
             {outdated && <span className={s.hint}> · The presentation may have changed since this scan.</span>}
+            {optionsChanged && (
+              <span className={s.hint} data-options-changed="">
+                {" "}
+                · Brand profile changed. Rescan to apply it.
+              </span>
+            )}
           </p>
         </div>
       </div>
       <div className={s.actions}>
         <Button
-          appearance={scan.status === "not-scanned" || outdated ? "primary" : "secondary"}
+          appearance={scan.status === "not-scanned" || outdated || optionsChanged ? "primary" : "secondary"}
           icon={hasResults ? <ArrowClockwise16Regular /> : undefined}
           disabled={scan.status === "scanning"}
           onClick={onScan}
         >
           {hasResults ? "Rescan" : "Scan"}
         </Button>
+        {settingsSlot}
         {accountSlot}
       </div>
     </header>

@@ -6,6 +6,7 @@
  * bytes stay available (D16). Every failure surfaces as a `ScanError` with a user-facing kind.
  */
 import { isPackageError, type AuditOptions, type AuditResult, type ProgressEvent } from "@slidecheck/audit-core";
+import type { ScanInventory } from "../inspector/model";
 import { AuditClientError, createAuditClient, type AuditClient } from "../worker/client";
 import { SnapshotError, readSnapshot as defaultReadSnapshot, type Snapshot } from "./snapshot";
 
@@ -81,6 +82,8 @@ export interface LastScan {
   /** The scanned `.pptx` bytes (the service's own copy; D16 "pre-fix copy"). */
   bytes: Uint8Array;
   result: AuditResult;
+  /** Every scanned slide and shape (U11 Inspector), when the worker could build it. */
+  inventory?: ScanInventory;
   /** Serialized audit options the result was computed with. */
   optionsKey: string;
   scannedAt: number;
@@ -92,6 +95,8 @@ export interface RescanForFixResult {
   changed: boolean;
   hash: string;
   bytes: Uint8Array;
+  /** The scan inventory for `result` (U11), when available. */
+  inventory?: ScanInventory;
 }
 
 export interface ScanService {
@@ -162,12 +167,12 @@ export function createScanService(deps: ScanServiceDeps = {}): ScanService {
     const opts = getOptions();
     const keep = snap.bytes.slice();
     // The client transfers its input buffer to the worker, so hand it a separate copy.
-    const result = await getClient().scan(snap.bytes, snap.sha256, opts, {
+    const { result, inventory } = await getClient().scan(snap.bytes, snap.sha256, opts, {
       signal: ctrl.signal,
       ...(o.onProgress ? { onProgress: o.onProgress } : {}),
     });
     assertLive(ctrl);
-    last = { hash: snap.sha256, bytes: keep, result, optionsKey: optionsKey(opts), scannedAt: now() };
+    last = { hash: snap.sha256, bytes: keep, result, ...(inventory ? { inventory } : {}), optionsKey: optionsKey(opts), scannedAt: now() };
     return result;
   }
 
@@ -197,10 +202,11 @@ export function createScanService(deps: ScanServiceDeps = {}): ScanService {
         const snap = await readFile(ctrl, o);
         const prev = last;
         if (prev && prev.hash === snap.sha256 && prev.optionsKey === optionsKey(getOptions())) {
-          return { result: prev.result, changed: false, hash: prev.hash, bytes: prev.bytes };
+          return { result: prev.result, changed: false, hash: prev.hash, bytes: prev.bytes, ...(prev.inventory ? { inventory: prev.inventory } : {}) };
         }
         const result = await audit(ctrl, snap, o);
-        return { result, changed: true, hash: snap.sha256, bytes: last!.bytes };
+        const inventory = last!.inventory;
+        return { result, changed: true, hash: snap.sha256, bytes: last!.bytes, ...(inventory ? { inventory } : {}) };
       });
     },
     cancel() {
