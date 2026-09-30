@@ -22,16 +22,18 @@ export interface CapabilityButtonProps {
   appearance?: ButtonProps["appearance"];
   size?: ButtonProps["size"];
   icon?: ButtonProps["icon"];
+  /** Accessible name when the visible text alone is ambiguous (e.g. "Edit" in a list). */
+  ariaLabel?: string;
   children?: ReactNode;
 }
 
-export function CapabilityButton({ feature, disabled, children, onClick, appearance, size, icon }: CapabilityButtonProps) {
+export function CapabilityButton({ feature, disabled, children, onClick, appearance, size, icon, ariaLabel }: CapabilityButtonProps) {
   const s = useStyles();
   const reason = useCapabilities().explain(feature);
   const noteId = useId();
   return (
     <span className={s.wrap}>
-      <Button appearance={appearance} size={size} icon={icon} onClick={onClick} disabled={!!reason || !!disabled} aria-describedby={reason ? noteId : undefined}>
+      <Button appearance={appearance} size={size} icon={icon} onClick={onClick} aria-label={ariaLabel} disabled={!!reason || !!disabled} aria-describedby={reason ? noteId : undefined}>
         {children}
       </Button>
       {reason && (

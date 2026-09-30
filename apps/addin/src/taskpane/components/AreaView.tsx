@@ -76,7 +76,8 @@ export function AreaView({ area, result, viewportHeight }: AreaViewProps) {
   return (
     <div className={s.root} data-area-view={area}>
       {(area === "fonts" || area === "colors") && brandSlot?.({ area })}
-      {allowed.length > 0 && fixPanelSlot?.({ area, findings: visible })}
+      {/* Always offered: the fix panel decides (it keeps showing a fix summary after the area empties). */}
+      {fixPanelSlot?.({ area, findings: visible })}
       {nothing && (
         <div data-empty-state="">
           <p className={s.empty}>No issues found</p>

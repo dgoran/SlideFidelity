@@ -5,7 +5,7 @@
  * Services: capabilities → navigator + selection echo guard (U11), the brand store (D9) feeding
  * the scan service's `getOptions`, and ONE license service (U15) driving the gate's plan through
  * `LicenseBridge`. Slots: Inspector (U11), account entry + notices (U15), settings entry and the
- * Fonts/Colors brand editor (D9). U12/U13 add `fixPanelSlot` / `renderRowActions` here.
+ * Fonts/Colors brand editor (D9), and the fix panel + row actions (U12/U13) over `PowerPoint.run`.
  */
 import { createRoot } from "react-dom/client";
 import { FluentProvider, webLightTheme } from "@fluentui/react-components";
@@ -18,6 +18,7 @@ import { AccountEntry, AccountNotices } from "./components/Account";
 import { BrandEditor, BrandSettingsEntry } from "./components/BrandEditor";
 import { Inspector } from "./components/Inspector";
 import { createSelectionEchoGuard, type PaneServices, type PaneSlots } from "./context";
+import { createFixSlots } from "./fixes";
 import { LicenseBridge } from "./license/LicenseBridge";
 import { TaskPaneRoot } from "./Root";
 
@@ -54,7 +55,19 @@ void Office.onReady(() => {
     selectionGuard: createSelectionEchoGuard(),
   };
   const scanService = createScanService({ getOptions: () => brandStore.auditOptions() });
+  const fixSlots = createFixSlots({
+    run: (batch) => PowerPoint.run(batch),
+    createPresentation: (base64File) => PowerPoint.createPresentation(base64File),
+    isSetSupported: (version) => {
+      try {
+        return Office.context.requirements.isSetSupported("PowerPointApi", version);
+      } catch {
+        return false;
+      }
+    },
+  });
   const slots: PaneSlots = {
+    ...fixSlots,
     inspectorSlot: <Inspector />,
     accountSlot: <AccountEntry />,
     noticeSlot: <AccountNotices />,
