@@ -35,5 +35,5 @@ LINKCHECK_GLOBAL_DAILY_URL_CAP = "20000"
 #   ENTITLEMENT_PRIVATE_KEY Ed25519 private key as JWK JSON (see scripts/generate-entitlement-key.mjs)
 #   PADDLE_WEBHOOK_SECRET   Paddle notification destination secret key
 #   PADDLE_API_KEY          Paddle API key (subscription cancel, customer portal)
-#   EMAIL_API_KEY           Transactional email provider key (provider TBD)
+#   EMAIL_API_KEY           Resend API key (sending domain must be verified in Resend with SPF + DKIM)
 #   REVIEWER_CODE           Static sign-in code for REVIEWER_EMAIL (AppSource validation)
