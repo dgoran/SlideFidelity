@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Same CSP as the task pane (webpack templateParameters.csp). No inline script: the bundle is injected. -->
+    <meta http-equiv="Content-Security-Policy" content="<%= csp %>" />
+    <title>Sign in to SlideCheck</title>
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+        font-size: 14px;
+        line-height: 20px;
+        color: #242424;
+        background: #fff;
+      }
+      h1 {
+        font-size: 20px;
+        line-height: 28px;
+        font-weight: 600;
+        margin: 0 0 8px;
+      }
+      p {
+        margin: 0 0 16px;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      input {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 360px;
+        padding: 6px 10px;
+        font: inherit;
+        border: 1px solid #d1d1d1;
+        border-bottom-color: #616161;
+        border-radius: 4px;
+        margin-bottom: 16px;
+      }
+      input:focus {
+        outline: 2px solid #0f6cbd;
+        outline-offset: -1px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      button {
+        font: inherit;
+        font-weight: 600;
+        padding: 5px 12px;
+        border-radius: 4px;
+        border: 1px solid #d1d1d1;
+        background: #fff;
+        color: #242424;
+        cursor: pointer;
+      }
+      button.primary {
+        background: #0f6cbd;
+        border-color: #0f6cbd;
+        color: #fff;
+      }
+      button.link {
+        border: none;
+        background: none;
+        color: #0f6cbd;
+        padding: 5px 0;
+        font-weight: 400;
+      }
+      button:disabled {
+        background: #f0f0f0;
+        border-color: #e0e0e0;
+        color: #bdbdbd;
+        cursor: default;
+      }
+      #error {
+        color: #b10e1c;
+        min-height: 20px;
+      }
+      #status {
+        color: #616161;
+        min-height: 20px;
+      }
+      .footer {
+        margin-top: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Sign in to SlideCheck</h1>
+
+      <section id="email-step">
+        <p>New accounts get a 30-day free trial of SlideCheck Pro. No card needed.</p>
+        <form id="email-form" novalidate>
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" required />
+          <div class="actions">
+            <button id="email-submit" class="primary" type="submit">Send code</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="code-step" hidden>
+        <p id="code-sent-to"></p>
+        <form id="code-form" novalidate>
+          <label for="code">Code</label>
+          <input id="code" name="code" type="text" autocomplete="one-time-code" inputmode="numeric" required />
+          <div class="actions">
+            <button id="code-submit" class="primary" type="submit">Sign in</button>
+            <button id="resend" type="button" disabled>Resend code</button>
+          </div>
+        </form>
+        <div class="actions">
+          <button id="change-email" class="link" type="button">Use a different email</button>
+        </div>
+      </section>
+
+      <p id="error" role="alert"></p>
+      <p id="status" aria-live="polite"></p>
+
+      <div class="footer actions">
+        <button id="cancel" type="button">Cancel</button>
+      </div>
+    </main>
+  </body>
+</html>
