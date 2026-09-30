@@ -1,0 +1,39 @@
+# SlideCheck license API (U14, KTD7/KTD8/KTD9).
+# Placeholders only: replace database_id after `wrangler d1 create slidecheck-license`.
+name = "slidecheck-license-api"
+main = "src/index.ts"
+compatibility_date = "2026-08-15"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "slidecheck-license"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+# Daily housekeeping: purge expired OTP codes, sessions, and rate-limit windows.
+[triggers]
+crons = ["17 3 * * *"]
+
+[vars]
+# Comma-separated list of browser origins allowed by CORS (add-in + site).
+ALLOWED_ORIGINS = "https://app.slidecheck.io,https://slidecheck.io"
+# Public website base URL used for account-bound checkout links.
+SITE_URL = "https://slidecheck.io"
+# Key id placed in entitlement tokens; bump when rotating ENTITLEMENT_PRIVATE_KEY.
+ENTITLEMENT_KID = "ent-2026-09"
+# "sandbox" or "production" (selects the Paddle API host).
+PADDLE_ENV = "sandbox"
+EMAIL_FROM = "SlideCheck <signin@slidecheck.io>"
+# AppSource reviewer account (code comes from the REVIEWER_CODE secret).
+REVIEWER_EMAIL = "appsource-review@slidecheck.io"
+# Abuse limits (optional overrides; defaults live in src/ratelimit.ts).
+LINKCHECK_GLOBAL_DAILY_URL_CAP = "20000"
+
+# Secrets (set with `wrangler secret put <NAME>`; never commit values):
+#   SESSION_SECRET          HMAC key for session JWTs and OTP hashing pepper (>= 32 random bytes)
+#   ENTITLEMENT_PRIVATE_KEY Ed25519 private key as JWK JSON (see scripts/generate-entitlement-key.mjs)
+#   PADDLE_WEBHOOK_SECRET   Paddle notification destination secret key
+#   PADDLE_API_KEY          Paddle API key (subscription cancel, customer portal)
+#   EMAIL_API_KEY           Transactional email provider key (provider TBD)
+#   REVIEWER_CODE           Static sign-in code for REVIEWER_EMAIL (AppSource validation)
