@@ -17,15 +17,9 @@ import type { PackageInput } from "./package/zip";
 // ---------------------------------------------------------------------------------------------
 // Options and checks
 
-/**
- * Brand profile (R22). Minimal placeholder: U6 refines it (and may move it to `brand.ts`, re-exported
- * from here). Colors are upper-case `RRGGBB` hex without `#`; `tolerance` is a CIEDE2000 distance.
- */
-export interface BrandProfile {
-  fonts: string[];
-  colors: string[];
-  tolerance: number;
-}
+// Brand profile (R22) lives in brand.ts; re-exported here for check authors.
+import type { BrandProfile } from "./brand";
+export type { BrandProfile } from "./brand";
 
 /** Serializable scan options (they cross the worker boundary and form part of the cache key). */
 export interface AuditOptions {
