@@ -16,6 +16,10 @@ export interface Subscription {
   status: string;
   current_period_end: number | null;
   last_event_at: number;
+  /** D17 metrics: Paddle first_billed_at, else the first active/past_due event time. Earliest value wins. */
+  first_active_at?: number | null;
+  /** D17 metrics: when the subscription was canceled; null while not canceled. */
+  canceled_at?: number | null;
 }
 
 export interface OtpRow {
@@ -115,18 +119,36 @@ export async function listSubscriptions(db: D1Database, accountId: string): Prom
 export function upsertSubscriptionStatement(db: D1Database, s: Subscription, now: number): D1PreparedStatement {
   return db
     .prepare(
-      `INSERT INTO subscriptions (paddle_subscription_id, account_id, paddle_customer_id, status, current_period_end, last_event_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO subscriptions (paddle_subscription_id, account_id, paddle_customer_id, status, current_period_end, last_event_at, updated_at,
+                                  created_at, first_active_at, canceled_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (paddle_subscription_id) DO UPDATE SET
          account_id = excluded.account_id,
          paddle_customer_id = COALESCE(excluded.paddle_customer_id, subscriptions.paddle_customer_id),
          status = excluded.status,
          current_period_end = excluded.current_period_end,
          last_event_at = excluded.last_event_at,
-         updated_at = excluded.updated_at
+         updated_at = excluded.updated_at,
+         created_at = COALESCE(subscriptions.created_at, excluded.created_at),
+         first_active_at = CASE
+           WHEN subscriptions.first_active_at IS NULL THEN excluded.first_active_at
+           WHEN excluded.first_active_at IS NULL THEN subscriptions.first_active_at
+           ELSE MIN(subscriptions.first_active_at, excluded.first_active_at) END,
+         canceled_at = excluded.canceled_at
        WHERE excluded.last_event_at >= subscriptions.last_event_at`,
     )
-    .bind(s.paddle_subscription_id, s.account_id, s.paddle_customer_id, s.status, s.current_period_end, s.last_event_at, now);
+    .bind(
+      s.paddle_subscription_id,
+      s.account_id,
+      s.paddle_customer_id,
+      s.status,
+      s.current_period_end,
+      s.last_event_at,
+      now,
+      now,
+      s.first_active_at ?? null,
+      s.canceled_at ?? null,
+    );
 }
 
 // --- deletion and housekeeping ---

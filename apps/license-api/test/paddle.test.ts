@@ -23,6 +23,7 @@ interface SubEvent {
   periodEnd?: number | null;
   occurredAt?: number;
   subscriptionId?: string;
+  extra?: Record<string, unknown>;
 }
 
 function eventBody(h: Harness, e: SubEvent): string {
@@ -43,6 +44,7 @@ function eventBody(h: Harness, e: SubEvent): string {
               starts_at: new Date(h.clock.t - DAY).toISOString(),
               ends_at: new Date(e.periodEnd ?? h.clock.t + 30 * DAY).toISOString(),
             },
+      ...e.extra,
     },
   });
 }
@@ -193,5 +195,41 @@ describe("POST /paddle/webhook", () => {
     const body = JSON.stringify({ event_id: "evt_tx", event_type: "transaction.completed", occurred_at: new Date(h.clock.t).toISOString(), data: {} });
     expect((await send(h, body)).status).toBe(200);
     expect(await count("subscriptions")).toBe(0);
+  });
+
+  describe("lifecycle timestamps for metrics (D17)", () => {
+    type Row = { created_at: number | null; first_active_at: number | null; canceled_at: number | null };
+    const row = () => env.DB.prepare("SELECT created_at, first_active_at, canceled_at FROM subscriptions").first<Row>();
+
+    it("stores Paddle first_billed_at as first_active_at and keeps it across later events", async () => {
+      const h = makeHarness();
+      const { accountId } = await h.signIn("life@example.com");
+      const billed = h.clock.t - 3_600_000;
+      const created = h.clock.t;
+      await send(h, eventBody(h, { eventId: "evt_l1", type: "subscription.activated", status: "active", accountId, extra: { first_billed_at: new Date(billed).toISOString() } }));
+      expect(await row()).toEqual({ created_at: created, first_active_at: billed, canceled_at: null });
+      h.clock.advance(DAY);
+      await send(h, eventBody(h, { eventId: "evt_l2", type: "subscription.updated", status: "active", accountId }));
+      expect(await row()).toEqual({ created_at: created, first_active_at: billed, canceled_at: null });
+    });
+
+    it("falls back to the event time for first_active_at and records canceled_at", async () => {
+      const h = makeHarness();
+      const { accountId } = await h.signIn("life2@example.com");
+      const activeAt = h.clock.t;
+      await send(h, eventBody(h, { eventId: "evt_m1", type: "subscription.activated", status: "active", accountId }));
+      expect((await row())?.first_active_at).toBe(activeAt);
+      h.clock.advance(10 * DAY);
+      const canceledAt = h.clock.t - 60_000;
+      await send(h, eventBody(h, { eventId: "evt_m2", type: "subscription.canceled", status: "canceled", accountId, periodEnd: null, extra: { canceled_at: new Date(canceledAt).toISOString() } }));
+      expect(await row()).toMatchObject({ first_active_at: activeAt, canceled_at: canceledAt });
+    });
+
+    it("a subscription canceled before ever being active has no first_active_at", async () => {
+      const h = makeHarness();
+      const { accountId } = await h.signIn("life3@example.com");
+      await send(h, eventBody(h, { eventId: "evt_n", type: "subscription.canceled", status: "canceled", accountId, periodEnd: null }));
+      expect(await row()).toMatchObject({ first_active_at: null, canceled_at: h.clock.t });
+    });
   });
 });

@@ -6,8 +6,8 @@ beforeEach(resetDb);
 
 type Result = { url: string; status: "ok" | "broken" | "unverified"; reason?: string; http_status?: number };
 
-async function proHarness(overrides = {}) {
-  const h = makeHarness(overrides);
+async function proHarness(overrides = {}, opts: { linkTimeoutMs?: number } = {}) {
+  const h = makeHarness(overrides, opts);
   const s = await h.signIn("links@example.com"); // trial counts as Pro
   return { ...h, token: s.token, accountId: s.accountId };
 }
@@ -162,7 +162,7 @@ describe("POST /linkcheck statuses", () => {
   });
 
   it("times out slow servers as unverified", async () => {
-    const h = await proHarness();
+    const h = await proHarness({}, { linkTimeoutMs: 50 });
     h.fetcher.on(
       "https://slow.example.com/",
       (req) =>

@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
+import { PaddleApiClient } from "../src/paddle";
 import { count, makeHarness, resetDb } from "./helpers";
 
 beforeEach(resetDb);
@@ -11,12 +12,12 @@ async function hmacHex(secret: string, data: string): Promise<string> {
     .join("");
 }
 
-async function subscribe(h: ReturnType<typeof makeHarness>, accountId: string, id: string, status: string) {
+async function subscribe(h: ReturnType<typeof makeHarness>, accountId: string, id: string, status: string, customerId: string | null = "ctm_9") {
   const body = JSON.stringify({
-    event_id: `evt_${id}_${status}`,
-    event_type: status === "canceled" ? "subscription.canceled" : "subscription.activated",
+    event_id: `evt_${id}_${status}_${h.clock.t}`,
+    event_type: status === "canceled" ? "subscription.canceled" : status === "active" ? "subscription.activated" : "subscription.updated",
     occurred_at: new Date(h.clock.t).toISOString(),
-    data: { id, status, customer_id: "ctm_9", custom_data: { account_id: accountId }, current_billing_period: null },
+    data: { id, status, customer_id: customerId, custom_data: { account_id: accountId }, current_billing_period: null },
   });
   const ts = Math.floor(h.clock.t / 1000);
   const sig = await hmacHex(env.PADDLE_WEBHOOK_SECRET, `${ts}:${body}`);
@@ -66,16 +67,84 @@ describe("DELETE /account", () => {
 });
 
 describe("GET /billing/links", () => {
-  it("returns an account-bound checkout link and a portal link once a customer exists", async () => {
+  it("points checkout at the site account page and returns no portal link without a Paddle customer", async () => {
+    const h = makeHarness();
+    const { token } = await h.signIn("bill@example.com");
+    const res = await h.request("/billing/links", { token });
+    expect(res.status).toBe(200);
+    const body = await res.json<{ checkout_url: string; portal_url: string | null }>();
+    expect(body.checkout_url).toBe(new URL("/account.html", env.SITE_URL).toString());
+    expect(body.portal_url).toBeNull();
+    expect(h.paddle.portalCalls).toEqual([]);
+  });
+
+  it("returns a fresh portal session URL for a subscribed account", async () => {
     const h = makeHarness();
     const { token, accountId } = await h.signIn("bill@example.com");
-    const before = await (await h.request("/billing/links", { token })).json<{ checkout_url: string; portal_url: string | null }>();
-    expect(new URL(before.checkout_url).searchParams.get("account_id")).toBe(accountId);
-    expect(before.checkout_url.startsWith(env.SITE_URL)).toBe(true);
-    expect(before.portal_url).toBeNull();
     await subscribe(h, accountId, "sub_b", "active");
-    const after = await (await h.request("/billing/links", { token })).json<{ portal_url: string | null }>();
-    expect(after.portal_url).toContain("ctm_9");
+    const first = await (await h.request("/billing/links", { token })).json<{ portal_url: string | null }>();
+    const second = await (await h.request("/billing/links", { token })).json<{ portal_url: string | null }>();
+    expect(first.portal_url).toContain("ctm_9");
+    expect(second.portal_url).toContain("ctm_9");
+    // A new portal session is created on every request (portal links are short-lived).
+    expect(h.paddle.portalCalls).toEqual(["ctm_9", "ctm_9"]);
+  });
+
+  it("returns portal_url null, not a 5xx, when Paddle fails", async () => {
+    const h = makeHarness();
+    const { token, accountId } = await h.signIn("bill@example.com");
+    await subscribe(h, accountId, "sub_b", "active");
+    h.paddle.portalFail = true;
+    const res = await h.request("/billing/links", { token });
+    expect(res.status).toBe(200);
+    const body = await res.json<{ checkout_url: string; portal_url: string | null }>();
+    expect(body.portal_url).toBeNull();
+    expect(body.checkout_url).toContain("/account.html");
+  });
+
+  it("keeps the customer id when a later event omits it", async () => {
+    const h = makeHarness();
+    const { token, accountId } = await h.signIn("bill@example.com");
+    await subscribe(h, accountId, "sub_b", "active");
+    h.clock.advance(1000);
+    await subscribe(h, accountId, "sub_b", "past_due", null);
+    const body = await (await h.request("/billing/links", { token })).json<{ portal_url: string | null }>();
+    expect(body.portal_url).toContain("ctm_9");
+  });
+
+  it("requires a session", async () => {
+    const h = makeHarness();
     expect((await h.request("/billing/links")).status).toBe(401);
+  });
+});
+
+describe("PaddleApiClient.createPortalSession", () => {
+  it("posts to the customer portal-sessions endpoint with the API key and returns the overview URL", async () => {
+    const calls: { url: string; auth: string | null; method: string }[] = [];
+    const fetcher: typeof fetch = async (input, init) => {
+      const req = new Request(input, init);
+      calls.push({ url: req.url, auth: req.headers.get("Authorization"), method: req.method });
+      return Response.json({ data: { id: "cpls_1", urls: { general: { overview: "https://customer-portal.paddle.com/cpl_1?action=overview&token=t" } } } });
+    };
+    const client = new PaddleApiClient("pdl_live_key", "production", fetcher);
+    await expect(client.createPortalSession("ctm_42")).resolves.toBe("https://customer-portal.paddle.com/cpl_1?action=overview&token=t");
+    expect(calls).toEqual([{ url: "https://api.paddle.com/customers/ctm_42/portal-sessions", auth: "Bearer pdl_live_key", method: "POST" }]);
+  });
+
+  it("uses the sandbox host outside production", async () => {
+    const urls: string[] = [];
+    const fetcher: typeof fetch = async (input, init) => {
+      urls.push(new Request(input, init).url);
+      return Response.json({ data: { urls: { general: { overview: "https://sandbox-customer-portal.paddle.com/x" } } } });
+    };
+    await new PaddleApiClient("k", "sandbox", fetcher).createPortalSession("ctm_1");
+    expect(urls).toEqual(["https://sandbox-api.paddle.com/customers/ctm_1/portal-sessions"]);
+  });
+
+  it("throws on an error response or a missing URL", async () => {
+    const failing = new PaddleApiClient("k", "sandbox", async () => Response.json({ error: { code: "not_found" } }, { status: 404 }));
+    await expect(failing.createPortalSession("ctm_1")).rejects.toThrow();
+    const empty = new PaddleApiClient("k", "sandbox", async () => Response.json({ data: {} }));
+    await expect(empty.createPortalSession("ctm_1")).rejects.toThrow();
   });
 });

@@ -64,14 +64,22 @@ export function createApp(overrides?: DepsOverrides) {
   app.post("/linkcheck", requireSession, handleLinkcheck);
   app.post("/paddle/webhook", handlePaddleWebhook);
 
-  // Account-bound purchase links (KTD7). The site passes account_id into Paddle checkout custom_data.
+  // Account-bound purchase links (KTD7). Checkout happens on the site account page, which signs the
+  // user in and passes account_id into Paddle checkout custom_data. The portal link is a fresh
+  // Paddle customer-portal session; any Paddle failure degrades to null rather than a 5xx.
   app.get("/billing/links", requireSession, async (c) => {
     const account = c.var.account;
-    const checkout = new URL("/checkout", c.env.SITE_URL);
-    checkout.searchParams.set("account_id", account.id);
+    const checkout = new URL("/account.html", c.env.SITE_URL);
     const customer = (await listSubscriptions(c.env.DB, account.id)).find((s) => s.paddle_customer_id)?.paddle_customer_id;
     let portal: string | null = null;
-    if (customer) portal = await c.var.deps.paddle.createPortalUrl(customer).catch(() => null);
+    if (customer) {
+      try {
+        portal = await c.var.deps.paddle.createPortalSession(customer);
+      } catch {
+        console.error("paddle portal session failed");
+        portal = null;
+      }
+    }
     return c.json({ checkout_url: checkout.toString(), portal_url: portal });
   });
 

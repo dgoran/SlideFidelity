@@ -3,6 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "rm -rf dist && cp -R src dist"
+    "build": "rm -rf dist && cp -R src dist && test -f dist/config.js && test -f dist/account.js && test -f dist/_headers"
   }
 }

@@ -28,8 +28,12 @@ export class FakePaddleClient implements PaddleClient {
     if (this.fail) throw new Error("paddle down");
     this.canceled.push(subscriptionId);
   }
-  async createPortalUrl(customerId: string): Promise<string | null> {
-    return `https://sandbox-customer-portal.paddle.com/${customerId}`;
+  portalFail = false;
+  portalCalls: string[] = [];
+  async createPortalSession(customerId: string): Promise<string> {
+    this.portalCalls.push(customerId);
+    if (this.portalFail) throw new Error("paddle portal down");
+    return `https://sandbox-customer-portal.paddle.com/cpl_test/overview?customer=${customerId}`;
   }
 }
 
@@ -79,7 +83,11 @@ export class Clock {
   }
 }
 
-export function makeHarness(overrides: Partial<AppBindings> = {}) {
+// Generous by default so a loaded machine never turns a mocked "ok" into a timeout; only the
+// timeout test shortens it.
+export const TEST_LINK_TIMEOUT_MS = 2000;
+
+export function makeHarness(overrides: Partial<AppBindings> = {}, opts: { linkTimeoutMs?: number } = {}) {
   const email = new CapturingEmailSender();
   const paddle = new FakePaddleClient();
   const resolver = new FakeResolver();
@@ -91,7 +99,7 @@ export function makeHarness(overrides: Partial<AppBindings> = {}) {
     resolver,
     fetch: fetcher.fetch,
     now: clock.now,
-    linkTimeoutMs: 100,
+    linkTimeoutMs: opts.linkTimeoutMs ?? TEST_LINK_TIMEOUT_MS,
   }));
   const bindings: AppBindings = { ...env, ...overrides };
 

@@ -7,8 +7,12 @@ import { hmacSha256, timingSafeEqual, toHex, utf8 } from "./util";
 export interface PaddleClient {
   /** Cancels immediately. Must succeed (or already be canceled) before account deletion proceeds. */
   cancelSubscription(subscriptionId: string): Promise<void>;
-  /** Returns an authenticated customer-portal URL, or null if unavailable. */
-  createPortalUrl(customerId: string): Promise<string | null>;
+  /**
+   * Creates a Paddle customer-portal session and returns its authenticated overview URL
+   * (`data.urls.general.overview`). Portal links are short-lived, so callers create one per request.
+   * Throws when Paddle fails or returns no URL.
+   */
+  createPortalSession(customerId: string): Promise<string>;
 }
 
 export class PaddleApiClient implements PaddleClient {
@@ -38,11 +42,13 @@ export class PaddleApiClient implements PaddleClient {
     throw new Error(`paddle cancel failed: ${res.status}`);
   }
 
-  async createPortalUrl(customerId: string): Promise<string | null> {
+  async createPortalSession(customerId: string): Promise<string> {
     const res = await this.call(`/customers/${encodeURIComponent(customerId)}/portal-sessions`, {});
-    if (!res.ok) return null;
-    const body = (await res.json().catch(() => null)) as { data?: { urls?: { general?: { overview?: string } } } } | null;
-    return body?.data?.urls?.general?.overview ?? null;
+    if (!res.ok) throw new Error(`paddle portal session failed: ${res.status}`);
+    const body = (await res.json().catch(() => null)) as { data?: { urls?: { general?: { overview?: unknown } } } } | null;
+    const url = body?.data?.urls?.general?.overview;
+    if (typeof url !== "string" || !url.startsWith("https://")) throw new Error("paddle portal session returned no URL");
+    return url;
   }
 }
 
@@ -90,6 +96,8 @@ interface PaddleEvent {
     customer_id?: unknown;
     custom_data?: { account_id?: unknown } | null;
     current_billing_period?: { ends_at?: unknown } | null;
+    first_billed_at?: unknown;
+    canceled_at?: unknown;
   };
 }
 
@@ -124,6 +132,8 @@ export async function handlePaddleWebhook(c: Context<HonoEnv>) {
   let applied = false;
   const d = event.data;
   if (HANDLED.has(event.event_type) && d && typeof d.id === "string" && typeof d.status === "string") {
+    const occurredAt = parseTime(event.occurred_at) ?? now;
+    const isPaying = d.status === "active" || d.status === "past_due";
     const accountId = d.custom_data?.account_id;
     const account = typeof accountId === "string" ? await getAccountById(db, accountId) : null;
     if (account) {
@@ -136,7 +146,9 @@ export async function handlePaddleWebhook(c: Context<HonoEnv>) {
             paddle_customer_id: typeof d.customer_id === "string" ? d.customer_id : null,
             status: d.status,
             current_period_end: parseTime(d.current_billing_period?.ends_at),
-            last_event_at: parseTime(event.occurred_at) ?? now,
+            last_event_at: occurredAt,
+            first_active_at: parseTime(d.first_billed_at) ?? (isPaying ? occurredAt : null),
+            canceled_at: d.status === "canceled" ? (parseTime(d.canceled_at) ?? occurredAt) : null,
           },
           now,
         ),
