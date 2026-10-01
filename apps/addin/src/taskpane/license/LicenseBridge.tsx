@@ -2,13 +2,17 @@
  * Licensing bridge (U15): connects ONE `LicenseService` to the pane.
  *
  * - `init()` once when mounted (index.tsx mounts inside `Office.onReady`), `refreshIfStale()` on
- *   every window focus (R21: a purchase on the website shows up when the user comes back).
+ *   every window focus (R21: a purchase on the website shows up when the user comes back). The
+ *   first focus after Manage subscription forces `refresh()`; without Pro access the staleness
+ *   window on focus is one minute, so a purchase made elsewhere shows within a minute.
  * - The service's state drives the gate's plan (`PlanProvider`, D7/D8/D13).
  * - `signIn()` opens the sign-in dialog SYNCHRONOUSLY (Office on the web only allows dialogs from
  *   a user gesture), then adopts the session with `acceptSession`. Dialog outcomes (dismissed,
  *   cancelled, blocked by a pop-up blocker, already open) become a plain-language notice.
  * - `manageSubscription()` opens the account / billing page with `openBrowserWindow`. The URL is
- *   fetched ahead of time (on every account change) so the window opens inside the click.
+ *   fetched ahead of time (on every account change, and on focus once older than 5 minutes) so the
+ *   window opens inside the click. Portal links are short-lived, so a cached URL older than that,
+ *   or the offline fallback page, is not used; the click fetches a new one instead.
  */
 import {
   createContext,
@@ -27,7 +31,7 @@ import type { Plan } from "../../license/gate";
 
 export type LicenseServiceLike = Pick<
   LicenseService,
-  "getState" | "subscribe" | "init" | "refresh" | "refreshIfStale" | "acceptSession" | "signOut" | "deleteAccount" | "manageSubscriptionUrl"
+  "getState" | "subscribe" | "init" | "refresh" | "refreshIfStale" | "acceptSession" | "signOut" | "deleteAccount" | "manageSubscriptionLink"
 >;
 
 export interface LicenseUi {
@@ -66,6 +70,23 @@ export function signInFailureMessage(e: unknown): string {
 }
 
 const isHttpsUrl = (u: string): boolean => /^https:\/\//i.test(u);
+
+/** A prefetched manage URL is opened inside the click only while younger than this (portal sessions are short-lived). */
+export const MANAGE_URL_TTL_MS = 5 * 60_000;
+/** Focus staleness window while the plan has no Pro access (R21: a purchase made elsewhere shows within a minute). */
+export const NO_PRO_FOCUS_STALE_MS = 60_000;
+
+const hasProAccess = (plan: Plan): boolean => plan === "pro" || plan === "trial";
+
+interface PrefetchedUrl {
+  url: string;
+  fetchedAt: number;
+  /** The site fallback served when the billing links could not be fetched. */
+  fallback: boolean;
+}
+
+const usable = (p: PrefetchedUrl | null, now: number): p is PrefetchedUrl =>
+  p !== null && !p.fallback && now - p.fetchedAt < MANAGE_URL_TTL_MS;
 
 export interface AccountContextValue {
   state: LicenseState;
@@ -111,7 +132,10 @@ export function LicenseBridge({ service, ui = defaultLicenseUi, skipInit = false
   const [signingIn, setSigningIn] = useState(false);
   const [signInNotice, setSignInNotice] = useState<string | null>(null);
   const signingRef = useRef(false);
-  const manageUrl = useRef<string | null>(null);
+  const manageUrl = useRef<PrefetchedUrl | null>(null);
+  const prefetchGen = useRef(0);
+  /** Set when Manage subscription / checkout was opened; the next focus forces a refresh. */
+  const pendingPurchase = useRef(false);
   const uiRef = useRef(ui);
   uiRef.current = ui;
   const mounted = useRef(true);
@@ -123,28 +147,42 @@ export function LicenseBridge({ service, ui = defaultLicenseUi, skipInit = false
     };
   }, []);
 
+  // Prefetch the manage-subscription URL so the click can open it synchronously.
+  const prefetchManageUrl = useCallback(() => {
+    const gen = ++prefetchGen.current;
+    void service
+      .manageSubscriptionLink()
+      .then((l) => {
+        if (gen === prefetchGen.current && isHttpsUrl(l.url)) {
+          manageUrl.current = { url: l.url, fetchedAt: Date.now(), fallback: l.fallback };
+        }
+      })
+      .catch(() => {});
+  }, [service]);
+
   // Init once; refresh when the user comes back to the pane.
   useEffect(() => {
     if (!skipInit) void service.init().catch(() => {});
-    const unsubscribe = uiRef.current.subscribeFocus?.(() => void service.refreshIfStale().catch(() => {}));
+    const onFocus = () => {
+      if (pendingPurchase.current) {
+        // Back from the billing page: check now, not after the hourly staleness window.
+        pendingPurchase.current = false;
+        void service.refresh().catch(() => {});
+      } else {
+        const maxAgeMs = hasProAccess(service.getState().plan) ? undefined : NO_PRO_FOCUS_STALE_MS;
+        void service.refreshIfStale(maxAgeMs).catch(() => {});
+      }
+      if (!usable(manageUrl.current, Date.now())) prefetchManageUrl();
+    };
+    const unsubscribe = uiRef.current.subscribeFocus?.(onFocus);
     return () => unsubscribe?.();
-  }, [service, skipInit]);
+  }, [service, skipInit, prefetchManageUrl]);
 
-  // Prefetch the manage-subscription URL so the click can open it synchronously.
   const accountKey = `${state.account?.email ?? ""}|${state.plan}`;
   useEffect(() => {
-    let live = true;
     manageUrl.current = null;
-    void service
-      .manageSubscriptionUrl()
-      .then((u) => {
-        if (live && isHttpsUrl(u)) manageUrl.current = u;
-      })
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, [service, accountKey]);
+    prefetchManageUrl(); // bumps the generation, so a prefetch still in flight for the previous account is dropped
+  }, [prefetchManageUrl, accountKey]);
 
   const signIn = useCallback(() => {
     if (signingRef.current) {
@@ -181,15 +219,16 @@ export function LicenseBridge({ service, ui = defaultLicenseUi, skipInit = false
   }, [service]);
 
   const manageSubscription = useCallback(() => {
-    const url = manageUrl.current;
-    if (url) {
-      uiRef.current.openBrowserWindow(url); // synchronous: inside the click
+    pendingPurchase.current = true;
+    const cached = manageUrl.current;
+    if (usable(cached, Date.now())) {
+      uiRef.current.openBrowserWindow(cached.url); // synchronous: inside the click
       return;
     }
     void service
-      .manageSubscriptionUrl()
-      .then((u) => {
-        if (isHttpsUrl(u)) uiRef.current.openBrowserWindow(u);
+      .manageSubscriptionLink()
+      .then((l) => {
+        if (isHttpsUrl(l.url)) uiRef.current.openBrowserWindow(l.url);
       })
       .catch(() => {});
   }, [service]);

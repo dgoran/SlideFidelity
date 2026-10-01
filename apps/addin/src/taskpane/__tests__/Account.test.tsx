@@ -4,13 +4,16 @@ import { LicenseError, type LicenseState } from "../../license/license";
 import { SignInDialogError, type SignInDialogResult } from "../../license/signinDialog";
 import { capabilitiesUpTo } from "../../office/capabilities";
 import { AccountEntry, AccountNotices, AccountPanel } from "../components/Account";
-import { LicenseBridge, type LicenseServiceLike, type LicenseUi } from "../license/LicenseBridge";
+import { LicenseBridge, MANAGE_URL_TTL_MS, NO_PRO_FOCUS_STALE_MS, type LicenseServiceLike, type LicenseUi } from "../license/LicenseBridge";
 import { TaskPaneRoot } from "../Root";
 import { initialPaneState } from "../state/store";
 import { button, cleanup, click, fakeScanService, flush, one, render } from "../testing/render";
 import { deckResult } from "./deck";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 const DAY = 86_400_000;
 const NOW = Date.UTC(2026, 8, 30, 12);
@@ -32,7 +35,10 @@ function fakeLicense(initial: LicenseState) {
     acceptSession: vi.fn(async () => {}),
     signOut: vi.fn(async () => {}),
     deleteAccount: vi.fn(async () => {}),
-    manageSubscriptionUrl: vi.fn(async () => "https://billing.example/portal"),
+    manageSubscriptionLink: vi.fn(async (): Promise<{ url: string; fallback: boolean }> => ({
+      url: "https://billing.example/portal",
+      fallback: false,
+    })),
   } satisfies LicenseServiceLike;
   const set = (next: LicenseState) =>
     act(() => {
@@ -199,6 +205,69 @@ describe("Account (U15, D12)", () => {
     expect(one(a.container, '[data-reason="trial-ended"]').textContent).toBe("Your trial has ended.");
     click(button(a.container, "Manage subscription"));
     expect(a.ui.openBrowserWindow).toHaveBeenCalledWith("https://billing.example/portal");
+  });
+
+  it("returning from Manage subscription forces a refresh on the next focus only (R21)", async () => {
+    const a = renderAccount(signedIn({ plan: "expired", reason: "trial-ended" }));
+    await flush();
+    click(button(a.container, "Manage subscription"));
+    a.focus();
+    expect(a.service.refresh).toHaveBeenCalledTimes(1);
+    expect(a.service.refreshIfStale).not.toHaveBeenCalled();
+    a.focus();
+    expect(a.service.refresh).toHaveBeenCalledTimes(1);
+    expect(a.service.refreshIfStale).toHaveBeenCalledTimes(1);
+  });
+
+  it("focus uses a one-minute staleness window without Pro access, the default with it", () => {
+    const a = renderAccount(signedIn({ plan: "free" }));
+    a.focus();
+    expect(a.service.refreshIfStale).toHaveBeenLastCalledWith(NO_PRO_FOCUS_STALE_MS);
+    a.set(signedIn({ plan: "pro" }));
+    a.focus();
+    expect(a.service.refreshIfStale).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it("a prefetched portal URL older than 5 minutes is not opened; the click fetches a new one and focus re-prefetches", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+    const a = renderAccount(signedIn({ plan: "pro" }));
+    await flush();
+    expect(a.service.manageSubscriptionLink).toHaveBeenCalledTimes(1);
+    vi.setSystemTime(NOW + MANAGE_URL_TTL_MS);
+    a.service.manageSubscriptionLink.mockResolvedValueOnce({ url: "https://billing.example/portal2", fallback: false });
+    click(button(a.container, "Manage subscription"));
+    expect(a.ui.openBrowserWindow).not.toHaveBeenCalled();
+    await flush();
+    expect(a.ui.openBrowserWindow).toHaveBeenCalledWith("https://billing.example/portal2");
+
+    a.focus(); // cache still stale: prefetch again
+    expect(a.service.manageSubscriptionLink).toHaveBeenCalledTimes(3);
+    await flush();
+    a.ui.openBrowserWindow.mockClear();
+    click(button(a.container, "Manage subscription"));
+    expect(a.ui.openBrowserWindow).toHaveBeenCalledWith("https://billing.example/portal");
+  });
+
+  it("the offline fallback page is never opened from the cache; focus retries the prefetch", async () => {
+    const a = renderAccount(signedIn({ plan: "free" }));
+    a.service.manageSubscriptionLink.mockResolvedValue({ url: "https://site.example/account.html", fallback: true });
+    a.set(signedIn({ plan: "expired" })); // account change: prefetch runs again and gets the fallback
+    await flush();
+    click(button(a.container, "Manage subscription"));
+    expect(a.ui.openBrowserWindow).not.toHaveBeenCalled();
+    await flush();
+    expect(a.ui.openBrowserWindow).toHaveBeenCalledWith("https://site.example/account.html");
+    const calls = a.service.manageSubscriptionLink.mock.calls.length;
+    a.focus();
+    expect(a.service.manageSubscriptionLink).toHaveBeenCalledTimes(calls + 1);
+  });
+
+  it("lapsed subscription: 'Your subscription has ended'", () => {
+    const a = renderAccount(signedIn({ plan: "expired", reason: "subscription-ended" }));
+    expect(one(a.container, '[data-reason="subscription-ended"]').textContent).toBe("Your subscription has ended.");
+    expect(a.container.querySelector('[data-reason="trial-ended"]')).toBeNull();
+    expect(a.container.querySelector("[data-grace-ended]")).toBeNull();
   });
 
   it("free account: Manage subscription is offered", () => {

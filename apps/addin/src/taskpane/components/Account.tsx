@@ -224,6 +224,11 @@ export function AccountPanel({ formatDate = defaultFormatDate, formatDateTime = 
                   Your trial has ended.
                 </p>
               )}
+              {state.reason === "subscription-ended" && (
+                <p className={s.text} data-reason="subscription-ended">
+                  Your subscription has ended.
+                </p>
+              )}
               <p className={s.sub}>Subscribe or manage billing on the SlideCheck website.</p>
               <div className={s.row}>
                 <Button appearance="primary" onClick={manageSubscription}>

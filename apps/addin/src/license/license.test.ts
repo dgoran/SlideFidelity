@@ -137,6 +137,17 @@ describe("LicenseService", () => {
     await expect(svc.manageSubscriptionUrl()).resolves.toBe("https://site.test/account.html");
   });
 
+  it("manageSubscriptionLink marks the offline fallback so callers do not cache it", async () => {
+    store.saveSession(SESSION);
+    const { svc } = service();
+    api.getEntitlement.mockImplementation(networkDown);
+    await initAndSettle(svc);
+    api.getBillingLinks.mockResolvedValueOnce({ checkoutUrl: "https://site.test/account.html", portalUrl: null });
+    await expect(svc.manageSubscriptionLink()).resolves.toEqual({ url: "https://site.test/account.html", fallback: false });
+    api.getBillingLinks.mockImplementationOnce(networkDown);
+    await expect(svc.manageSubscriptionLink()).resolves.toEqual({ url: "https://site.test/account.html", fallback: true });
+  });
+
   it("manageSubscriptionUrl prefers the portal, and falls back to the site when the API is down", async () => {
     store.saveSession(SESSION);
     const { svc } = service();
@@ -184,6 +195,42 @@ describe("LicenseService", () => {
     expect(svc.getState()).toMatchObject({ plan: "expired", offline: true, reason: "grace-ended" });
     expect(events).toContainEqual({ type: "grace-ended" });
     expect(lockAction(svc.getState().plan)).toBe("manage-subscription");
+  });
+
+  it("a canceled Pro that ran out while online is a subscription lapse, not 'grace ended' or 'trial ended'", async () => {
+    // Trial long over; the server caps exp and grace_until at the end of the paid period.
+    const lapsed: StoredSession = { ...SESSION, account: { ...SESSION.account, trialEndsAt: T0 - 60 * DAY } };
+    store.saveSession(lapsed);
+    const paidUntil = T0 + 2 * DAY;
+    const pro = claims("pro", T0, { exp: S(paidUntil), grace_until: S(paidUntil) });
+    api.getEntitlement.mockResolvedValueOnce(entitlementResponse(await token(pro), pro, T0 - 60 * DAY));
+    const { svc, events } = service();
+    await initAndSettle(svc);
+    expect(svc.getState().plan).toBe("pro");
+
+    now = paidUntil + 1000; // the cached token has lapsed; no refresh yet
+    api.getEntitlement.mockImplementationOnce(networkDown);
+    await svc.refresh();
+    expect(svc.getState()).toMatchObject({ plan: "expired", reason: "subscription-ended" });
+    expect(events).not.toContainEqual({ type: "grace-ended" });
+
+    const free = claims("free", now);
+    api.getEntitlement.mockResolvedValueOnce(entitlementResponse(await token(free), free, T0 - 60 * DAY));
+    await svc.refresh();
+    expect(svc.getState()).toMatchObject({ plan: "expired", reason: "subscription-ended", offline: false });
+  });
+
+  it("a trial token that lapsed at its trial end is 'trial-ended'", async () => {
+    const trialEnd = T0 + DAY;
+    store.saveSession({ ...SESSION, account: { ...SESSION.account, trialEndsAt: trialEnd } });
+    const trial = claims("trial", T0, { exp: S(trialEnd), grace_until: S(trialEnd), trial_ends_at: S(trialEnd) });
+    api.getEntitlement.mockResolvedValueOnce(entitlementResponse(await token(trial), trial, trialEnd));
+    const { svc } = service();
+    await initAndSettle(svc);
+    now = trialEnd + 1000;
+    api.getEntitlement.mockImplementationOnce(networkDown);
+    await svc.refresh();
+    expect(svc.getState()).toMatchObject({ plan: "expired", reason: "trial-ended" });
   });
 
   it("a server error during refresh is treated like offline, not as a downgrade", async () => {

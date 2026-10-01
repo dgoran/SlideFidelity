@@ -26,6 +26,8 @@ export type LicenseReason =
   | "grace-ended"
   /** The 30-day trial ended with no subscription. */
   | "trial-ended"
+  /** A paid subscription ran out (canceled, or the paid period ended) while online. */
+  | "subscription-ended"
   /** The server no longer accepts the session (revoked or expired): signed out. */
   | "session-expired"
   /** A cached or served entitlement failed verification and was discarded. */
@@ -102,6 +104,8 @@ export class LicenseService {
   private rejected = false;
   private lastChecked: number | null = null;
   private anonymousReason: LicenseReason | undefined;
+  /** Plan of the last non-free entitlement seen this session (in memory): tells a lapsed subscriber from a lapsed trial. */
+  private lastEntitledPlan: "trial" | "pro" | null = null;
   private trialWarned = false;
   private generation = 0;
   private inflight: { gen: number; promise: Promise<void> } | null = null;
@@ -156,6 +160,7 @@ export class LicenseService {
       if (gen !== this.generation) return { refreshed: Promise.resolve() };
       if (r.ok && r.claims.sub === session.account.id) {
         this.claims = r.claims;
+        this.noteEntitledPlan(r.claims);
         this.lastChecked = r.claims.iat * 1000;
       } else if (!r.ok && r.reason === "unknown-kid") {
         // Key rotation, not tampering: drop the token, keep the session, fetch a new one.
@@ -211,6 +216,7 @@ export class LicenseService {
       this.store.saveSession(this.session);
       if (r.ok && r.claims.sub === session.account.id) {
         this.claims = r.claims;
+        this.noteEntitledPlan(r.claims);
         this.rejected = false;
         this.store.saveEntitlement(res.token);
       } else {
@@ -259,6 +265,7 @@ export class LicenseService {
     this.rejected = false;
     this.lastChecked = null;
     this.anonymousReason = undefined;
+    this.lastEntitledPlan = null;
     this.trialWarned = false;
     this.emit({ type: "signed-in", email: s.account.email });
     this.publish();
@@ -315,13 +322,21 @@ export class LicenseService {
    * portal when the account has a subscription, else the site account page. Never rejects.
    */
   async manageSubscriptionUrl(): Promise<string> {
-    const fallback = `${this.siteUrl}/account.html`;
+    return (await this.manageSubscriptionLink()).url;
+  }
+
+  /**
+   * Like `manageSubscriptionUrl`, plus whether the URL is the site fallback used when the billing
+   * links could not be fetched (signed out, offline, bad response). Never rejects.
+   */
+  async manageSubscriptionLink(): Promise<{ url: string; fallback: boolean }> {
+    const fallback = { url: `${this.siteUrl}/account.html`, fallback: true };
     const session = this.session;
     if (!session) return fallback;
     try {
       const links = await this.api.getBillingLinks(session.token);
       const url = links.portalUrl ?? links.checkoutUrl;
-      return /^https:\/\//i.test(url) ? url : fallback;
+      return /^https:\/\//i.test(url) ? { url, fallback: false } : fallback;
     } catch {
       return fallback;
     }
@@ -337,8 +352,13 @@ export class LicenseService {
     this.rejected = false;
     this.lastChecked = null;
     this.trialWarned = false;
+    this.lastEntitledPlan = null;
     this.anonymousReason = reason;
     this.store.clear();
+  }
+
+  private noteEntitledPlan(claims: EntitlementClaims): void {
+    if (claims.plan !== "free") this.lastEntitledPlan = claims.plan;
   }
 
   private compute(): LicenseState {
@@ -368,12 +388,18 @@ export class LicenseService {
       }
       if (d.phase === "expired" && d.entitledPlan !== "free") {
         const trialOver = d.entitledPlan === "trial" && (d.trialEndsAt ?? session.account.trialEndsAt) <= now;
-        reason = trialOver ? "trial-ended" : "grace-ended";
+        // The server caps grace_until at exp when the paid period or trial itself ends, so only a token
+        // with grace_until > exp ran out of OFFLINE grace; otherwise the subscription or trial lapsed.
+        const offlineGrace = this.claims.grace_until > this.claims.exp;
+        if (trialOver) reason = "trial-ended";
+        else if (offlineGrace) reason = "grace-ended";
+        else reason = d.entitledPlan === "pro" ? "subscription-ended" : "trial-ended";
       }
-      // Every account starts with a trial (R20), so a free account past its trial end has lapsed.
+      // Every account starts with a trial (R20), so a free account past its trial end has lapsed:
+      // a lapsed subscriber (last entitlement Pro) is not told their trial ended.
       if (plan === "free" && session.account.trialEndsAt <= now) {
         plan = "expired";
-        reason ??= "trial-ended";
+        reason ??= this.lastEntitledPlan === "pro" ? "subscription-ended" : "trial-ended";
       }
     }
     if (this.rejected) reason = "token-rejected";
