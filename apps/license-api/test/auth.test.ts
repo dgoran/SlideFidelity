@@ -61,6 +61,7 @@ describe("POST /auth/start + /auth/verify", () => {
 
   it("an existing account keeps its original trial end", async () => {
     const h = makeHarness();
+    const createdAt = h.clock.t;
     const first = await h.signIn("keep@example.com");
     h.clock.advance(5 * DAY);
     const second = await h.signIn("keep@example.com");
@@ -69,6 +70,7 @@ describe("POST /auth/start + /auth/verify", () => {
       .bind(first.accountId)
       .first<{ trial_ends_at: number; created_at: number }>();
     expect(row!.trial_ends_at - row!.created_at).toBe(30 * DAY);
+    expect(row!.created_at).toBe(createdAt);
   });
 
   it("normalized aliases resolve to the same account", async () => {

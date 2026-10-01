@@ -40,11 +40,15 @@ export function getAccountById(db: D1Database, id: string): Promise<Account | nu
 
 /** Returns the existing account for `email`, or creates one with a fresh 30-day trial (R20). */
 export async function getOrCreateAccount(db: D1Database, email: string, now: number): Promise<Account> {
-  await db
-    .prepare("INSERT INTO accounts (id, email, created_at, trial_ends_at) VALUES (?, ?, ?, ?) ON CONFLICT (email) DO NOTHING")
+  // Single round trip. The no-op DO UPDATE (email is unchanged) makes RETURNING yield the existing row on
+  // conflict; created_at and trial_ends_at of an existing account are never touched.
+  const account = await db
+    .prepare(
+      "INSERT INTO accounts (id, email, created_at, trial_ends_at) VALUES (?, ?, ?, ?) " +
+        "ON CONFLICT (email) DO UPDATE SET email = excluded.email RETURNING *",
+    )
     .bind(crypto.randomUUID(), email, now, now + TRIAL_MS)
-    .run();
-  const account = await getAccountByEmail(db, email);
+    .first<Account>();
   if (!account) throw new Error("account upsert failed");
   return account;
 }

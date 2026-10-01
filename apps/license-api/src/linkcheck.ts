@@ -7,7 +7,7 @@ import { clientIp, readJson, tooMany } from "./auth";
 import { planFor } from "./entitlement";
 import type { HonoEnv } from "./env";
 import { LIMITS, hashedKey } from "./ratelimit";
-import { checkTarget, type DnsResolver } from "./ssrf";
+import { checkTarget, memoizeResolver, type DnsResolver } from "./ssrf";
 
 export const MAX_URLS = 50;
 export const MAX_URL_LENGTH = 2048;
@@ -121,13 +121,15 @@ export async function checkLink(raw: string, deps: LinkCheckDeps): Promise<LinkR
   }
 }
 
+/** Checks a batch (one /linkcheck request). DNS lookups are shared per hostname across the batch. */
 export async function checkLinks(urls: string[], deps: LinkCheckDeps, concurrency = CONCURRENCY): Promise<LinkResult[]> {
+  const batchDeps: LinkCheckDeps = { ...deps, resolver: memoizeResolver(deps.resolver) };
   const results = new Array<LinkResult>(urls.length);
   let next = 0;
   const worker = async () => {
     while (next < urls.length) {
       const i = next++;
-      results[i] = await checkLink(urls[i]!, deps);
+      results[i] = await checkLink(urls[i]!, batchDeps);
     }
   };
   await Promise.all(Array.from({ length: Math.min(concurrency, urls.length) }, worker));

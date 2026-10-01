@@ -139,6 +139,33 @@ export async function checkTarget(url: URL, resolver: DnsResolver): Promise<Targ
   return result.addresses.every(isPublicAddress) ? { ok: true } : { ok: false, reason: "blocked" };
 }
 
+/**
+ * Wraps a resolver so each hostname is looked up at most once while the wrapper lives (one /linkcheck
+ * request). Callers still run `checkTarget` per URL and per hop; only the lookup is shared. Error results
+ * and rejections are not kept, so a later hop or link retries the lookup exactly as it would unwrapped.
+ */
+export function memoizeResolver(resolver: DnsResolver): DnsResolver {
+  const cache = new Map<string, Promise<DnsResult>>();
+  return {
+    resolve(hostname: string): Promise<DnsResult> {
+      let pending = cache.get(hostname);
+      if (!pending) {
+        pending = resolver.resolve(hostname);
+        cache.set(hostname, pending);
+        pending.then(
+          (r) => {
+            if (r.status === "error" && cache.get(hostname) === pending) cache.delete(hostname);
+          },
+          () => {
+            if (cache.get(hostname) === pending) cache.delete(hostname);
+          },
+        );
+      }
+      return pending;
+    },
+  };
+}
+
 // --- DNS over HTTPS ---
 
 interface DohAnswer {

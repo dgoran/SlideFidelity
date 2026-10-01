@@ -90,6 +90,31 @@ describe("POST /linkcheck SSRF guard (KTD9)", () => {
     expect(h.resolver.lookups).toContain("evil.example.com");
   });
 
+  it("resolves each hostname once per request while still checking every URL and hop", async () => {
+    const h = await proHarness();
+    h.resolver.records["evil.example.com"] = { status: "ok", addresses: ["127.0.0.1"] };
+    const urls: string[] = [];
+    for (let i = 0; i < 20; i++) {
+      h.fetcher.on(`https://same.example.com/${i}`, 200);
+      urls.push(`https://same.example.com/${i}`);
+    }
+    for (let i = 0; i < 3; i++) {
+      h.fetcher.on(`https://same.example.com/r${i}`, () => new Response(null, { status: 302, headers: { Location: "https://evil.example.com/x" } }));
+      urls.push(`https://same.example.com/r${i}`);
+    }
+    urls.push("https://evil.example.com/direct");
+    const res = await results(h, urls);
+    expect(res.slice(0, 20).every((r) => r.status === "ok")).toBe(true);
+    for (const r of res.slice(20)) expect(r).toMatchObject({ status: "unverified", reason: "blocked" });
+    expect(h.fetcher.urls().some((u) => u.startsWith("https://evil.example.com/"))).toBe(false);
+    expect(h.resolver.lookups.filter((n) => n === "same.example.com")).toHaveLength(1);
+    expect(h.resolver.lookups.filter((n) => n === "evil.example.com")).toHaveLength(1);
+
+    // The memo lives for one request only: a second request resolves again.
+    await results(h, ["https://same.example.com/0"]);
+    expect(h.resolver.lookups.filter((n) => n === "same.example.com")).toHaveLength(2);
+  });
+
   it("follows at most 5 redirects", async () => {
     const h = await proHarness();
     for (let i = 0; i < 7; i++) {

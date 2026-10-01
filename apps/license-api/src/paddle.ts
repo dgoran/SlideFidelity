@@ -123,9 +123,8 @@ export async function handlePaddleWebhook(c: Context<HonoEnv>) {
     return c.json({ error: "invalid_payload" }, 400);
   }
   const db = c.env.DB;
-  const seen = await db.prepare("SELECT 1 FROM webhook_events WHERE event_id = ?").bind(event.event_id).first();
-  if (seen) return c.json({ ok: true, duplicate: true });
-
+  // No pre-check for a replayed event: the webhook_events insert leads the atomic batch, so a duplicate
+  // event_id fails it (rolling back any subscription change) and the catch below reports duplicate.
   const statements: D1PreparedStatement[] = [
     db.prepare("INSERT INTO webhook_events (event_id, event_type, received_at) VALUES (?, ?, ?)").bind(event.event_id, event.event_type, now),
   ];
@@ -159,6 +158,7 @@ export async function handlePaddleWebhook(c: Context<HonoEnv>) {
   try {
     await db.batch(statements); // atomic: event id + subscription change
   } catch (err) {
+    // Only a stored event id makes this a duplicate; any other failure is rethrown.
     const again = await db.prepare("SELECT 1 FROM webhook_events WHERE event_id = ?").bind(event.event_id).first();
     if (again) return c.json({ ok: true, duplicate: true });
     throw err;
