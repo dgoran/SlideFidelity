@@ -4,7 +4,7 @@
  */
 import { makeStyles, mergeClasses, tokens } from "@fluentui/react-components";
 import { ChevronRight16Regular, LockClosed16Regular } from "@fluentui/react-icons";
-import { AREAS, formatBytes, summarize, type Area, type AuditResult, type FileSizeBreakdownData } from "@slidecheck/audit-core";
+import { AREAS, formatBytes, type Area, type AuditResult, type FileSizeBreakdownData } from "@slidecheck/audit-core";
 import { areaAccess, usePlan } from "../../license/gate";
 import { AREA_LABELS } from "../context";
 import { SeverityIcon } from "./FindingRow";
@@ -52,7 +52,8 @@ const DETAIL_AREAS = AREAS.filter((a) => a !== "overview");
 export function Overview({ result, onSelectArea }: OverviewProps) {
   const s = useStyles();
   const { plan } = usePlan();
-  const summary = summarize(result.findings);
+  // The runner sets `perArea = summarize(findings)` over this same findings list.
+  const summary = result.stats.perArea;
   const size = fileSize(result);
   const issues = DETAIL_AREAS.reduce((n, a) => n + summary[a].warning + summary[a].error, 0);
   const failedChecks = result.errors.length;

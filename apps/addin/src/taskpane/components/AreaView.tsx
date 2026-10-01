@@ -65,9 +65,10 @@ export function AreaView({ area, result, viewportHeight }: AreaViewProps) {
     return { allowed, locked, lockedTitle };
   }, [result, area, isAllowed]);
 
+  // Filtered once here for both the fix panel and the tree.
   const visible = useMemo(
-    () => (fixPanelSlot ? filterFindings(allowed, { severity: state.severity, search: state.search }) : allowed),
-    [fixPanelSlot, allowed, state.severity, state.search],
+    () => filterFindings(allowed, { severity: state.severity, search: state.search }),
+    [allowed, state.severity, state.search],
   );
 
   const nothing = allowed.length === 0 && locked.length === 0;
@@ -87,7 +88,7 @@ export function AreaView({ area, result, viewportHeight }: AreaViewProps) {
         </div>
       )}
       {allowed.length > 0 && (
-        <FindingsTree area={area} findings={allowed} {...(viewportHeight !== undefined ? { viewportHeight } : {})} />
+        <FindingsTree area={area} findings={allowed} filtered={visible} {...(viewportHeight !== undefined ? { viewportHeight } : {})} />
       )}
       {locked.length > 0 && (
         <LockedSection

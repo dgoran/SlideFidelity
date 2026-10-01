@@ -375,7 +375,31 @@ interface ScanIndex {
   complete: boolean;
 }
 
+/** Stands in for "no inventory" as a WeakMap key. */
+const NO_INVENTORY = {};
+const scanIndexCache = new WeakMap<AuditResult, WeakMap<object, ScanIndex>>();
+
+/**
+ * `buildIndex` memoized per (audit, inventory) object pair: selection changes rebuild the
+ * Inspector model often, but the scan it is matched against only changes on a rescan. The index
+ * is never mutated after it is built.
+ */
 function indexScan(audit: AuditResult, inventory: ScanInventory | undefined): ScanIndex {
+  let byInventory = scanIndexCache.get(audit);
+  if (!byInventory) {
+    byInventory = new WeakMap();
+    scanIndexCache.set(audit, byInventory);
+  }
+  const key = inventory ?? NO_INVENTORY;
+  let index = byInventory.get(key);
+  if (!index) {
+    index = buildIndex(audit, inventory);
+    byInventory.set(key, index);
+  }
+  return index;
+}
+
+function buildIndex(audit: AuditResult, inventory: ScanInventory | undefined): ScanIndex {
   const slides = new Map<number, KnownSlide>();
   if (inventory) {
     for (const s of inventory.slides) {
@@ -735,6 +759,40 @@ function shapeProperties(findings: readonly Finding[], pred: Predicate): ShapePr
 interface ResolvedShape {
   identity: ShapeIdentity;
   pred?: Predicate;
+  /** The matched scanned shape (set exactly when `pred` is). */
+  at?: { slideId: number; shapeId: number };
+}
+
+interface ShapeCandidate {
+  id: string;
+  name: string;
+  left: number;
+  top: number;
+  known: KnownShape;
+}
+
+/** Resolution candidates per scanned slide, built once (the scan index is cached and immutable). */
+const candidateCache = new WeakMap<KnownSlide, readonly ShapeCandidate[]>();
+
+function shapeCandidates(slide: KnownSlide): readonly ShapeCandidate[] {
+  let candidates = candidateCache.get(slide);
+  if (!candidates) {
+    // KTD5 inverted: the live shape is the "target", the scanned shapes are the candidates.
+    candidates = [...slide.shapes.values()].map((k) => ({ id: String(k.shapeId), name: k.name, left: k.left, top: k.top, known: k }));
+    candidateCache.set(slide, candidates);
+  }
+  return candidates;
+}
+
+/** One predicate equivalent to OR-ing `onShape(slideId, shapeId)` over every matched shape. */
+function onAnyShape(at: readonly { slideId: number; shapeId: number }[]): Predicate {
+  const keys = new Set(at.map((a) => `${a.slideId}|${a.shapeId}`));
+  return (t) => {
+    const c = t.container;
+    if (c.kind !== "slide" || c.slideId === undefined) return false;
+    if (t.shapeId !== undefined && keys.has(`${c.slideId}|${t.shapeId}`)) return true;
+    return (t.path ?? []).some((id) => keys.has(`${c.slideId}|${id}`));
+  };
 }
 
 function resolveLiveShape(
@@ -748,9 +806,7 @@ function resolveLiveShape(
   if (slide.status !== "matched") {
     return { identity: { ...base, status: "not-in-scan", message: NOT_IN_SCAN_MESSAGE } };
   }
-  const known = [...slide.slide.shapes.values()];
-  // KTD5 inverted: the live shape is the "target", the scanned shapes are the candidates.
-  const candidates = known.map((k) => ({ id: String(k.shapeId), name: k.name, left: k.left, top: k.top, known: k }));
+  const candidates = shapeCandidates(slide.slide);
   const liveNumeric = ids.parseLiveShapeId(live.liveId) ?? -1;
   const r = ids.resolveShape(
     { shapeId: liveNumeric, name: live.name, left: live.left, top: live.top },
@@ -768,7 +824,11 @@ function resolveLiveShape(
     };
     if (slide.slide.number !== undefined) match.slideNumber = slide.slide.number;
     if (slide.method !== "exact") match.approximate = true;
-    return { identity: { ...base, status: "matched", match }, pred: onShape(slide.slide.slideId, k.shapeId) };
+    return {
+      identity: { ...base, status: "matched", match },
+      pred: onShape(slide.slide.slideId, k.shapeId),
+      at: { slideId: slide.slide.slideId, shapeId: k.shapeId },
+    };
   }
   if (r.status === "ambiguous") return { identity: { ...base, status: "ambiguous", message: AMBIGUOUS_MESSAGE } };
   if (scan.complete) return { identity: { ...base, status: "not-in-scan", message: NOT_IN_SCAN_MESSAGE } };
@@ -879,8 +939,8 @@ export function buildInspectorModel(
     };
   }
 
-  const preds = resolved.flatMap((r) => (r.pred ? [r.pred] : []));
-  const hits = preds.length > 0 ? collectFindings(findings, preds) : [];
+  const matched = resolved.flatMap((r) => (r.at ? [r.at] : []));
+  const hits = matched.length > 0 ? collectFindings(findings, [onAnyShape(matched)]) : [];
   const notInScanCount = resolved.filter((r) => r.identity.status === "not-in-scan").length;
   return {
     kind: "multi",

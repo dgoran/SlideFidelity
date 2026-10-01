@@ -3,7 +3,8 @@
  * severity filter and a search box, in-house windowed rendering, and full keyboard operation.
  *
  * Windowing: every row has the same height, so the visible slice is computed from `scrollTop`
- * and only those rows (plus a small overscan, plus the active row) are mounted. Each mounted
+ * and only those rows (plus a small overscan, plus the active row) are mounted. The exact scroll
+ * offset lives in a ref; the pane re-renders on scroll only when the mounted window changes. Each mounted
  * row carries `aria-level`/`aria-setsize`/`aria-posinset`/`aria-expanded` so assistive tech
  * still knows the full shape of the tree (D15).
  *
@@ -11,7 +12,7 @@
  * child), Left collapses (or moves to the parent), Enter shows the item in PowerPoint (or
  * toggles a group).
  */
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Input, Label, Select, makeStyles, tokens } from "@fluentui/react-components";
 import { Search16Regular } from "@fluentui/react-icons";
 import type { Area, Finding, FindingTarget } from "@slidecheck/audit-core";
@@ -77,13 +78,30 @@ export interface FindingsTreeProps {
   area: Area;
   /** The findings the plan allows in this area (gating is applied by the caller). */
   findings: readonly Finding[];
+  /**
+   * `findings` already narrowed by the pane's severity filter and search (when the caller has
+   * computed it anyway). Must be `filterFindings(findings, { severity, search })` for the
+   * current pane state; the tree filters `findings` itself when this is omitted.
+   */
+  filtered?: readonly Finding[];
   /** Fixed viewport height in px. Defaults to the measured height (440 when unmeasurable). */
   viewportHeight?: number;
   /** Extra rows rendered above and below the visible window. */
   overscan?: number;
 }
 
-export function FindingsTree({ area, findings, viewportHeight, overscan = 4 }: FindingsTreeProps) {
+/** First and one-past-last mounted row for a scroll offset (before clamping to the row count). */
+function windowOf(top: number, height: number, overscan: number): readonly [number, number] {
+  return [Math.max(0, Math.floor(top / ROW_HEIGHT) - overscan), Math.ceil((top + height) / ROW_HEIGHT) + overscan];
+}
+
+function sameWindow(a: number, b: number, height: number, overscan: number): boolean {
+  const [af, al] = windowOf(a, height, overscan);
+  const [bf, bl] = windowOf(b, height, overscan);
+  return af === bf && al === bl;
+}
+
+export function FindingsTree({ area, findings, filtered, viewportHeight, overscan = 4 }: FindingsTreeProps) {
   const s = useStyles();
   const { state, dispatch } = usePane();
   const services = usePaneServices();
@@ -94,19 +112,48 @@ export function FindingsTree({ area, findings, viewportHeight, overscan = 4 }: F
   const focusPending = useRef(false);
 
   const toggled = state.toggled[area];
-  const rows = useMemo(() => {
-    const visible = filterFindings(findings, { severity: state.severity, search: state.search });
-    return flattenTree(groupFindings(area, visible), toggled);
-  }, [area, findings, state.severity, state.search, toggled]);
+  // Grouping is independent of expand/collapse, so toggling only re-flattens.
+  const groups = useMemo(
+    () => groupFindings(area, filtered ?? filterFindings(findings, { severity: state.severity, search: state.search })),
+    [area, findings, filtered, state.severity, state.search],
+  );
+  const { rows, indexByKey } = useMemo(() => {
+    const rows = flattenTree(groups, toggled);
+    const indexByKey = new Map<string, number>();
+    rows.forEach((r, i) => {
+      if (!indexByKey.has(r.key)) indexByKey.set(r.key, i);
+    });
+    return { rows, indexByKey };
+  }, [groups, toggled]);
+  const indexOf = (key: string): number => indexByKey.get(key) ?? -1;
 
   const [activeKey, setActiveKey] = useState<string | null>(null);
+  // `scrollTopRef` is the exact offset; `scrollTop` (render state) only moves when the mounted
+  // window would change, so sub-row scrolling does not re-render the tree.
+  const scrollTopRef = useRef(0);
   const [scrollTop, setScrollTop] = useState(0);
+  /** The latest offset handed to `setScrollTop` (may be ahead of `scrollTop` until it renders). */
+  const windowTopRef = useRef(0);
+  const setWindowTop = (top: number) => {
+    windowTopRef.current = top;
+    setScrollTop(top);
+  };
   const [measured, setMeasured] = useState(0);
   const [status, setStatus] = useState("");
 
-  const found = activeKey === null ? -1 : rows.findIndex((r) => r.key === activeKey);
+  const found = activeKey === null ? -1 : indexOf(activeKey);
   const activeIndex = rows.length === 0 ? -1 : found >= 0 ? found : 0;
   const height = viewportHeight ?? (measured || DEFAULT_VIEWPORT);
+
+  // A new viewport height can move the window's end: resync the render offset to the exact one.
+  useLayoutEffect(() => {
+    setWindowTop(scrollTopRef.current);
+  }, [height, overscan]);
+
+  const syncScrollTop = (top: number) => {
+    scrollTopRef.current = top;
+    if (!sameWindow(windowTopRef.current, top, height, overscan)) setWindowTop(top);
+  };
 
   useLayoutEffect(() => {
     if (viewportHeight !== undefined) return undefined;
@@ -127,20 +174,18 @@ export function FindingsTree({ area, findings, viewportHeight, overscan = 4 }: F
     document.getElementById(`${baseId}-row-${activeIndex}`)?.focus();
   });
 
-  const scrollIntoView = useCallback(
-    (index: number) => {
-      const el = viewportRef.current;
-      const rowTop = index * ROW_HEIGHT;
-      let next = scrollTop;
-      if (rowTop < scrollTop) next = rowTop;
-      else if (rowTop + ROW_HEIGHT > scrollTop + height) next = rowTop + ROW_HEIGHT - height;
-      if (next !== scrollTop) {
-        if (el) el.scrollTop = next;
-        setScrollTop(next);
-      }
-    },
-    [scrollTop, height],
-  );
+  const scrollIntoView = (index: number) => {
+    const el = viewportRef.current;
+    const current = scrollTopRef.current;
+    const rowTop = index * ROW_HEIGHT;
+    let next = current;
+    if (rowTop < current) next = rowTop;
+    else if (rowTop + ROW_HEIGHT > current + height) next = rowTop + ROW_HEIGHT - height;
+    if (next !== current) {
+      if (el) el.scrollTop = next;
+      syncScrollTop(next);
+    }
+  };
 
   const moveTo = (index: number) => {
     if (rows.length === 0) return;
@@ -185,7 +230,7 @@ export function FindingsTree({ area, findings, viewportHeight, overscan = 4 }: F
         break;
       case "ArrowLeft":
         if (row.expanded === true) toggle(row);
-        else if (row.parentKey) moveTo(rows.findIndex((r) => r.key === row.parentKey));
+        else if (row.parentKey) moveTo(indexOf(row.parentKey));
         break;
       case "Enter": {
         const t = targetOf(row);
@@ -200,8 +245,8 @@ export function FindingsTree({ area, findings, viewportHeight, overscan = 4 }: F
   };
 
   // The visible window, plus the active row so roving focus always has a mounted element.
-  const first = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - overscan);
-  const last = Math.min(rows.length, Math.ceil((scrollTop + height) / ROW_HEIGHT) + overscan);
+  const [first, windowEnd] = windowOf(scrollTop, height, overscan);
+  const last = Math.min(rows.length, windowEnd);
   const indices: number[] = [];
   for (let i = first; i < last; i++) indices.push(i);
   if (activeIndex >= 0 && (activeIndex < first || activeIndex >= last)) indices.push(activeIndex);
@@ -252,7 +297,7 @@ export function FindingsTree({ area, findings, viewportHeight, overscan = 4 }: F
           aria-label={label}
           className={s.viewport}
           style={{ height: viewportHeight ?? undefined, maxHeight: viewportHeight ?? "60vh", minHeight: 120 }}
-          onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+          onScroll={(e) => syncScrollTop(e.currentTarget.scrollTop)}
           onKeyDown={onKeyDown}
         >
           <div style={{ position: "relative", height: rows.length * ROW_HEIGHT }}>
