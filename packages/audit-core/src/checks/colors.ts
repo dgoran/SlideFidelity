@@ -20,10 +20,10 @@
 import { defaultBrandFromTheme, matchBrandColor, round4, themeForMaster, type BrandColorMatch } from "../brand";
 import { hslToHex, nearestColor, parseHex, presetHex, scrgbToHex } from "../color";
 import {
+  containerTarget,
   makeFinding,
   partTarget,
   shapeTarget,
-  slideTarget,
   targetKey,
   type Finding,
   type FindingTarget,
@@ -348,11 +348,6 @@ async function collectUsages(pres: Presentation): Promise<Usage[]> {
     const layout = container.kind === "layout" ? layoutByPart.get(container.partName) : undefined;
     const master = container.kind === "master" ? masterByPart.get(container.partName) : undefined;
     const masterPart = slide?.masterPart ?? layout?.masterPart ?? master?.partName;
-    const name = layout?.name ?? master?.name;
-    const containerTarget = (locator: TargetLocator): FindingTarget =>
-      slide
-        ? slideTarget(slide, locator)
-        : partTarget(container.kind, container.partName, { ...(name !== undefined ? { name } : {}), locator });
 
     const shapes = await getShapes(pres, container);
     const kindById = new Map(shapes.map((s) => [s.shapeId, s.kind] as const));
@@ -376,7 +371,7 @@ async function collectUsages(pres: Presentation): Promise<Usage[]> {
     if (bg) {
       walkColors(bg, (colorEl, chain) => {
         const names = chain.map((e) => localName(e.name));
-        const target = containerTarget({ property: "fill" });
+        const target = containerTarget(pres, container, { property: "fill" });
         target.reachable = false;
         push(colorEl, fillStyleContext(names, "background"), masterPart, target);
       });
@@ -387,7 +382,7 @@ async function collectUsages(pres: Presentation): Promise<Usage[]> {
         const names = chain.map((e) => localName(e.name));
         const lvl = /^lvl(\d)pPr$/.exec(names[1] ?? "");
         const locator: TargetLocator = { property: "list-style", ...(lvl ? { level: Number(lvl[1]) } : {}) };
-        const target = containerTarget(locator);
+        const target = containerTarget(pres, container, locator);
         target.reachable = false;
         push(colorEl, names.includes("buClr") ? "bullet" : fillStyleContext(names, "text-style"), masterPart, target);
       });

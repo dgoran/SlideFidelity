@@ -26,6 +26,7 @@
  * shared, but counted once in totals.
  */
 import {
+  containerTarget,
   makeFinding,
   partTarget,
   shapeTarget,
@@ -36,7 +37,7 @@ import {
 } from "../findings";
 import { readImageHeader, type ImageFormat, type ImageHeader } from "../imageHeader";
 import { getShapes, shapeContainers, type MediaKind, type Presentation, type SlideInfo } from "../package/model";
-import type { ContainerKind, ShapeContainer, ShapeRef } from "../package/shapes";
+import { placeholderClass, type ContainerKind, type ShapeContainer, type ShapeRef } from "../package/shapes";
 import { child, childPath, descendants, intAttr, relAttr, type XmlElement } from "../package/xml";
 import type { Check } from "../runner";
 
@@ -263,15 +264,6 @@ function readInsets(el: XmlElement | undefined): CropData | undefined {
   return l || t || r || b ? { l, t, r, b } : undefined;
 }
 
-const TITLE_TYPES = new Set(["title", "ctrTitle"]);
-const OWN_TYPES = new Set(["dt", "ftr", "sldNum", "hdr"]);
-
-function placeholderClass(type: string): string {
-  if (TITLE_TYPES.has(type)) return "title";
-  if (OWN_TYPES.has(type)) return type;
-  return "body";
-}
-
 /** Size of a placeholder without its own xfrm, from the layout, then the master. */
 async function inheritedExtent(pres: Presentation, ref: ShapeRef): Promise<{ cx: number; cy: number } | undefined> {
   const ph = ref.placeholder;
@@ -364,12 +356,6 @@ async function scanUses(pres: Presentation): Promise<ImageUse[]> {
     }
     if (relTargets.size === 0) continue;
     const slide = container.kind === "slide" ? pres.slides.find((s) => s.partName === container.partName) : undefined;
-    const containerName =
-      container.kind === "layout"
-        ? pres.layouts.find((l) => l.partName === container.partName)?.name
-        : container.kind === "master"
-          ? pres.masters.find((m) => m.partName === container.partName)?.name
-          : undefined;
 
     // Background.
     const root = await pres.pkg.xml(container.partName).catch(() => undefined);
@@ -383,13 +369,7 @@ async function scanUses(pres: Presentation): Promise<ImageUse[]> {
           ...(slide ? { slide } : {}),
           source: "background",
           ...(pres.slideSize ? { frame: { cx: pres.slideSize.cx, cy: pres.slideSize.cy } } : {}),
-          makeTarget: (locator) =>
-            slide
-              ? slideTarget(slide, locator)
-              : partTarget(container.kind, container.partName, {
-                  ...(containerName !== undefined ? { name: containerName } : {}),
-                  locator,
-                }),
+          makeTarget: (locator) => containerTarget(pres, container, locator),
         }),
       );
     }

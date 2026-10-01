@@ -8,8 +8,8 @@
  * their own `a:xfrm` inherit bounds from the matching layout placeholder, then the master.
  */
 import { makeFinding, partTarget, shapeTarget, slideTarget, type Finding, type FindingTarget } from "../findings";
-import { getShapes, type Presentation, type SlideInfo } from "../package/model";
-import type { Bounds, ContainerKind, PlaceholderInfo, ShapeContainer, ShapeRef } from "../package/shapes";
+import { getShapes, shapeContainers, type Presentation, type SlideInfo } from "../package/model";
+import { TITLE_TYPES, placeholderClass, type Bounds, type ContainerKind, type PlaceholderInfo, type ShapeRef } from "../package/shapes";
 import { attr, boolAttr, child, childPath, descendants, elements, intAttr, localName, type XmlElement } from "../package/xml";
 import type { Check } from "../runner";
 
@@ -153,14 +153,6 @@ function slideByPart(pres: Presentation, partName: string | undefined): SlideInf
   return partName === undefined ? undefined : pres.slides.find((s) => s.partName === partName);
 }
 
-function containersOf(pres: Presentation): ShapeContainer[] {
-  return [
-    ...pres.slides.map((s): ShapeContainer => ({ kind: "slide", partName: s.partName, slideId: s.slideId })),
-    ...pres.layouts.map((l): ShapeContainer => ({ kind: "layout", partName: l.partName })),
-    ...pres.masters.map((m): ShapeContainer => ({ kind: "master", partName: m.partName })),
-  ];
-}
-
 /**
  * Visits `root`'s descendants in document order without entering nested shape elements (so a
  * group's own text is not double-counted with its children's).
@@ -212,15 +204,6 @@ function insideGraphicFrame(ref: ShapeRef, byId: ReadonlyMap<number, ShapeRef>):
 // ---------------------------------------------------------------------------------------------
 // Placeholder inheritance
 
-const TITLE_TYPES = new Set(["title", "ctrTitle"]);
-
-/** Master placeholder type a slide / layout placeholder type inherits from. */
-function masterPhType(type: string): string {
-  if (TITLE_TYPES.has(type)) return "title";
-  if (type === "dt" || type === "ftr" || type === "sldNum" || type === "hdr") return type;
-  return "body";
-}
-
 function sameTypeFamily(a: string, b: string): boolean {
   return a === b || (TITLE_TYPES.has(a) && TITLE_TYPES.has(b));
 }
@@ -237,8 +220,8 @@ function matchLayoutPh(shapes: readonly ShapeRef[], ph: PlaceholderInfo): ShapeR
 }
 
 function matchMasterPh(shapes: readonly ShapeRef[], ph: PlaceholderInfo): ShapeRef | undefined {
-  const want = masterPhType(ph.type);
-  return shapes.find((s) => s.path.length === 0 && s.placeholder !== undefined && masterPhType(s.placeholder.type) === want);
+  const want = placeholderClass(ph.type);
+  return shapes.find((s) => s.path.length === 0 && s.placeholder !== undefined && placeholderClass(s.placeholder.type) === want);
 }
 
 interface Inheritance {
@@ -348,7 +331,7 @@ async function runShapes(pres: Presentation): Promise<Finding[]> {
   const resolver = new PlaceholderResolver(pres);
   const size = pres.slideSize;
 
-  for (const container of containersOf(pres)) {
+  for (const container of shapeContainers(pres)) {
     const shapes = await getShapes(pres, container);
     const byId = new Map(shapes.map((s) => [s.shapeId, s]));
     const onSlide = container.kind === "slide";

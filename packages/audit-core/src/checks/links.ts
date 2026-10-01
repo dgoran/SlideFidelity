@@ -17,10 +17,10 @@
  * are excluded. Every deck string here is untrusted and carried as plain data.
  */
 import {
+  containerName,
+  containerTarget,
   makeFinding,
-  partTarget,
   shapeTarget,
-  slideTarget,
   type Finding,
   type FindingTarget,
   type FixKind,
@@ -317,13 +317,7 @@ async function containerFindings(pres: Presentation, container: ShapeContainer):
   const consumed = new Set<string>();
   const shapes = await getShapes(pres, container);
   const isSlide = container.kind === "slide";
-  const slide = isSlide ? pres.slides.find((s) => s.partName === container.partName) : undefined;
-  const containerName =
-    container.kind === "layout"
-      ? pres.layouts.find((l) => l.partName === container.partName)?.name
-      : container.kind === "master"
-        ? pres.masters.find((m) => m.partName === container.partName)?.name
-        : undefined;
+  const ownerName = containerName(pres, container.kind, container.partName);
 
   type Hl = { shape: ShapeRef; raw: RawHyperlink; rel: Relationship };
   type File = { shape?: ShapeRef; raw: RawRef; rel: Relationship };
@@ -403,7 +397,7 @@ async function containerFindings(pres: Presentation, container: ShapeContainer):
     if (l.raw.trigger === "hover") details.push("Activates when the pointer moves over it; it can't be edited from the add-in.");
     if (!isSlide) {
       details.push(
-        `On ${container.kind} "${containerName ?? container.partName}". Edit it in Slide Master view; it appears on every slide that uses this ${container.kind}.`,
+        `On ${container.kind} "${ownerName ?? container.partName}". Edit it in Slide Master view; it appears on every slide that uses this ${container.kind}.`,
       );
     }
     out.push(
@@ -437,8 +431,7 @@ async function containerFindings(pres: Presentation, container: ShapeContainer):
     const locator: TargetLocator = { relId: f.rel.id };
     let target: FindingTarget;
     if (f.shape) target = shapeTarget(f.shape, pres, locator);
-    else if (slide) target = slideTarget(slide, locator);
-    else target = partTarget(container.kind, container.partName, { ...(containerName !== undefined ? { name: containerName } : {}), locator });
+    else target = containerTarget(pres, container, locator);
     const linkType = linkedFileType(f.rel);
     const loc: Located = { target, reachable: false, fixes: [], key: `${container.partName}|${f.shape?.shapeId ?? ""}|f${i}|${f.rel.id}` };
     out.push(

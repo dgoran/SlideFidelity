@@ -61,6 +61,20 @@ export interface PlaceholderInfo {
   readonly hasCustomPrompt?: boolean;
 }
 
+/** Placeholder types that are titles (`title` / `ctrTitle` share one master placeholder). */
+export const TITLE_TYPES: ReadonlySet<string> = new Set(["title", "ctrTitle"]);
+const OWN_CLASS_TYPES: ReadonlySet<string> = new Set(["dt", "ftr", "sldNum", "hdr"]);
+
+/**
+ * Master placeholder class a slide / layout placeholder type inherits from: `title` for titles,
+ * `dt` / `ftr` / `sldNum` / `hdr` keep their own type, anything else is `body`.
+ */
+export function placeholderClass(type: string): string {
+  if (TITLE_TYPES.has(type)) return "title";
+  if (OWN_CLASS_TYPES.has(type)) return type;
+  return "body";
+}
+
 /**
  * Stable reference to one shape in a slide, layout, or master. `container`
  * plus `shapeId` identifies the shape (cNvPr ids are unique per part); `path`

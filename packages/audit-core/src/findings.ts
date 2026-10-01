@@ -243,7 +243,8 @@ function slideOf(pres: Presentation | undefined, partName: string): SlideInfo | 
   return pres?.slides.find((s) => s.partName === partName);
 }
 
-function containerName(pres: Presentation | undefined, kind: ContainerKind, partName: string): string | undefined {
+/** Layout / master name of a shape container; undefined for slides (or when `pres` is absent). */
+export function containerName(pres: Presentation | undefined, kind: ContainerKind, partName: string): string | undefined {
   if (!pres) return undefined;
   if (kind === "layout") return pres.layouts.find((l) => l.partName === partName)?.name;
   if (kind === "master") return pres.masters.find((m) => m.partName === partName)?.name;
@@ -284,6 +285,21 @@ export function partTarget(
   const t: FindingTarget = { container };
   if (extra.locator) t.locator = extra.locator;
   return t;
+}
+
+/**
+ * Part-level target for a whole shape container: `slideTarget` for a known slide, otherwise
+ * `partTarget` carrying the layout / master name when there is one.
+ */
+export function containerTarget(
+  pres: Presentation,
+  container: { readonly kind: ContainerKind; readonly partName: string },
+  locator?: TargetLocator,
+): FindingTarget {
+  const slide = container.kind === "slide" ? slideOf(pres, container.partName) : undefined;
+  if (slide) return slideTarget(slide, locator);
+  const name = containerName(pres, container.kind, container.partName);
+  return partTarget(container.kind, container.partName, { ...(name !== undefined ? { name } : {}), ...(locator ? { locator } : {}) });
 }
 
 /**

@@ -10,6 +10,7 @@
  *
  * Installed-font detection is out of scope; only embedding status is reported.
  */
+import { themeForMaster } from "../brand";
 import {
   makeFinding,
   partTarget,
@@ -240,11 +241,6 @@ class Collector {
 // ---------------------------------------------------------------------------------------------
 // Scan
 
-function themeFor(pres: Presentation, masterPart: string | undefined): ThemeInfo | undefined {
-  const themePart = pres.masters.find((m) => m.partName === masterPart)?.themePart;
-  return pres.themes.find((t) => t.partName === themePart) ?? pres.theme;
-}
-
 /** Themes actually used by masters (falls back to the primary theme). */
 function masterThemes(pres: Presentation): ThemeInfo[] {
   const out: ThemeInfo[] = [];
@@ -270,7 +266,7 @@ function containers(pres: Presentation): ContainerInfo[] {
       (s): ContainerInfo => ({
         container: { kind: "slide", partName: s.partName, slideId: s.slideId },
         slide: s,
-        theme: themeFor(pres, s.masterPart),
+        theme: themeForMaster(pres, s.masterPart),
         relationships: s.relationships,
       }),
     ),
@@ -278,7 +274,7 @@ function containers(pres: Presentation): ContainerInfo[] {
       (l): ContainerInfo => ({
         container: { kind: "layout", partName: l.partName },
         name: l.name,
-        theme: themeFor(pres, l.masterPart),
+        theme: themeForMaster(pres, l.masterPart),
         relationships: l.relationships,
       }),
     ),
@@ -286,7 +282,7 @@ function containers(pres: Presentation): ContainerInfo[] {
       (m): ContainerInfo => ({
         container: { kind: "master", partName: m.partName },
         name: m.name,
-        theme: themeFor(pres, m.partName),
+        theme: themeForMaster(pres, m.partName),
         relationships: m.relationships,
       }),
     ),
