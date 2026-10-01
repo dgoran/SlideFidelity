@@ -25,6 +25,12 @@ export type { BrandProfile } from "./brand";
 export interface AuditOptions {
   /** Active brand profile; absent means "derive from the deck's theme" (R22 default). */
   brand?: BrandProfile;
+  /**
+   * Fonts known to be installed on the presenting computers ("show machine fonts"). A font that is
+   * not embedded, not on this list, and not one that ships with Microsoft Office on both Mac and
+   * Windows is reported as possibly missing. Absent or empty means "no team list".
+   */
+  availableFonts?: string[];
 }
 
 export interface CheckContext {
