@@ -1,4 +1,4 @@
-/* global window, document, sessionStorage, fetch, setInterval, clearInterval, setTimeout, URL */
+/* global window, document, sessionStorage, fetch, setInterval, clearInterval, setTimeout, clearTimeout, URL */
 // SlideCheck account page (D6): email-code sign-in, plan display, Paddle checkout, customer portal.
 // Every string from the API or the user is rendered with textContent only. No inline scripts (CSP).
 (function () {
@@ -9,7 +9,7 @@
   var SESSION_KEY = "slidecheck.account.session";
   var DEFAULT_RESEND_SECONDS = 30;
 
-  var state = { email: "", session: null, plan: null, resendTimer: null, paddleReady: false };
+  var state = { email: "", session: null, plan: null, resendTimer: null, pollTimer: null, sendSeq: 0, paddleReady: false };
 
   function $(id) {
     return document.getElementById(id);
@@ -41,9 +41,15 @@
     }
   }
 
+  function stopPoll() {
+    if (state.pollTimer) clearTimeout(state.pollTimer);
+    state.pollTimer = null;
+  }
+
   function clearSession() {
     state.session = null;
     state.plan = null;
+    stopPoll();
     try {
       sessionStorage.removeItem(SESSION_KEY);
     } catch {
@@ -205,7 +211,10 @@
   }
 
   function loadEntitlement() {
+    var session = state.session;
     return api("GET", "/entitlement").then(function (res) {
+      // Signed out (or signed in as someone else) while this was in flight: drop the stale response.
+      if (state.session !== session) return null;
       if (res.status === 401) {
         clearSession();
         showStep("email");
@@ -225,11 +234,14 @@
 
   function sendCode(email, isResend) {
     var button = isResend ? $("resend") : $("email-submit");
+    var seq = ++state.sendSeq;
     clearMessages();
     setBusy(button, true, "Sending…");
     showStatus("Sending code…");
     return api("POST", "/auth/start", { email: email }).then(function (res) {
       setBusy(button, false);
+      // The user chose "use a different email" (or sent again) meanwhile: ignore this response.
+      if (seq !== state.sendSeq) return;
       showStatus("");
       if (res.ok) {
         state.email = email;
@@ -320,20 +332,25 @@
   // The webhook usually lands within seconds; poll the entitlement a few times.
   function onCheckoutCompleted() {
     showStatus("Thanks! Activating Pro…");
+    var session = state.session;
     var attempts = 0;
+    stopPoll();
     var poll = function () {
+      state.pollTimer = null;
+      if (state.session !== session) return;
       attempts += 1;
       loadEntitlement().then(function (ent) {
+        if (state.session !== session) return;
         if (ent && ent.plan === "pro") {
           showStatus("Pro is active. In PowerPoint, open SlideCheck > Account and choose Refresh.");
         } else if (attempts < 6) {
-          setTimeout(poll, 5000);
+          state.pollTimer = setTimeout(poll, 5000);
         } else {
           showStatus("Payment received. Pro can take a minute to activate. Choose Refresh shortly.");
         }
       });
     };
-    setTimeout(poll, 3000);
+    state.pollTimer = setTimeout(poll, 3000);
   }
 
   function openCheckout() {
@@ -429,6 +446,7 @@
       if (state.email) sendCode(state.email, true);
     });
     $("change-email").addEventListener("click", function () {
+      state.sendSeq += 1;
       if (state.resendTimer) clearInterval(state.resendTimer);
       clearMessages();
       showStep("email");
