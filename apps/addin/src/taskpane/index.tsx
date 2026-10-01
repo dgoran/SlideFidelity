@@ -13,6 +13,7 @@
 import { createRoot } from "react-dom/client";
 import { FluentProvider, webLightTheme } from "@fluentui/react-components";
 import { createLicenseConfig } from "../license/config";
+import { devUnlockFromEnvironment, effectivePlan } from "../license/devUnlock";
 import { createLicenseService } from "../license/license";
 import { getHostCapabilities } from "../office/capabilities";
 import { createNavigator } from "../office/navigate";
@@ -20,6 +21,7 @@ import { createScanService } from "../office/scan";
 import { createBrandStore } from "./brand/brandStore";
 import { AccountEntry, AccountNotices } from "./components/Account";
 import { BrandEditor, BrandSettingsEntry } from "./components/BrandEditor";
+import { DevUnlockBanner } from "./components/DevUnlockBanner";
 import { Inspector } from "./components/Inspector";
 import { composeSlots, createSelectionEchoGuard, type PaneServices, type PaneSlots } from "./context";
 import { createFixSlots } from "./fixes";
@@ -48,6 +50,8 @@ function subscribeSelectionChanges(onActivity: () => void): () => void {
 const licenseConfig = createLicenseConfig();
 const licenseService = createLicenseService(licenseConfig);
 const brandStore = createBrandStore();
+// Development builds served from localhost only; always false in production bundles.
+const devUnlock = devUnlockFromEnvironment();
 
 const rootElement = document.getElementById("container");
 const root = rootElement ? createRoot(rootElement) : undefined;
@@ -81,7 +85,12 @@ void Office.onReady(() => {
   const slots: PaneSlots = composeSlots(fixSlots, linkCheckSlots, {
     inspectorSlot: <Inspector />,
     accountSlot: <AccountEntry />,
-    noticeSlot: <AccountNotices />,
+    noticeSlot: (
+      <>
+        {devUnlock && <DevUnlockBanner />}
+        <AccountNotices />
+      </>
+    ),
     settingsSlot: <BrandSettingsEntry store={brandStore} />,
     brandSlot: ({ area }) => <BrandEditor store={brandStore} placement={area} />,
   });
@@ -93,7 +102,7 @@ void Office.onReady(() => {
             services={services}
             scanService={scanService}
             subscribeActivity={subscribeSelectionChanges}
-            plan={plan}
+            plan={effectivePlan(plan, devUnlock)}
             onSignIn={onSignIn}
             onManageSubscription={onManageSubscription}
             slots={slots}

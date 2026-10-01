@@ -3,6 +3,7 @@
 const devCerts = require("office-addin-dev-certs");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const { DefinePlugin } = require("webpack");
 
 const urlDev = "https://localhost:3000/";
 const urlProd = "https://app.slidecheck.io/";
@@ -73,6 +74,8 @@ module.exports = async (env, options) => {
       ],
     },
     plugins: [
+      // Development-only Pro unlock (src/license/devUnlock.ts); `false` strips it from production bundles.
+      new DefinePlugin({ __SLIDECHECK_DEV__: JSON.stringify(dev) }),
       new HtmlWebpackPlugin({
         filename: "taskpane.html",
         // "!!" + the plugin's own lodash loader, so html-loader (used for the HMR entry) does not
