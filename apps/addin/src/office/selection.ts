@@ -242,8 +242,18 @@ export function createSelectionWatcher(deps: SelectionWatcherDeps): SelectionWat
       if (subscribed) return { ok: true };
       return new Promise((resolve) => {
         try {
-          getDocument().addHandlerAsync(SELECTION_CHANGED_EVENT, handler, (r) => {
-            if (succeeded(r)) {
+          const doc = getDocument();
+          doc.addHandlerAsync(SELECTION_CHANGED_EVENT, handler, (r) => {
+            if (succeeded(r) && disposed) {
+              // dispose() ran while the add was pending and skipped removal (nothing was
+              // subscribed yet); remove the now-registered handler so it does not leak.
+              try {
+                doc.removeHandlerAsync(SELECTION_CHANGED_EVENT, { handler });
+              } catch {
+                // Best effort: the watcher is dead either way.
+              }
+              resolve({ ok: false, message: "disposed" });
+            } else if (succeeded(r)) {
               subscribed = true;
               resolve({ ok: true });
             } else {

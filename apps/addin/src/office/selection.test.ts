@@ -279,6 +279,27 @@ describe("createSelectionWatcher", () => {
     expect(events[0]).toMatchObject({ shapes: [{ liveId: "9" }] });
   });
 
+  it("removes the handler when dispose runs while the subscription is still pending", async () => {
+    const { doc, timers, events, watcher } = setup();
+    let completeAdd: (() => void) | undefined;
+    const add = doc.addHandlerAsync.bind(doc);
+    doc.addHandlerAsync = (type, handler, cb) => {
+      completeAdd = () => add(type, handler, cb);
+    };
+    const started = watcher.start();
+    await watcher.dispose();
+    expect(doc.removed).toBe(0); // nothing registered yet
+    completeAdd?.();
+    expect(await started).toEqual({ ok: false, message: "disposed" });
+    expect(doc.handlers).toHaveLength(0);
+    expect(doc.removed).toBe(1);
+    doc.fire();
+    await timers.advance(500);
+    expect(events).toHaveLength(0);
+    await watcher.dispose(); // still safe
+    expect(doc.removed).toBe(1);
+  });
+
   it("start reports a failed subscription", async () => {
     const { doc, watcher } = setup();
     doc.addFails = true;

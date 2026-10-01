@@ -144,6 +144,53 @@ describe("readSnapshot", () => {
     expect(err.message).toContain("slice broke");
   });
 
+  it("writes slices into a buffer preallocated from file.size with identical bytes and hash", async () => {
+    const slices = [[1, 2, 3], new Uint8Array([4, 5]), new Uint8Array([6]).buffer];
+    const expected = new Uint8Array([1, 2, 3, 4, 5, 6]);
+    const pre = await readSnapshot(fakeDocument({ slices, size: 6 }).doc);
+    const concat = await readSnapshot(fakeDocument({ slices, size: 0 }).doc);
+    expect(Array.from(pre.bytes)).toEqual(Array.from(expected));
+    expect(pre.bytes.byteLength).toBe(6);
+    expect(pre.bytes.buffer.byteLength).toBe(6);
+    expect(pre.sha256).toBe(bytesToHex(sha256(expected)));
+    expect(Array.from(concat.bytes)).toEqual(Array.from(pre.bytes));
+    expect(concat.sha256).toBe(pre.sha256);
+  });
+
+  it("falls back to concatenation when file.size is missing", async () => {
+    const f = fakeDocument({ slices: [[1, 2], [3]] });
+    (f.doc as unknown as { getFileAsync: ReturnType<typeof vi.fn> }).getFileAsync.mockImplementation(
+      (_t: unknown, _o: unknown, cb?: (r: unknown) => void) => {
+        const file = { sliceCount: 2, closeAsync: f.closeAsync, getSliceAsync: f.getSliceAsync };
+        cb?.({ status: "succeeded", value: file });
+      },
+    );
+    const snap = await readSnapshot(f.doc);
+    expect(Array.from(snap.bytes)).toEqual([1, 2, 3]);
+    expect(snap.sha256).toBe(bytesToHex(sha256(new Uint8Array([1, 2, 3]))));
+    expect(f.closeAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back correctly when slices overflow the reported size", async () => {
+    const expected = new Uint8Array([1, 2, 3, 4, 5, 6, 7]);
+    const f = fakeDocument({ slices: [[1, 2, 3], [4, 5], [6, 7]], size: 4 });
+    const snap = await readSnapshot(f.doc);
+    expect(Array.from(snap.bytes)).toEqual(Array.from(expected));
+    expect(snap.bytes.byteLength).toBe(7);
+    expect(snap.sha256).toBe(bytesToHex(sha256(expected)));
+    expect(f.closeAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it("trims to the assembled length when slices fall short of the reported size", async () => {
+    const expected = new Uint8Array([1, 2, 3]);
+    const f = fakeDocument({ slices: [[1, 2], [3]], size: 10 });
+    const snap = await readSnapshot(f.doc);
+    expect(Array.from(snap.bytes)).toEqual(Array.from(expected));
+    expect(snap.bytes.byteLength).toBe(3);
+    expect(snap.bytes.buffer.byteLength).toBe(3);
+    expect(snap.sha256).toBe(bytesToHex(sha256(expected)));
+  });
+
   it("produces identical hashes for identical bytes split differently", async () => {
     const a = await readSnapshot(fakeDocument({ slices: [[1, 2], [3, 4]] }).doc);
     const b = await readSnapshot(fakeDocument({ slices: [[1], [2, 3, 4]] }).doc);

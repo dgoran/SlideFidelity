@@ -112,21 +112,40 @@ export async function readSnapshot(doc: SnapshotDocument = Office.context.docume
     if (!count) throw new SnapshotError("empty-document", "empty document: the file has no slices");
 
     const hash = sha256.create();
+    // Write each slice straight into a buffer sized from `file.size` so the slices and a second
+    // full copy are never held at once. If the host reports no size, or the slices overflow it,
+    // fall back to collecting parts and concatenating them.
+    const expected = typeof file.size === "number" && file.size > 0 ? file.size : 0;
+    let pre: Uint8Array | null = expected ? new Uint8Array(expected) : null;
     const parts: Uint8Array[] = [];
     let total = 0;
     for (let i = 0; i < count; i++) {
       const part = await readSlice(file, i);
       hash.update(part);
-      parts.push(part);
+      if (pre && total + part.length <= pre.length) {
+        pre.set(part, total);
+      } else {
+        if (pre) {
+          parts.push(pre.subarray(0, total));
+          pre = null;
+        }
+        parts.push(part);
+      }
       total += part.length;
     }
     if (total === 0) throw new SnapshotError("empty-document", "empty document: the file has no bytes");
 
-    const bytes = new Uint8Array(total);
-    let offset = 0;
-    for (const part of parts) {
-      bytes.set(part, offset);
-      offset += part.length;
+    let bytes: Uint8Array;
+    if (pre) {
+      // Fewer bytes than reported: trim to what actually arrived.
+      bytes = total === pre.length ? pre : pre.slice(0, total);
+    } else {
+      bytes = new Uint8Array(total);
+      let offset = 0;
+      for (const part of parts) {
+        bytes.set(part, offset);
+        offset += part.length;
+      }
     }
     return { bytes, sha256: bytesToHex(hash.digest()), sliceCount: count };
   } finally {
