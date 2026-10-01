@@ -11,8 +11,19 @@
  * SmartArt are listed unreachable.
  */
 import type { Finding, FindingTarget } from "@slidecheck/audit-core";
-import { containerReason, findFontRanges, isReachable, mergeUnit, plannedUnit, resolveShapes, shapeKey, unitRequirement, unreachable } from "./engine";
-import type { FixKindDef, FixOp, KindPlan, PlannedTarget, ReplaceColorParams, TargetOutcome, UnreachableTarget } from "./types";
+import {
+  containerReason,
+  findFontRanges,
+  isReachable,
+  mergeUnit,
+  plannedUnit,
+  resolveShapes,
+  shapeKey,
+  unitRequirement,
+  unitUnreachable,
+  unreachable,
+} from "./engine";
+import type { FixKindDef, FixOp, IsSetSupported, KindPlan, PlannedTarget, ReplaceColorParams, TargetOutcome, UnreachableTarget } from "./types";
 
 export const FIXED_COLOR_NOTE = "The new color is written as a fixed color; it will not follow later theme changes.";
 export const TEXT_COLOR_NOTE =
@@ -69,7 +80,7 @@ function unitKey(t: FindingTarget, op: FixOp): string {
   return `${shapeKey(t)}|${op.type}|${cell}`;
 }
 
-function planColors(findings: readonly Finding[], params: ReplaceColorParams, isSetSupported: (v: string) => boolean): KindPlan {
+function planColors(findings: readonly Finding[], params: ReplaceColorParams, isSetSupported: IsSetSupported): KindPlan {
   const from = new Set(params.from.map(normalizeHex).filter((h): h is string => h !== null));
   const units = new Map<string, PlannedTarget>();
   const out: UnreachableTarget[] = [];
@@ -90,7 +101,7 @@ function planColors(findings: readonly Finding[], params: ReplaceColorParams, is
   const targets: PlannedTarget[] = [];
   for (const u of units.values()) {
     const why = unitRequirement(u, isSetSupported);
-    if (why) u.sources.forEach((t, i) => out.push({ target: t, findingId: u.findingIds[Math.min(i, u.findingIds.length - 1)]!, label: u.label, reason: why }));
+    if (why) out.push(...unitUnreachable(u, why));
     else targets.push(u);
   }
   const notes = [FIXED_COLOR_NOTE];

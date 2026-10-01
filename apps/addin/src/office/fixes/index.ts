@@ -6,7 +6,7 @@ import { replaceFontsKind } from "./replaceFonts";
 import type { FixKindDef, FixKindId } from "./types";
 
 export * from "./types";
-export { BATCH_SIZE, IDENTITY_UNCERTAIN, makeBatches, previewFix, requiresReason, runFix, targetLabel, UNDO_NOTE } from "./engine";
+export { BATCH_SIZE, IDENTITY_UNCERTAIN, isReachable, makeBatches, previewFix, requiresReason, runFix, targetLabel, UNDO_NOTE } from "./engine";
 export { replaceFontsKind, THEME_CONFLICT_REASON } from "./replaceFonts";
 export { FIXED_COLOR_NOTE, normalizeHex, replaceColorsKind, TEXT_COLOR_NOTE } from "./replaceColors";
 export { deleteShapesKind } from "./deleteShapes";

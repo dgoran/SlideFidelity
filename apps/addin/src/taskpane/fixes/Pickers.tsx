@@ -6,6 +6,7 @@
  * values that passed `normalizeHex` (six hex digits).
  */
 import { Button, Checkbox, Field, Input, Select, makeStyles, tokens } from "@fluentui/react-components";
+import { useMemo } from "react";
 import { CapabilityButton } from "../components/CapabilityButton";
 import {
   colorSources,
@@ -24,7 +25,7 @@ import {
 } from "./model";
 import type { AuditResult, Finding } from "@slidecheck/audit-core";
 
-export const usePickerStyles = makeStyles({
+const usePickerStyles = makeStyles({
   fieldset: {
     margin: 0,
     padding: 0,
@@ -191,10 +192,11 @@ export function ColorPicker({ draft, onChange, findings, result, disabled }: Pic
 
 export function DeletePicker({ draft, onChange, findings, disabled }: PickerProps) {
   const s = usePickerStyles();
+  const sources = useMemo(() => deleteSources(findings), [findings]);
   if (draft.type !== "delete") return null;
-  const sources = deleteSources(findings);
+  const chosen = new Set(draft.findingIds);
   const allIds = sources.map((x) => x.findingId);
-  const selected = allIds.filter((id) => draft.findingIds.includes(id)).length;
+  const selected = allIds.filter((id) => chosen.has(id)).length;
   const allState = selected === 0 ? false : selected === allIds.length ? true : "mixed";
   return (
     <fieldset className={s.fieldset} disabled={disabled}>
@@ -215,7 +217,7 @@ export function DeletePicker({ draft, onChange, findings, disabled }: PickerProp
                 <span key={it.findingId} className={s.item}>
                   <Checkbox
                     label={it.label}
-                    checked={draft.findingIds.includes(it.findingId)}
+                    checked={chosen.has(it.findingId)}
                     onChange={(_e, d) => onChange({ ...draft, findingIds: toggle(draft.findingIds, it.findingId, d.checked === true) })}
                   />
                 </span>
@@ -232,8 +234,8 @@ export function DeletePicker({ draft, onChange, findings, disabled }: PickerProp
 
 export function LinkPicker({ draft, onChange, findings, disabled }: PickerProps) {
   const s = usePickerStyles();
+  const sources = useMemo(() => linkSources(findings), [findings]);
   if (draft.type !== "links") return null;
-  const sources = linkSources(findings);
 
   if (draft.mode === "edit" && draft.address !== null) {
     const error = draftInputError(draft);
@@ -263,6 +265,7 @@ export function LinkPicker({ draft, onChange, findings, disabled }: PickerProps)
   }
 
   const removing = draft.mode === "remove";
+  const chosen = new Set(removing ? draft.addresses : []);
   return (
     <fieldset className={s.fieldset} disabled={disabled}>
       <legend className={s.legend}>{removing ? "Links to remove" : "Choose a link to edit"}</legend>
@@ -279,7 +282,7 @@ export function LinkPicker({ draft, onChange, findings, disabled }: PickerProps)
             {removing ? (
               <Checkbox
                 label={src.address}
-                checked={draft.addresses.includes(src.address)}
+                checked={chosen.has(src.address)}
                 onChange={(_e, d) => onChange({ ...draft, addresses: toggle(draft.addresses, src.address, d.checked === true) })}
               />
             ) : (

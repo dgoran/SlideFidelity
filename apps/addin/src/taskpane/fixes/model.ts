@@ -7,6 +7,7 @@
  */
 import type { Area, AuditResult, Finding } from "@slidecheck/audit-core";
 import {
+  isReachable,
   normalizeHex,
   targetLabel,
   validateHyperlinkAddress,
@@ -41,7 +42,7 @@ export const KIND_FEATURE: Record<FixKindId, CapabilityFeature> = {
 /** At least one target the in-place fix engine can reach (per-target override, else finding). */
 export function hasReachableTarget(f: Finding): boolean {
   if (f.targets.length === 0) return f.reachable === true;
-  return f.targets.some((t) => t.reachable === true || (t.reachable === undefined && f.reachable === true));
+  return f.targets.some((t) => isReachable(f, t));
 }
 
 /** The finding offers a fix and something it can reach. */
@@ -61,10 +62,13 @@ export interface FontSource {
 
 export function fontSources(findings: readonly Finding[]): FontSource[] {
   const out: FontSource[] = [];
+  const seen = new Set<string>();
   for (const f of findings) {
     if (f.kind !== "font-usage" || !f.fixes.includes("replace-font")) continue;
     const name = f.data.typeface;
-    if (out.some((s) => s.name.toLowerCase() === name.toLowerCase())) continue;
+    const k = name.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
     out.push({ name, count: f.targets.length, reachable: hasReachableTarget(f), inBrand: f.data.inBrand });
   }
   return out;
@@ -79,10 +83,12 @@ export interface ColorSource {
 
 export function colorSources(findings: readonly Finding[]): ColorSource[] {
   const out: ColorSource[] = [];
+  const seen = new Set<string>();
   for (const f of findings) {
     if (f.kind !== "color-usage" || !f.fixes.includes("replace-color")) continue;
     const hex = normalizeHex(f.data.hex);
-    if (!hex || out.some((s) => s.hex === hex)) continue;
+    if (!hex || seen.has(hex)) continue;
+    seen.add(hex);
     out.push({ hex, count: f.targets.length, reachable: hasReachableTarget(f), inBrand: f.data.inBrand });
   }
   return out;
@@ -133,13 +139,18 @@ export function linkAddress(f: Finding): string {
 
 export function linkSources(findings: readonly Finding[]): LinkSource[] {
   const out: LinkSource[] = [];
+  const byAddress = new Map<string, LinkSource>();
   for (const f of findings) {
     if (f.area !== "links" || !isFixable(f)) continue;
     if (!f.fixes.includes("remove-hyperlink") && !f.fixes.includes("edit-hyperlink")) continue;
     const address = linkAddress(f);
-    const hit = out.find((s) => s.address === address);
+    const hit = byAddress.get(address);
     if (hit) hit.count += f.targets.length;
-    else out.push({ address, count: f.targets.length });
+    else {
+      const s = { address, count: f.targets.length };
+      byAddress.set(address, s);
+      out.push(s);
+    }
   }
   return out;
 }
@@ -155,11 +166,14 @@ export interface FontTargets {
 export function fontTargets(result: AuditResult | null): FontTargets {
   const theme = themeBrandFromResult(result).fonts;
   const deck: string[] = [];
+  const known = new Set(theme.map((x) => x.toLowerCase()));
   for (const f of result?.findings ?? []) {
     if (f.kind !== "font-usage") continue;
     const name = f.data.typeface;
-    const known = [...theme, ...deck].some((x) => x.toLowerCase() === name.toLowerCase());
-    if (!known) deck.push(name);
+    const k = name.toLowerCase();
+    if (known.has(k)) continue;
+    known.add(k);
+    deck.push(name);
   }
   return { theme, deck };
 }

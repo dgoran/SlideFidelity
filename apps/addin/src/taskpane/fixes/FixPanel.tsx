@@ -5,7 +5,7 @@
  */
 import { useEffect, useId, useMemo, useRef } from "react";
 import { Button, makeStyles, tokens } from "@fluentui/react-components";
-import type { Area } from "@slidecheck/audit-core";
+import type { Area, Finding } from "@slidecheck/audit-core";
 import { featureForFinding, usePlan } from "../../license/gate";
 import { currentResult } from "../brand/themeBrand";
 import { CapabilityButton } from "../components/CapabilityButton";
@@ -60,10 +60,13 @@ export function FixPanel({ controller, deps, area }: FixPanelProps) {
   const plan = usePlan();
   const { state } = usePane();
   const result = currentResult(state.scan);
+  const { isAllowed } = plan;
+  const visibleFixable = useMemo(
+    () => (result?.findings ?? []).some((f) => f.area === area && f.fixes.length > 0 && isAllowed(featureForFinding(f))),
+    [result, area, isAllowed],
+  );
   if (!isFixArea(area)) return null;
 
-  const areaFindings = (result?.findings ?? []).filter((f) => f.area === area);
-  const visibleFixable = areaFindings.some((f) => f.fixes.length > 0 && plan.isAllowed(featureForFinding(f)));
   const own = session && session.area === area ? session : null;
   if (!own && !visibleFixable) return null;
   if (!plan.isAllowed("fixes")) {
@@ -104,25 +107,32 @@ function FixPanelBody({ controller, deps, area, session, busy }: { controller: F
   );
 }
 
-function BulkActions({ area, findings, busy, onOpen }: { area: FixArea; findings: Parameters<typeof fontSources>[0]; busy: boolean; onOpen: (seed: DraftSeed) => void }) {
+function BulkActions({ area, findings, busy, onOpen }: { area: FixArea; findings: readonly Finding[]; busy: boolean; onOpen: (seed: DraftSeed) => void }) {
+  const hasFonts = useMemo(() => area === "fonts" && fontSources(findings).length > 0, [area, findings]);
+  const hasColors = useMemo(() => area === "colors" && colorSources(findings).length > 0, [area, findings]);
+  const deleteKinds = useMemo(() => {
+    if (area !== "review") return [];
+    const sources = deleteSources(findings);
+    return DELETE_KINDS.filter((k) => sources.some((x) => x.kind === k));
+  }, [area, findings]);
+  const hasLinks = useMemo(() => area === "links" && linkSources(findings).length > 0, [area, findings]);
   switch (area) {
     case "fonts":
       return (
-        <CapabilityButton feature="replaceFonts" size="small" disabled={busy || fontSources(findings).length === 0} onClick={() => onOpen({})}>
+        <CapabilityButton feature="replaceFonts" size="small" disabled={busy || !hasFonts} onClick={() => onOpen({})}>
           Replace fonts…
         </CapabilityButton>
       );
     case "colors":
       return (
-        <CapabilityButton feature="replaceColors" size="small" disabled={busy || colorSources(findings).length === 0} onClick={() => onOpen({})}>
+        <CapabilityButton feature="replaceColors" size="small" disabled={busy || !hasColors} onClick={() => onOpen({})}>
           Replace colors…
         </CapabilityButton>
       );
     case "review": {
-      const sources = deleteSources(findings);
       return (
         <>
-          {DELETE_KINDS.filter((k) => sources.some((x) => x.kind === k)).map((k) => (
+          {deleteKinds.map((k) => (
             <CapabilityButton key={k} feature="deleteShapes" size="small" disabled={busy} onClick={() => onOpen({ deleteKind: k })}>
               {DELETE_ACTION_LABELS[k]}
             </CapabilityButton>
@@ -131,7 +141,7 @@ function BulkActions({ area, findings, busy, onOpen }: { area: FixArea; findings
       );
     }
     case "links": {
-      const none = busy || linkSources(findings).length === 0;
+      const none = busy || !hasLinks;
       return (
         <>
           <CapabilityButton feature="hyperlinkRemove" size="small" disabled={none} onClick={() => onOpen({ linkMode: "remove" })}>
@@ -158,7 +168,7 @@ function SessionView({
   controller: FixController;
   deps: FixDeps;
   session: FixSession;
-  findings: Parameters<typeof fontSources>[0];
+  findings: readonly Finding[];
   titleId: string;
 }) {
   const s = useStyles();

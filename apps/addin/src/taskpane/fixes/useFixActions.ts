@@ -4,6 +4,7 @@
  * keeps going if the panel re-mounts.
  */
 import { useCallback, useMemo } from "react";
+import type { Finding } from "@slidecheck/audit-core";
 import {
   FIX_KINDS,
   openPreFixCopy,
@@ -41,7 +42,7 @@ function kindDef(kind: FixKindId): FixKindDef<FixKindId> {
   return FIX_KINDS[kind] as FixKindDef<FixKindId>;
 }
 
-function doPreview(req: FixRequest, findings: Parameters<typeof previewFix>[1], isSetSupported: IsSetSupported): PreviewResult {
+function doPreview(req: FixRequest, findings: readonly Finding[], isSetSupported: IsSetSupported): PreviewResult {
   return previewFix(kindDef(req.kind), findings, req.params as FixParamsMap[FixKindId], { isSetSupported }) as PreviewResult;
 }
 

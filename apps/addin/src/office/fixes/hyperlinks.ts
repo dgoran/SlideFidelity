@@ -9,8 +9,8 @@
  */
 import type { Finding, FindingTarget } from "@slidecheck/audit-core";
 import { matchHyperlink } from "../ids";
-import { containerReason, isReachable, plannedUnit, resolveSlides, selected, unreachable } from "./engine";
-import type { EditHyperlinkParams, FixKindDef, FixKindId, KindPlan, PlannedTarget, RemoveHyperlinkParams, TargetOutcome, TargetSelection, UnreachableTarget } from "./types";
+import { containerReason, isReachable, makeSelector, mergeUnit, plannedUnit, resolveSlides, unreachable } from "./engine";
+import type { ApplyIO, EditHyperlinkParams, FixKindDef, FixKindId, KindPlan, PlannedTarget, RemoveHyperlinkParams, TargetOutcome, TargetSelection, UnreachableTarget } from "./types";
 
 const ALLOWED_SCHEMES = new Set(["http:", "https:", "mailto:"]);
 
@@ -40,6 +40,11 @@ function linkReason(f: Finding, t: FindingTarget): string {
 
 type Filter = (f: Finding, t: FindingTarget) => boolean;
 
+/** The link address a target refers to (its locator, else the finding's address or group). */
+function targetLinkAddress(f: Finding, t: FindingTarget): string {
+  return t.locator?.hyperlink?.address ?? (f.kind === "hyperlink" ? f.data.address : f.group);
+}
+
 function planLinks(kind: FixKindId, findings: readonly Finding[], filter: Filter): KindPlan {
   const units = new Map<string, PlannedTarget>();
   const out: UnreachableTarget[] = [];
@@ -65,11 +70,7 @@ function planLinks(kind: FixKindId, findings: readonly Finding[], filter: Filter
         continue;
       }
       u.batchKey = `${u.slideId}|${h!.address}`;
-      const existing = units.get(u.key);
-      if (existing) {
-        if (!existing.findingIds.includes(f.id)) existing.findingIds.push(f.id);
-        existing.sources.push(t);
-      } else units.set(u.key, u);
+      mergeUnit(units, u);
     }
   }
   return { targets: [...units.values()], unreachable: out };
@@ -78,7 +79,7 @@ function planLinks(kind: FixKindId, findings: readonly Finding[], filter: Filter
 async function applyLinks(
   context: PowerPoint.RequestContext,
   batch: readonly PlannedTarget[],
-  io: Parameters<FixKindDef<"remove-hyperlink">["apply"]>[2],
+  io: ApplyIO,
   destructive: boolean,
   write: (link: PowerPoint.Hyperlink) => void,
 ): Promise<TargetOutcome[]> {
@@ -135,10 +136,8 @@ export const editHyperlinkKind: FixKindDef<"edit-hyperlink"> = {
     const sel: Partial<{ findingIds: string[]; targetKeys: string[] }> = {};
     if (params.findingIds) sel.findingIds = params.findingIds;
     else if (params.targetKeys) sel.targetKeys = params.targetKeys;
-    return planLinks("edit-hyperlink", findings, (f, t) => {
-      const addr = t.locator?.hyperlink?.address ?? (f.kind === "hyperlink" ? f.data.address : f.group);
-      return addr === params.address && selected(sel, f, t);
-    });
+    const selected = makeSelector(sel);
+    return planLinks("edit-hyperlink", findings, (f, t) => targetLinkAddress(f, t) === params.address && selected(f, t));
   },
 
   apply(context, batch, io, params) {
@@ -165,10 +164,10 @@ export const removeHyperlinkKind: FixKindDef<"remove-hyperlink"> = {
   plan(findings, params) {
     if ("addresses" in params) {
       const set = new Set(params.addresses);
-      return planLinks("remove-hyperlink", findings, (f, t) => set.has(t.locator?.hyperlink?.address ?? (f.kind === "hyperlink" ? f.data.address : f.group)));
+      return planLinks("remove-hyperlink", findings, (f, t) => set.has(targetLinkAddress(f, t)));
     }
     const sel: TargetSelection = params;
-    return planLinks("remove-hyperlink", findings, (f, t) => selected(sel, f, t));
+    return planLinks("remove-hyperlink", findings, makeSelector(sel));
   },
 
   apply(context, batch, io) {

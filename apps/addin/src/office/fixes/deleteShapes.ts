@@ -6,7 +6,19 @@
  * group is also selected is folded into the group's unit (deleting the group removes it).
  */
 import type { Finding } from "@slidecheck/audit-core";
-import { containerReason, isReachable, mergeUnit, plannedUnit, resolveShapes, selected, shapeKey, unitRequirement, unreachable } from "./engine";
+import {
+  absorbUnit,
+  containerReason,
+  isReachable,
+  makeSelector,
+  mergeUnit,
+  plannedUnit,
+  resolveShapes,
+  shapeKey,
+  unitRequirement,
+  unitUnreachable,
+  unreachable,
+} from "./engine";
 import type { DeleteShapesParams, FixKindDef, PlannedTarget, TargetOutcome, UnreachableTarget } from "./types";
 
 const DELETABLE = new Set<Finding["kind"]>(["hidden-shape", "off-slide-shape", "empty-placeholder"]);
@@ -26,10 +38,11 @@ export const deleteShapesKind: FixKindDef<"delete-shapes"> = {
   plan(findings, params, env) {
     const units = new Map<string, PlannedTarget>();
     const out: UnreachableTarget[] = [];
+    const selected = makeSelector(params);
     for (const f of findings) {
       if (!DELETABLE.has(f.kind) || !f.fixes.includes("delete-shapes")) continue;
       for (const t of f.targets) {
-        if (!selected(params, f, t)) continue;
+        if (!selected(f, t)) continue;
         const u = isReachable(f, t) ? plannedUnit(f, t, shapeKey(t), { type: "delete-shape" }) : null;
         if (!u) {
           out.push(unreachable(f, t, containerReason(t) ?? "Can't be deleted in place"));
@@ -45,8 +58,7 @@ export const deleteShapesKind: FixKindDef<"delete-shapes"> = {
     for (const u of units.values()) {
       const ancestor = u.path.map((id) => byShape.get(`${u.slideId}|${id}`)).find((a) => a !== undefined);
       if (ancestor) {
-        ancestor.sources.push(...u.sources);
-        for (const id of u.findingIds) if (!ancestor.findingIds.includes(id)) ancestor.findingIds.push(id);
+        absorbUnit(ancestor, u);
         continue;
       }
       targets.push(u);
@@ -54,7 +66,7 @@ export const deleteShapesKind: FixKindDef<"delete-shapes"> = {
     const reachable: PlannedTarget[] = [];
     for (const u of targets) {
       const why = unitRequirement(u, env.isSetSupported);
-      if (why) u.sources.forEach((t, i) => out.push({ target: t, findingId: u.findingIds[Math.min(i, u.findingIds.length - 1)]!, label: u.label, reason: why }));
+      if (why) out.push(...unitUnreachable(u, why));
       else reachable.push(u);
     }
     return {

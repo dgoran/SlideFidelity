@@ -22,9 +22,10 @@ import {
   resolveShapes,
   shapeKey,
   unitRequirement,
+  unitUnreachable,
   unreachable,
 } from "./engine";
-import type { FixKindDef, KindPlan, PlannedTarget, ReplaceFontParams, TargetOutcome, UnreachableTarget } from "./types";
+import type { FixKindDef, IsSetSupported, KindPlan, PlannedTarget, ReplaceFontParams, TargetOutcome, UnreachableTarget } from "./types";
 
 const norm = (name: string): string => name.trim().toLowerCase();
 
@@ -62,7 +63,7 @@ function usageReason(u: FontUsageRef | undefined): string | null {
   }
 }
 
-function planFonts(findings: readonly Finding[], params: ReplaceFontParams, isSetSupported: (v: string) => boolean): KindPlan {
+function planFonts(findings: readonly Finding[], params: ReplaceFontParams, isSetSupported: IsSetSupported): KindPlan {
   const from = new Set(params.from.map(norm));
   const units = new Map<string, PlannedTarget>();
   const out: UnreachableTarget[] = [];
@@ -101,7 +102,7 @@ function planFonts(findings: readonly Finding[], params: ReplaceFontParams, isSe
   for (const u of units.values()) {
     const why = themeBodies.has(u.key) ? THEME_CONFLICT_REASON : unitRequirement(u, isSetSupported);
     if (why) {
-      u.sources.forEach((t, i) => out.push({ target: t, findingId: u.findingIds[Math.min(i, u.findingIds.length - 1)]!, label: u.label, reason: why }));
+      out.push(...unitUnreachable(u, why));
       continue;
     }
     targets.push(u);

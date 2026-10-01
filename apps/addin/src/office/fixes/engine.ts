@@ -53,12 +53,19 @@ export function previewFix<K extends FixKindId>(
   params: FixParamsMap[K],
   env: PlanEnv,
 ): PreviewResult<K> {
-  if (!supported(env.isSetSupported, kind.requiredSet)) {
+  return gate(kind, params, env.isSetSupported) ?? { status: "ready", plan: buildPlan(kind, findings, params, env) };
+}
+
+type GateResult = { status: "blocked"; reason: string; requiredSet: string } | { status: "invalid"; reason: string };
+
+/** Capability first (KTD4), then parameter validation. Null when the fix may proceed. */
+function gate<K extends FixKindId>(kind: FixKindDef<K>, params: FixParamsMap[K], isSetSupported: IsSetSupported): GateResult | null {
+  if (!supported(isSetSupported, kind.requiredSet)) {
     return { status: "blocked", reason: requiresReason(kind.requiredSet), requiredSet: kind.requiredSet };
   }
   const invalid = kind.validate(params);
   if (invalid !== null) return { status: "invalid", reason: invalid };
-  return { status: "ready", plan: buildPlan(kind, findings, params, env) };
+  return null;
 }
 
 function supported(isSetSupported: IsSetSupported, version: string): boolean {
@@ -137,11 +144,8 @@ export function makeBatches(targets: readonly PlannedTarget[], size = BATCH_SIZE
 
 export async function runFix<K extends FixKindId>(kind: FixKindDef<K>, params: FixParamsMap[K], deps: RunFixDeps): Promise<RunFixResult<K>> {
   const env: PlanEnv = { isSetSupported: deps.isSetSupported };
-  if (!supported(deps.isSetSupported, kind.requiredSet)) {
-    return { status: "blocked", reason: requiresReason(kind.requiredSet), requiredSet: kind.requiredSet };
-  }
-  const invalid = kind.validate(params);
-  if (invalid !== null) return { status: "invalid", reason: invalid };
+  const blocked = gate(kind, params, deps.isSetSupported);
+  if (blocked) return blocked;
 
   const rescan = await deps.rescanForFix();
   const plan = buildPlan(kind, rescan.result.findings, params, env);
@@ -284,6 +288,11 @@ export function unreachable(f: Finding, t: FindingTarget, reason: string): Unrea
   return { target: t, findingId: f.id, label: targetLabel(t), reason };
 }
 
+/** One unreachable entry per source of a planned unit (finding ids pair by index, last one repeats). */
+export function unitUnreachable(u: PlannedTarget, reason: string): UnreachableTarget[] {
+  return u.sources.map((t, i) => ({ target: t, findingId: u.findingIds[Math.min(i, u.findingIds.length - 1)]!, label: u.label, reason }));
+}
+
 /**
  * Build a planned unit for a slide shape target, or null when the target is not a slide shape
  * (the caller reports it unreachable).
@@ -321,8 +330,13 @@ export function mergeUnit(units: Map<string, PlannedTarget>, u: PlannedTarget): 
     units.set(u.key, u);
     return;
   }
-  existing.sources.push(...u.sources);
-  for (const id of u.findingIds) if (!existing.findingIds.includes(id)) existing.findingIds.push(id);
+  absorbUnit(existing, u);
+}
+
+/** Add `from`'s sources and (new) finding ids to `into`. */
+export function absorbUnit(into: PlannedTarget, from: PlannedTarget): void {
+  into.sources.push(...from.sources);
+  for (const id of from.findingIds) if (!into.findingIds.includes(id)) into.findingIds.push(id);
 }
 
 /**
@@ -336,12 +350,20 @@ export function unitRequirement(u: PlannedTarget, isSetSupported: IsSetSupported
   return null;
 }
 
-/** Filter (finding, target) pairs by a `TargetSelection`. */
-export function selected(selection: TargetSelection | Partial<{ findingIds: string[]; targetKeys: string[] }>, f: Finding, t: FindingTarget): boolean {
-  if ("all" in selection && selection.all) return true;
-  if ("findingIds" in selection && selection.findingIds) return selection.findingIds.includes(f.id);
-  if ("targetKeys" in selection && selection.targetKeys) return selection.targetKeys.includes(targetKey(t));
-  return true;
+/** Build a filter for (finding, target) pairs from a `TargetSelection`. */
+export function makeSelector(
+  selection: TargetSelection | Partial<{ findingIds: string[]; targetKeys: string[] }>,
+): (f: Finding, t: FindingTarget) => boolean {
+  if ("all" in selection && selection.all) return () => true;
+  if ("findingIds" in selection && selection.findingIds) {
+    const ids = new Set(selection.findingIds);
+    return (f) => ids.has(f.id);
+  }
+  if ("targetKeys" in selection && selection.targetKeys) {
+    const keys = new Set(selection.targetKeys);
+    return (_f, t) => keys.has(targetKey(t));
+  }
+  return () => true;
 }
 
 // ---------------------------------------------------------------------------------------------
