@@ -135,6 +135,15 @@ export class LicenseService {
     return () => this.listeners.delete(listener);
   }
 
+  /**
+   * The current session token (loaded from the session store by `init`, or adopted at sign-in),
+   * or null when signed out. Used as the bearer for server-enforced features such as the link
+   * check (R11). Never log or display it.
+   */
+  getSessionToken(): string | null {
+    return this.session?.token ?? null;
+  }
+
   onEvent(listener: (e: LicenseEvent) => void): () => void {
     this.eventListeners.add(listener);
     return () => this.eventListeners.delete(listener);

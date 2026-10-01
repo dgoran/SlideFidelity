@@ -31,7 +31,16 @@ import type { Plan } from "../../license/gate";
 
 export type LicenseServiceLike = Pick<
   LicenseService,
-  "getState" | "subscribe" | "init" | "refresh" | "refreshIfStale" | "acceptSession" | "signOut" | "deleteAccount" | "manageSubscriptionLink"
+  | "getState"
+  | "subscribe"
+  | "init"
+  | "refresh"
+  | "refreshIfStale"
+  | "acceptSession"
+  | "signOut"
+  | "deleteAccount"
+  | "manageSubscriptionLink"
+  | "getSessionToken"
 >;
 
 export interface LicenseUi {

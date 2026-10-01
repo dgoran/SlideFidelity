@@ -5,10 +5,14 @@
  * Services: capabilities → navigator + selection echo guard (U11), the brand store (D9) feeding
  * the scan service's `getOptions`, and ONE license service (U15) driving the gate's plan through
  * `LicenseBridge`. Slots: Inspector (U11), account entry + notices (U15), settings entry and the
- * Fonts/Colors brand editor (D9), and the fix panel + row actions (U12/U13) over `PowerPoint.run`.
+ * Fonts/Colors brand editor (D9), the fix panel + row actions (U12/U13) over `PowerPoint.run`, and
+ * the Links area's reachability check (U9 UI, R11) with its per-row statuses, composed into the same
+ * `fixPanelSlot` / `renderRowActions` slots. The check authenticates with the license service's
+ * session token and talks to the same API base as licensing.
  */
 import { createRoot } from "react-dom/client";
 import { FluentProvider, webLightTheme } from "@fluentui/react-components";
+import { createLicenseConfig } from "../license/config";
 import { createLicenseService } from "../license/license";
 import { getHostCapabilities } from "../office/capabilities";
 import { createNavigator } from "../office/navigate";
@@ -17,9 +21,10 @@ import { createBrandStore } from "./brand/brandStore";
 import { AccountEntry, AccountNotices } from "./components/Account";
 import { BrandEditor, BrandSettingsEntry } from "./components/BrandEditor";
 import { Inspector } from "./components/Inspector";
-import { createSelectionEchoGuard, type PaneServices, type PaneSlots } from "./context";
+import { composeSlots, createSelectionEchoGuard, type PaneServices, type PaneSlots } from "./context";
 import { createFixSlots } from "./fixes";
 import { LicenseBridge } from "./license/LicenseBridge";
+import { createLinkCheckSlots } from "./linkcheck";
 import { TaskPaneRoot } from "./Root";
 
 /** Selection activity drives only the non-blocking "may be out of date" hint (D4). */
@@ -40,7 +45,8 @@ function subscribeSelectionChanges(onActivity: () => void): () => void {
   };
 }
 
-const licenseService = createLicenseService();
+const licenseConfig = createLicenseConfig();
+const licenseService = createLicenseService(licenseConfig);
 const brandStore = createBrandStore();
 
 const rootElement = document.getElementById("container");
@@ -66,14 +72,19 @@ void Office.onReady(() => {
       }
     },
   });
-  const slots: PaneSlots = {
-    ...fixSlots,
+  const linkCheckSlots = createLinkCheckSlots({
+    baseUrl: licenseConfig.apiBase,
+    getToken: () => licenseService.getSessionToken(),
+    // The API refused the session: refresh so the account state (signed out) catches up.
+    onUnauthorized: () => void licenseService.refresh().catch(() => {}),
+  });
+  const slots: PaneSlots = composeSlots(fixSlots, linkCheckSlots, {
     inspectorSlot: <Inspector />,
     accountSlot: <AccountEntry />,
     noticeSlot: <AccountNotices />,
     settingsSlot: <BrandSettingsEntry store={brandStore} />,
     brandSlot: ({ area }) => <BrandEditor store={brandStore} placement={area} />,
-  };
+  });
   root?.render(
     <FluentProvider theme={webLightTheme}>
       <LicenseBridge service={licenseService}>

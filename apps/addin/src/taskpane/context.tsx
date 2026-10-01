@@ -7,14 +7,16 @@
  * - `PaneSlots`: named extension points later units fill (all optional; the pane renders nothing
  *   in their place when absent):
  *   - `inspectorSlot` (U11): rendered below the results when the pane has results.
- *   - `renderRowActions` (U12/U13): per-row action entries ("Replace font…", "Remove link").
- *   - `fixPanelSlot` (U12/U13): the area's bulk-fix / inline fix picker panel (D11), above the tree.
+ *   - `renderRowActions` (U12/U13, U9): per-row action entries ("Replace font…", "Remove link") and
+ *     the link check status on hyperlink rows.
+ *   - `fixPanelSlot` (U12/U13, U9): the area's bulk-fix / inline fix picker panel (D11), and the Links
+ *     area's "Check links" panel, above the tree. Several contributors combine with `composeSlots`.
  *   - `accountSlot` (U15): the account / sign-in entry in the header.
  *   - `settingsSlot` (D9): the settings entry in the header (brand profile editor).
  *   - `noticeSlot` (U15, D8/D12): non-blocking notices above the pane body (trial ending, offline).
  *   - `brandSlot` (brand editor, D9): entry point rendered in the Fonts and Colors areas.
  */
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, Fragment, useContext, type ReactNode } from "react";
 import type { Area, Finding, FindingTarget } from "@slidecheck/audit-core";
 import { capabilitiesUpTo, type Capabilities } from "../office/capabilities";
 import type { NavigateResult, Navigator } from "../office/navigate";
@@ -109,6 +111,31 @@ export interface PaneSlots {
   settingsSlot?: ReactNode;
   noticeSlot?: ReactNode;
   brandSlot?: (ctx: BrandSlotContext) => ReactNode;
+}
+
+type FnSlot = "renderRowActions" | "fixPanelSlot" | "brandSlot";
+const FN_SLOTS: readonly FnSlot[] = ["renderRowActions", "fixPanelSlot", "brandSlot"];
+
+/**
+ * Merges several slot sets. Function slots (`renderRowActions`, `fixPanelSlot`, `brandSlot`) render
+ * every contributor in order; node slots take the last one given.
+ */
+export function composeSlots(...parts: PaneSlots[]): PaneSlots {
+  const out: PaneSlots = Object.assign({}, ...parts) as PaneSlots;
+  for (const name of FN_SLOTS) {
+    const fns = parts.map((p) => p[name]).filter((f): f is NonNullable<PaneSlots[FnSlot]> => typeof f === "function");
+    if (fns.length < 2) continue;
+    const many = fns as Array<(...args: unknown[]) => ReactNode>;
+    const composed = (...args: unknown[]): ReactNode => (
+      <>
+        {many.map((f, i) => (
+          <Fragment key={i}>{f(...args)}</Fragment>
+        ))}
+      </>
+    );
+    (out as Record<FnSlot, unknown>)[name] = composed;
+  }
+  return out;
 }
 
 export const PaneSlotsContext = createContext<PaneSlots>({});

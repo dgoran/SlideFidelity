@@ -484,3 +484,24 @@ describe("LicenseService", () => {
     expect(fn).not.toHaveBeenCalled();
   });
 });
+
+describe("LicenseService.getSessionToken (link check auth, R11)", () => {
+  it("is null when signed out, the stored token once loaded, and null again after sign-out", async () => {
+    const { svc } = service();
+    expect(svc.getSessionToken()).toBeNull();
+    store.saveSession(SESSION);
+    const c = claims("pro", T0);
+    api.getEntitlement.mockResolvedValue(entitlementResponse(await token(c), c));
+    await initAndSettle(svc);
+    expect(svc.getSessionToken()).toBe("sess_1");
+    await svc.signOut();
+    expect(svc.getSessionToken()).toBeNull();
+  });
+
+  it("returns the token of a session adopted from the sign-in dialog", async () => {
+    const { svc } = service();
+    api.getEntitlement.mockImplementation(networkDown);
+    await svc.acceptSession({ sessionToken: "sess_new", account: { id: "acct_1", email: "ada@example.com", trial_ends_at: T0 + DAY } });
+    expect(svc.getSessionToken()).toBe("sess_new");
+  });
+});

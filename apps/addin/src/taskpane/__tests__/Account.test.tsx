@@ -35,6 +35,7 @@ function fakeLicense(initial: LicenseState) {
     acceptSession: vi.fn(async () => {}),
     signOut: vi.fn(async () => {}),
     deleteAccount: vi.fn(async () => {}),
+    getSessionToken: vi.fn((): string | null => (state.account ? "sess_test" : null)),
     manageSubscriptionLink: vi.fn(async (): Promise<{ url: string; fallback: boolean }> => ({
       url: "https://billing.example/portal",
       fallback: false,
