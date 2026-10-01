@@ -5,9 +5,9 @@ import {
   getAccountByEmail,
   getLiveSessionAccount,
   getOrCreateAccount,
-  incrementOtpAttempts,
   latestOtp,
   replaceOtp,
+  reserveOtpAttempt,
   revokeSession,
 } from "./db";
 import { EmailNotConfiguredError, signInCodeEmail } from "./email";
@@ -193,10 +193,11 @@ export async function handleVerify(c: Context<HonoEnv>) {
   const otp = await latestOtp(c.env.DB, email);
   if (!otp) return c.json({ error: "invalid_code" }, 400);
   if (otp.expires_at <= now) return c.json({ error: "code_expired" }, 400);
-  if (otp.attempts >= OTP_MAX_ATTEMPTS) return c.json({ error: "code_locked" }, 400);
+  // Reserve the attempt before comparing so concurrent guesses cannot exceed the cap.
+  const attempts = await reserveOtpAttempt(c.env.DB, otp.id, OTP_MAX_ATTEMPTS);
+  if (attempts === null) return c.json({ error: "code_locked" }, 400);
 
   if (!timingSafeEqual(otp.code_hash, await hashCode(c.env, email, code))) {
-    const attempts = await incrementOtpAttempts(c.env.DB, otp.id);
     return c.json({ error: attempts >= OTP_MAX_ATTEMPTS ? "code_locked" : "invalid_code" }, 400);
   }
   if (!(await consumeOtp(c.env.DB, otp.id))) return c.json({ error: "invalid_code" }, 400);

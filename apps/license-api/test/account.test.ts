@@ -148,3 +148,49 @@ describe("PaddleApiClient.createPortalSession", () => {
     await expect(empty.createPortalSession("ctm_1")).rejects.toThrow();
   });
 });
+
+describe("PaddleApiClient.cancelSubscription", () => {
+  it("posts an immediate cancel to the subscription endpoint with the API key", async () => {
+    const calls: { url: string; auth: string | null; method: string; body: unknown }[] = [];
+    const fetcher: typeof fetch = async (input, init) => {
+      const req = new Request(input, init);
+      calls.push({ url: req.url, auth: req.headers.get("Authorization"), method: req.method, body: await req.json() });
+      return Response.json({ data: { id: "sub_1", status: "canceled" } });
+    };
+    await expect(new PaddleApiClient("pdl_live_key", "production", fetcher).cancelSubscription("sub_1")).resolves.toBeUndefined();
+    expect(calls).toEqual([
+      {
+        url: "https://api.paddle.com/subscriptions/sub_1/cancel",
+        auth: "Bearer pdl_live_key",
+        method: "POST",
+        body: { effective_from: "immediately" },
+      },
+    ]);
+  });
+
+  it("uses the sandbox host when PADDLE_ENV is sandbox", async () => {
+    const urls: string[] = [];
+    const fetcher: typeof fetch = async (input, init) => {
+      urls.push(new Request(input, init).url);
+      return Response.json({ data: { id: "sub_1" } });
+    };
+    await new PaddleApiClient("k", "sandbox", fetcher).cancelSubscription("sub_1");
+    expect(urls).toEqual(["https://sandbox-api.paddle.com/subscriptions/sub_1/cancel"]);
+  });
+
+  it("treats an already-canceled 4xx as success", async () => {
+    const client = new PaddleApiClient("k", "sandbox", async () =>
+      Response.json({ error: { type: "request_error", code: "subscription_is_canceled_action_invalid" } }, { status: 400 }),
+    );
+    await expect(client.cancelSubscription("sub_1")).resolves.toBeUndefined();
+  });
+
+  it("rejects on a 500 and on any other 4xx", async () => {
+    const serverError = new PaddleApiClient("k", "sandbox", async () => new Response("oops", { status: 500 }));
+    await expect(serverError.cancelSubscription("sub_1")).rejects.toThrow(/500/);
+    const notFound = new PaddleApiClient("k", "sandbox", async () => Response.json({ error: { code: "not_found" } }, { status: 404 }));
+    await expect(notFound.cancelSubscription("sub_1")).rejects.toThrow(/404/);
+    const forbidden = new PaddleApiClient("k", "sandbox", async () => Response.json({ error: { code: "forbidden" } }, { status: 403 }));
+    await expect(forbidden.cancelSubscription("sub_1")).rejects.toThrow(/403/);
+  });
+});

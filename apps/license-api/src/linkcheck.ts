@@ -153,22 +153,36 @@ export async function handleLinkcheck(c: Context<HonoEnv>) {
   }
 
   const now = deps.now();
-  const perAccount = await deps.limiter.consume(
+  const { limiter } = deps;
+  const ipKey = await hashedKey("linkcheck_ip", clientIp(c));
+  // Sequential on purpose: each check only spends budget once the previous one has passed.
+  const perAccount = await limiter.consume(
     `linkcheck_account:${account.id}`,
     LIMITS.linkcheckPerAccount.limit,
     LIMITS.linkcheckPerAccount.windowMs,
     now,
   );
   if (!perAccount.allowed) return tooMany(c, perAccount.retryAfterMs);
-  const perIp = await deps.limiter.consume(
-    await hashedKey("linkcheck_ip", clientIp(c)),
-    LIMITS.linkcheckPerIp.limit,
-    LIMITS.linkcheckPerIp.windowMs,
+  const accountUrls = await limiter.consume(
+    `linkcheck_account_urls:${account.id}`,
+    LIMITS.linkcheckUrlsPerAccountPerDay.limit,
+    LIMITS.linkcheckUrlsPerAccountPerDay.windowMs,
     now,
+    urls.length,
   );
+  if (!accountUrls.allowed) return tooMany(c, accountUrls.retryAfterMs);
+  const perIp = await limiter.consume(ipKey, LIMITS.linkcheckPerIp.limit, LIMITS.linkcheckPerIp.windowMs, now);
   if (!perIp.allowed) return tooMany(c, perIp.retryAfterMs);
+  const ipUrls = await limiter.consume(
+    `${ipKey}:urls`,
+    LIMITS.linkcheckUrlsPerIpPerDay.limit,
+    LIMITS.linkcheckUrlsPerIpPerDay.windowMs,
+    now,
+    urls.length,
+  );
+  if (!ipUrls.allowed) return tooMany(c, ipUrls.retryAfterMs);
   const cap = Number(c.env.LINKCHECK_GLOBAL_DAILY_URL_CAP) || LIMITS.linkcheckGlobalUrlsPerDay.limit;
-  const global = await deps.limiter.consume("linkcheck_global_urls", cap, LIMITS.linkcheckGlobalUrlsPerDay.windowMs, now, urls.length);
+  const global = await limiter.consume("linkcheck_global_urls", cap, LIMITS.linkcheckGlobalUrlsPerDay.windowMs, now, urls.length);
   if (!global.allowed) return tooMany(c, global.retryAfterMs, "daily_capacity_reached");
 
   const results = await checkLinks(urls, { resolver: deps.resolver, fetch: deps.fetch, timeoutMs: deps.linkTimeoutMs });

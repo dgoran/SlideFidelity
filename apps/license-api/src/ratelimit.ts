@@ -11,6 +11,9 @@ export const LIMITS = {
   authVerifyPerIp: { limit: 30, windowMs: HOUR },
   linkcheckPerAccount: { limit: 30, windowMs: HOUR },
   linkcheckPerIp: { limit: 60, windowMs: HOUR },
+  /** Daily URL budgets (cost = URLs per request), well below the global cap so one account or IP cannot drain it. */
+  linkcheckUrlsPerAccountPerDay: { limit: 1_000, windowMs: DAY },
+  linkcheckUrlsPerIpPerDay: { limit: 2_000, windowMs: DAY },
   linkcheckGlobalUrlsPerDay: { limit: 20_000, windowMs: DAY },
 } as const;
 

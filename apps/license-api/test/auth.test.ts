@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
-import { normalizeEmail } from "../src/auth";
+import { OTP_MAX_ATTEMPTS, normalizeEmail } from "../src/auth";
 import { DAY, count, makeHarness, resetDb } from "./helpers";
 
 beforeEach(resetDb);
@@ -99,6 +99,30 @@ describe("POST /auth/start + /auth/verify", () => {
       expect(r.status).toBe(400);
     }
     const r = await h.json("/auth/verify", { email: "lock@example.com", code });
+    expect(r.status).toBe(400);
+    expect(await r.json()).toEqual({ error: "code_locked" });
+    expect(await count("accounts")).toBe(0);
+  });
+
+  it("caps attempts atomically: 10 concurrent wrong guesses evaluate at most 5", async () => {
+    const h = makeHarness();
+    await h.json("/auth/start", { email: "burst@example.com" });
+    const code = h.email.lastCodeFor("burst@example.com");
+    const wrong = code === "000000" ? "111111" : "000000";
+    const responses = await Promise.all(
+      Array.from({ length: 10 }, () => h.json("/auth/verify", { email: "burst@example.com", code: wrong })),
+    );
+    const errors = await Promise.all(responses.map((r) => r.json<{ error: string }>().then((b) => b.error)));
+    expect(responses.every((r) => r.status === 400)).toBe(true);
+    // Evaluated guesses answer invalid_code (or code_locked on the 5th); everything else is refused unevaluated.
+    expect(errors.filter((e) => e === "invalid_code").length).toBeLessThanOrEqual(OTP_MAX_ATTEMPTS - 1);
+    expect(errors.filter((e) => e === "code_locked").length).toBeGreaterThanOrEqual(10 - OTP_MAX_ATTEMPTS);
+    const row = await env.DB.prepare("SELECT attempts FROM otp_codes WHERE email = ?")
+      .bind("burst@example.com")
+      .first<{ attempts: number }>();
+    expect(row?.attempts).toBe(OTP_MAX_ATTEMPTS);
+
+    const r = await h.json("/auth/verify", { email: "burst@example.com", code });
     expect(r.status).toBe(400);
     expect(await r.json()).toEqual({ error: "code_locked" });
     expect(await count("accounts")).toBe(0);

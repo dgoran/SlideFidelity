@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
+import { LIMITS } from "../src/ratelimit";
 import { DAY, makeHarness, resetDb } from "./helpers";
 
 beforeEach(resetDb);
@@ -263,6 +264,26 @@ describe("POST /linkcheck abuse limits", () => {
     }
     expect(statuses.slice(0, 60).every((s) => s === 200)).toBe(true);
     expect(statuses[60]).toBe(429);
+  });
+
+  it("charges each account a daily URL budget so one account cannot starve others", async () => {
+    const h = await proHarness();
+    h.fetcher.on("https://a.example.com/", 200);
+    const batch = Array(50).fill("https://a.example.com/");
+    const perRequest = batch.length;
+    const allowedRequests = LIMITS.linkcheckUrlsPerAccountPerDay.limit / perRequest;
+    expect(allowedRequests).toBeLessThan(LIMITS.linkcheckPerAccount.limit); // budget, not the hourly limit, bites
+    for (let i = 0; i < allowedRequests; i++) {
+      // Spread across IPs so only the account budget applies.
+      expect((await check(h, batch, `198.51.100.${i}`)).status).toBe(200);
+    }
+    const over = await check(h, batch, "198.51.100.200");
+    expect(over.status).toBe(429);
+    expect(await over.json()).toMatchObject({ error: "rate_limited" });
+
+    const other = await h.signIn("other-links@example.com", "192.0.2.77");
+    const res = await h.json("/linkcheck", { urls: batch }, { token: other.token, ip: "192.0.2.77" });
+    expect(res.status).toBe(200);
   });
 
   it("enforces a global daily URL cap", async () => {

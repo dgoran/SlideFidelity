@@ -72,12 +72,17 @@ export async function replaceOtp(db: D1Database, email: string, codeHash: string
   ]);
 }
 
-export async function incrementOtpAttempts(db: D1Database, id: string): Promise<number> {
+/**
+ * Atomically reserves one verification attempt before the code is compared: increments only while
+ * `attempts < maxAttempts`. Returns the new attempt count, or null when the code is locked (or gone),
+ * so concurrent guesses can never evaluate more than `maxAttempts` codes.
+ */
+export async function reserveOtpAttempt(db: D1Database, id: string, maxAttempts: number): Promise<number | null> {
   const row = await db
-    .prepare("UPDATE otp_codes SET attempts = attempts + 1 WHERE id = ? RETURNING attempts")
-    .bind(id)
+    .prepare("UPDATE otp_codes SET attempts = attempts + 1 WHERE id = ? AND attempts < ? RETURNING attempts")
+    .bind(id, maxAttempts)
     .first<{ attempts: number }>();
-  return row?.attempts ?? Number.MAX_SAFE_INTEGER;
+  return row?.attempts ?? null;
 }
 
 /** Deletes the code row; returns false if it was already consumed (race-safe single use). */
