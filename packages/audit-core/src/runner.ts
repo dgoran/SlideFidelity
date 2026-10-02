@@ -31,6 +31,14 @@ export interface AuditOptions {
    * Windows is reported as possibly missing. Absent or empty means "no team list".
    */
   availableFonts?: string[];
+  /**
+   * Every font family name the SlideCheck Helper reported as usable by PowerPoint on THIS computer
+   * (system, user, Office private and Office cloud fonts that are present; family names from name
+   * IDs 1/16/21 in all languages, so legacy and localized names are included), as a flat list.
+   * Absent means "no helper"; an empty array means "helper present, nothing found". When present,
+   * a used, non-embedded font not on this list is reported as missing on this computer.
+   */
+  localFonts?: string[];
 }
 
 export interface CheckContext {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fontAvailabilityChecks } from "../../src/checks/fontAvailability";
-import { CHECKS, loadPresentation, runChecks, type AuditOptions, type Finding, type FindingOf } from "../../src/index";
+import { CHECKS, createAuditCache, loadPresentation, runChecks, runChecksCached, type AuditOptions, type Finding, type FindingOf } from "../../src/index";
 import { officeCrossPlatformFont, platformOnlyFont } from "../../src/officeFonts";
 import { buildDeck, para, run, sp, type DeckSpec } from "../helpers/buildDeck";
 import { corpusDeck } from "../helpers/corpus";
@@ -219,5 +219,174 @@ describe("font availability check", () => {
     expect(names).toContain("MS Gothic");
     expect(names).not.toContain("Calibri");
     expect(names).not.toContain("Wingdings");
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// U11: fonts the SlideCheck Helper reports as installed on this computer (`AuditOptions.localFonts`).
+
+function missingHere(findings: Finding[]): FindingOf<"font-missing-here">[] {
+  return findings.filter((f): f is FindingOf<"font-missing-here"> => f.kind === "font-missing-here");
+}
+
+/** A deck whose theme fonts are Aptos (headings) and Calibri (body); master bullets use Arial. */
+function themedDeck(runs: { inner: string }[], extra: Partial<DeckSpec> = {}): Promise<Uint8Array> {
+  return deck(runs, {
+    masters: [{ theme: { majorLatin: "Aptos", minorLatin: "Calibri" }, layouts: [{ name: "Blank", type: "blank" }] }],
+    ...extra,
+  });
+}
+
+describe("font availability with the helper's local font list", () => {
+  it("AE1: only the font the helper did not report is missing here", async () => {
+    const bytes = await themedDeck([latin("Gotham"), latin("Aptos"), latin("Futura PT"), latin("Futura PT")]);
+    const findings = await scan(bytes, { localFonts: ["Gotham", "Aptos", "Calibri", "Arial"] });
+    const here = missingHere(findings);
+    expect(here.map((f) => f.data.typeface)).toEqual(["Futura PT"]);
+    const f = here[0];
+    if (!f) throw new Error("no finding");
+    expect(f.severity).toBe("warning");
+    expect(f.area).toBe("fonts");
+    expect(f.title).toBe("Font missing on this computer: Futura PT");
+    expect(f.fixes).toEqual(["replace-font"]);
+    expect(f.targets).toHaveLength(2);
+    expect(f.data).toMatchObject({ typeface: "Futura PT", usageCount: 2, slideNumbers: [3, 4], cloud: false });
+    // Same targets as the show-machine finding for the same family.
+    const show = missing(findings).find((m) => m.data.typeface === "Futura PT");
+    expect(show?.targets).toEqual(f.targets);
+    expect(show?.fixes).toEqual(f.fixes);
+    expect(() => structuredClone(findings)).not.toThrow();
+  });
+
+  it("a font used only for bullet/symbol glyphs that is missing here is info, like the show-machine finding", async () => {
+    const paragraphs = para(run("Item", latin("Arial")), `<a:pPr><a:buFont typeface="Wingdings 2"/><a:buChar char="P"/></a:pPr>`);
+    const bytes = await buildDeck({ slides: [{ layout: "Blank", shapes: sp({ id: 2, name: "TextBox 1", x: IN, y: IN, cx: IN, cy: IN, paragraphs }) }] });
+    const findings = await scan(bytes, { localFonts: ["Arial"] });
+    const w2 = missingHere(findings).find((f) => f.data.typeface === "Wingdings 2");
+    expect(w2?.severity).toBe("info");
+    expect(w2?.data.symbolOnly).toBe(true);
+  });
+
+  it("matches legacy / localized family names case-insensitively, trimming and collapsing whitespace", async () => {
+    const bytes = await themedDeck([latin("Segoe UI Semibold"), latin("ＭＳ ゴシック"), latin("Gotham Book")]);
+    const findings = await scan(bytes, {
+      localFonts: ["segoe ui  SEMIBOLD", "ＭＳ ゴシック", "  gotham\tbook ", "Aptos", "Calibri", "Arial"],
+    });
+    expect(missingHere(findings)).toEqual([]);
+  });
+
+  it("theme font references resolve to the theme font", async () => {
+    const bytes = await deck([latin("+mn-lt")], {
+      masters: [{ theme: { majorLatin: "Aptos", minorLatin: "Brand Sans" }, layouts: [{ name: "Blank", type: "blank" }] }],
+    });
+    const here = missingHere(await scan(bytes, { localFonts: ["Aptos", "Arial"] }));
+    expect(here.map((f) => f.data.typeface)).toEqual(["Brand Sans"]);
+    expect(here[0]?.reachable).toBe(false);
+  });
+
+  it("embedded fonts (full or subset) are never missing here", async () => {
+    const opts: AuditOptions = { localFonts: ["Aptos", "Calibri", "Arial"] };
+    const full = await scan(await themedDeck([latin("Gotham")], { embeddedFonts: [{ typeface: "Gotham", styles: ["regular"] }] }), opts);
+    expect(missingHere(full)).toEqual([]);
+    const subset = await scan(
+      await themedDeck([latin("Gotham")], { embeddedFonts: [{ typeface: "Gotham", styles: ["regular"] }], saveSubsetFonts: true }),
+      opts,
+    );
+    expect(missingHere(subset)).toEqual([]);
+  });
+
+  it("a font that ships with Office but is not on the helper list is missing here", async () => {
+    const findings = await scan(await themedDeck([latin("Verdana")]), { localFonts: ["Aptos", "Calibri", "Arial"] });
+    const here = missingHere(findings);
+    expect(here.map((f) => f.data.typeface)).toEqual(["Verdana"]);
+    expect(here[0]?.data.cloud).toBe(false);
+    // Still safe for the show machine (ships with Office), so no show-machine finding.
+    expect(missing(findings)).toEqual([]);
+  });
+
+  it("an empty helper list means the helper is present and found nothing", async () => {
+    const findings = await scan(await themedDeck([latin("Arial")]), { localFonts: [] });
+    const names = missingHere(findings).map((f) => f.data.typeface).sort();
+    expect(names).toEqual(["Aptos", "Arial", "Calibri"]);
+    const s = summary(findings);
+    expect(s.data.localListProvided).toBe(true);
+    expect(s.data.missingHere).toBe(3);
+  });
+
+  it("Office cloud font not downloaded here: detail says so and data.cloud is set", async () => {
+    const findings = await scan(await themedDeck([latin("Gotham")]), { localFonts: ["Calibri", "Arial", "Gotham"] });
+    const aptos = missingHere(findings).find((f) => f.data.typeface === "Aptos");
+    expect(aptos?.severity).toBe("warning");
+    expect(aptos?.data.cloud).toBe(true);
+    expect(aptos?.detail).toMatch(/Office cloud font/);
+    expect(aptos?.detail).toMatch(/not downloaded on this computer/);
+    expect(aptos?.detail).toMatch(/online/);
+  });
+
+  it("helper says present but show-machine list does not: show-machine finding drops to info", async () => {
+    const findings = await scan(await themedDeck([latin("Gotham")]), {
+      localFonts: ["Gotham", "Aptos", "Calibri", "Arial"],
+      availableFonts: ["Brand Serif"],
+    });
+    expect(missingHere(findings)).toEqual([]);
+    const g = missing(findings).find((f) => f.data.typeface === "Gotham");
+    expect(g?.severity).toBe("info");
+    expect(g?.data.missingHere).toBe(false);
+    expect(findings.filter((f) => f.severity === "warning")).toEqual([]);
+  });
+
+  it("helper says missing: the warning is font-missing-here; the show-machine finding is info", async () => {
+    const findings = await scan(await themedDeck([latin("Gotham")]), { localFonts: ["Aptos", "Calibri", "Arial"] });
+    const warnings = findings.filter((f) => f.severity === "warning");
+    expect(warnings.map((f) => f.kind)).toEqual(["font-missing-here"]);
+    const g = missing(findings).find((f) => f.data.typeface === "Gotham");
+    expect(g?.severity).toBe("info");
+    expect(g?.data.missingHere).toBe(true);
+  });
+
+  it("without a helper list: no font-missing-here, missingHere is null, summary says no list", async () => {
+    const findings = await scan(await themedDeck([latin("Gotham")]));
+    expect(missingHere(findings)).toEqual([]);
+    const g = missing(findings).find((f) => f.data.typeface === "Gotham");
+    expect(g?.severity).toBe("warning");
+    expect(g?.data.missingHere).toBeNull();
+    const s = summary(findings);
+    expect(s.data.localListProvided).toBe(false);
+    expect(s.data.missingHere).toBe(0);
+  });
+
+  it("summary counts fonts missing here and marks each font entry", async () => {
+    const findings = await scan(await themedDeck([latin("Gotham"), latin("Futura PT")]), { localFonts: ["Gotham", "Aptos", "Calibri", "Arial"] });
+    const s = summary(findings);
+    expect(s.data.localListProvided).toBe(true);
+    expect(s.data.missingHere).toBe(1);
+    expect(s.data.fonts.find((x) => x.typeface === "Futura PT")?.missingHere).toBe(true);
+    expect(s.data.fonts.find((x) => x.typeface === "Gotham")?.missingHere).toBe(false);
+    expect(s.detail).toMatch(/1 missing on this computer/);
+  });
+
+  it("clean corpus deck with every font it uses installed here: no warnings", async () => {
+    const bytes = await corpusDeck("clean");
+    const used = summary(await scan(bytes)).data.fonts.map((f) => f.typeface);
+    expect(used.length).toBeGreaterThan(0);
+    const res = await runChecks(bytes, { localFonts: used }, { checks: CHECKS });
+    expect(res.errors).toEqual([]);
+    expect(res.findings.filter((f) => f.severity === "warning")).toEqual([]);
+    expect(res.findings.filter((f) => f.kind === "font-missing-here")).toEqual([]);
+  });
+
+  it("localFonts is part of the runner cache key ([] differs from absent)", async () => {
+    const bytes = await themedDeck([latin("Gotham")]);
+    const run = { checks: fontAvailabilityChecks, cache: createAuditCache() };
+    const a = await runChecksCached(bytes, "u11", { localFonts: ["Gotham", "Aptos", "Calibri", "Arial"] }, run);
+    const b = await runChecksCached(bytes, "u11", { localFonts: ["Aptos", "Calibri", "Arial"] }, run);
+    const c = await runChecksCached(bytes, "u11", { localFonts: [] }, run);
+    const d = await runChecksCached(bytes, "u11", {}, run);
+    const e = await runChecksCached(bytes, "u11", { localFonts: ["Aptos", "Calibri", "Arial"] }, run);
+    expect([a, b, c, d].map((r) => r.fromCache === true)).toEqual([false, false, false, false]);
+    expect(e.fromCache).toBe(true);
+    expect(a.findings.some((f) => f.kind === "font-missing-here")).toBe(false);
+    expect(b.findings.some((f) => f.kind === "font-missing-here")).toBe(true);
+    expect(d.findings.some((f) => f.kind === "font-missing-here")).toBe(false);
   });
 });
