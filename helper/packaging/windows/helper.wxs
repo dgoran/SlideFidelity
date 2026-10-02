@@ -1,0 +1,89 @@
+<!--
+  SlideCheck Helper: per-machine x64 MSI (WiX v5). Built by build.ps1:
+    wix build -arch x64 -ext WixToolset.Util.wixext -d Version=<x.y.z> -d HelperExe=<path> helper.wxs
+
+  Custom actions (docs/notes/helper-windows-handoff.md, U9):
+  - StopHelper: kills running helpers before files change (every install, upgrade and removal).
+  - InstallCert: `install-cert` as SYSTEM after the files are in place; a failure rolls the install back.
+  - UninstallCert: `uninstall-cert` as SYSTEM on a real removal only, so upgrades keep the certificate.
+  - StartHelper: starts `serve` for the signed-in user from the (unelevated) UI sequence. Silent
+    installs (Intune, as SYSTEM) have no UI sequence; the Run entry starts the helper at next sign-in.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package Name="SlideCheck Helper"
+           Manufacturer="SlideCheck"
+           Version="$(Version)"
+           UpgradeCode="8106F267-786C-4A82-BDF6-A9427B159176"
+           Scope="perMachine"
+           Compressed="yes">
+    <!-- Never change the UpgradeCode: MajorUpgrade finds earlier versions by it. -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of SlideCheck Helper is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPURLINFOABOUT" Value="https://app.slidecheck.io" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="SlideCheck Helper">
+        <Component Id="HelperBinary">
+          <File Id="HelperExe" Source="$(HelperExe)" Name="slidecheck-helper.exe" KeyPath="yes" />
+        </Component>
+        <Component Id="HelperAutoStart">
+          <!-- Starts the helper for every user at sign-in, unelevated, in their own session. -->
+          <RegistryValue Root="HKLM"
+                         Key="Software\Microsoft\Windows\CurrentVersion\Run"
+                         Name="SlideCheck Helper"
+                         Type="string"
+                         Value="&quot;[#HelperExe]&quot; serve"
+                         KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="Main" Title="SlideCheck Helper" Level="1">
+      <ComponentRef Id="HelperBinary" />
+      <ComponentRef Id="HelperAutoStart" />
+    </Feature>
+
+    <!-- Deferred actions take their command line from a property named after the action. -->
+    <SetProperty Id="StopHelper" Value="&quot;[System64Folder]taskkill.exe&quot; /F /IM slidecheck-helper.exe"
+                 Sequence="execute" Before="StopHelper" />
+    <CustomAction Id="StopHelper" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+
+    <SetProperty Id="InstallCert" Value="&quot;[#HelperExe]&quot; install-cert"
+                 Sequence="execute" Before="InstallCert" />
+    <CustomAction Id="InstallCert" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
+                  Execute="deferred" Impersonate="no" Return="check" />
+
+    <!-- If a later step of a first install fails, take the new root back out of the store. -->
+    <SetProperty Id="InstallCertRollback" Value="&quot;[#HelperExe]&quot; uninstall-cert"
+                 Sequence="execute" Before="InstallCertRollback" />
+    <CustomAction Id="InstallCertRollback" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
+                  Execute="rollback" Impersonate="no" Return="ignore" />
+
+    <SetProperty Id="UninstallCert" Value="&quot;[#HelperExe]&quot; uninstall-cert"
+                 Sequence="execute" Before="UninstallCert" />
+    <CustomAction Id="UninstallCert" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
+                  Execute="deferred" Impersonate="no" Return="check" />
+
+    <CustomAction Id="StartHelper" FileRef="HelperExe" ExeCommand="serve"
+                  Execute="immediate" Impersonate="yes" Return="asyncNoWait" />
+
+    <InstallExecuteSequence>
+      <Custom Action="StopHelper" After="InstallInitialize" />
+      <Custom Action="InstallCertRollback" After="InstallFiles"
+              Condition="NOT Installed AND NOT WIX_UPGRADE_DETECTED" />
+      <Custom Action="InstallCert" After="InstallCertRollback" Condition="NOT (REMOVE~=&quot;ALL&quot;)" />
+      <Custom Action="UninstallCert" Before="RemoveFiles"
+              Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+
+    <InstallUISequence>
+      <!-- The UI sequence runs in the user's own, unelevated msiexec: never start the helper as
+           SYSTEM or elevated, or it would read the wrong account's fonts. -->
+      <Custom Action="StartHelper" After="ExecuteAction" Condition="NOT (REMOVE~=&quot;ALL&quot;)" />
+    </InstallUISequence>
+  </Package>
+</Wix>
