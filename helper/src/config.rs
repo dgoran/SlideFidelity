@@ -93,11 +93,47 @@ mod platform {
 
 #[cfg(windows)]
 mod platform {
-    use super::Managed;
+    //! Intune / GPO policy: DWORD values under `HKLM\Software\SlideCheck\Helper`. The helper is a
+    //! 64-bit binary, so this reads the native (not WOW6432Node) view, where the MSI writes too.
+    use super::{Managed, PREFS_KEY};
+    use std::ffi::c_void;
+    use windows_sys::Win32::Foundation::ERROR_SUCCESS;
+    use windows_sys::Win32::System::Registry::{
+        RegGetValueW, HKEY_LOCAL_MACHINE, RRF_RT_REG_DWORD,
+    };
 
-    /// Registry reading lands with the Windows work (U2/U9 gate); defaults until then.
+    fn wide(s: &str) -> Vec<u16> {
+        s.encode_utf16().chain(Some(0)).collect()
+    }
+
+    /// The DWORD `name`, or `None` when the key or value is missing or not a DWORD.
+    fn read_dword(name: &str) -> Option<u32> {
+        let key = wide(PREFS_KEY);
+        let value = wide(name);
+        let mut data: u32 = 0;
+        let mut size = std::mem::size_of::<u32>() as u32;
+        // SAFETY: NUL-terminated UTF-16 key and value names; `data` holds exactly `size` bytes.
+        let rc = unsafe {
+            RegGetValueW(
+                HKEY_LOCAL_MACHINE,
+                key.as_ptr(),
+                value.as_ptr(),
+                RRF_RT_REG_DWORD,
+                std::ptr::null_mut(),
+                &mut data as *mut u32 as *mut c_void,
+                &mut size,
+            )
+        };
+        (rc == ERROR_SUCCESS).then_some(data)
+    }
+
     pub fn load() -> Managed {
-        Managed::default()
+        let mut out = Managed::default();
+        if let Some(v) = read_dword("AutoUpdate") {
+            out.auto_update = v != 0;
+        }
+        out.port = read_dword("Port").and_then(|p| u16::try_from(p).ok());
+        out
     }
 }
 
