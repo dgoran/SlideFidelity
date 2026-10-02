@@ -25,6 +25,7 @@ import { composeAuditOptions, createShowFontsStore } from "./fonts/showFontsStor
 import { AccountEntry, AccountNotices } from "./components/Account";
 import { BrandEditor, BrandSettingsEntry } from "./components/BrandEditor";
 import { DevUnlockBanner } from "./components/DevUnlockBanner";
+import { HelperProbeDiagnostics } from "./components/HelperProbeDiagnostics";
 import { Inspector } from "./components/Inspector";
 import { ShowFontsEditor } from "./components/ShowFontsEditor";
 import { composeSlots, createSelectionEchoGuard, type PaneServices, type PaneSlots } from "./context";
@@ -93,6 +94,7 @@ void Office.onReady(() => {
     noticeSlot: (
       <>
         {devUnlock && <DevUnlockBanner />}
+        {devUnlock && <HelperProbeDiagnostics />}
         <AccountNotices />
       </>
     ),
