@@ -6,7 +6,7 @@
   - StopHelper: kills running helpers before files change (every install, upgrade and removal).
   - InstallCert: `install-cert` as SYSTEM after the files are in place; a failure rolls the install back.
   - UninstallCert: `uninstall-cert` as SYSTEM on a real removal only, so upgrades keep the certificate.
-  - StartHelper: starts `serve` (WixShellExec) for the signed-in user from the unelevated UI sequence. Silent
+  - StartHelper: asks Explorer to start the helper, so it runs unelevated as the console user. Silent
     installs (Intune, as SYSTEM) have no UI sequence; the Run entry starts the helper at next sign-in.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
@@ -68,12 +68,15 @@
     <CustomAction Id="UninstallCert" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
                   Execute="deferred" Impersonate="no" Return="check" />
 
-    <!-- ShellExecute, so the helper is not tied to msiexec: an EXE custom action (type 18) started
-         with asyncNoWait was ended with msiexec on Windows 11 and never served. With no arguments
-         the helper runs `serve`. -->
-    <SetProperty Id="WixShellExecTarget" Value="[#HelperExe]" Sequence="ui" Before="StartHelper" />
-    <CustomAction Id="StartHelper" BinaryRef="Wix4UtilCA_X64" DllEntry="WixShellExec"
-                  Execute="immediate" Impersonate="yes" Return="ignore" />
+    <!-- Hand the start to the desktop shell: `explorer.exe <exe>` asks the running Explorer to
+         launch it, so the helper runs unelevated as the console user, outside msiexec. Starting it
+         from msiexec directly is never safe: for an admin installing per-machine, Windows Installer
+         elevates the whole client, UI sequence included (seen with WixShellExec on Windows 11:
+         TokenElevation 1, and the installer's environment). With no arguments the helper runs
+         `serve`. -->
+    <CustomAction Id="StartHelper" Directory="INSTALLFOLDER"
+                  ExeCommand="&quot;[WindowsFolder]explorer.exe&quot; &quot;[#HelperExe]&quot;"
+                  Execute="immediate" Impersonate="yes" Return="asyncNoWait" />
 
     <InstallExecuteSequence>
       <Custom Action="StopHelper" After="InstallInitialize" />

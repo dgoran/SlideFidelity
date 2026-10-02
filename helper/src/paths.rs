@@ -37,9 +37,35 @@ pub fn state_dir() -> PathBuf {
     env_dir("ProgramData", r"C:\ProgramData").join(r"SlideCheck\Helper")
 }
 
+/// `%LOCALAPPDATA%\SlideCheck\Helper` of the account the process runs as. Asked of the shell by
+/// token rather than read from the environment: a helper started by an installer can inherit
+/// another profile's environment.
 #[cfg(windows)]
 pub fn runtime_dir() -> PathBuf {
-    env_dir("LOCALAPPDATA", r"C:\Users\Default\AppData\Local").join(r"SlideCheck\Helper")
+    local_app_data()
+        .unwrap_or_else(|| env_dir("LOCALAPPDATA", r"C:\Users\Default\AppData\Local"))
+        .join(r"SlideCheck\Helper")
+}
+
+#[cfg(windows)]
+fn local_app_data() -> Option<PathBuf> {
+    use std::os::windows::ffi::OsStringExt;
+    use windows_sys::Win32::System::Com::CoTaskMemFree;
+    use windows_sys::Win32::UI::Shell::{FOLDERID_LocalAppData, SHGetKnownFolderPath};
+    let mut raw: windows_sys::core::PWSTR = std::ptr::null_mut();
+    // SAFETY: on return `raw` is a NUL-terminated string we own and free, even on failure.
+    let hr =
+        unsafe { SHGetKnownFolderPath(&FOLDERID_LocalAppData, 0, std::ptr::null_mut(), &mut raw) };
+    let path = (hr == 0 && !raw.is_null()).then(|| {
+        // SAFETY: `raw` is NUL-terminated.
+        let len = unsafe { (0..).take_while(|&i| *raw.add(i) != 0).count() };
+        PathBuf::from(std::ffi::OsString::from_wide(unsafe {
+            std::slice::from_raw_parts(raw, len)
+        }))
+    });
+    // SAFETY: allocated by SHGetKnownFolderPath (null is allowed).
+    unsafe { CoTaskMemFree(raw as *const std::ffi::c_void) };
+    path
 }
 
 #[cfg(not(any(target_os = "macos", windows)))]
