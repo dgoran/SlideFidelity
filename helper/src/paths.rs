@@ -8,9 +8,20 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
+/// Development builds may point the state directory elsewhere, so the helper can run without an
+/// installer (`SLIDECHECK_HELPER_STATE_DIR`). Release builds ignore it.
+fn dev_state_override() -> Option<PathBuf> {
+    if cfg!(debug_assertions) {
+        std::env::var_os("SLIDECHECK_HELPER_STATE_DIR").map(PathBuf::from)
+    } else {
+        None
+    }
+}
+
 #[cfg(target_os = "macos")]
 pub fn state_dir() -> PathBuf {
-    PathBuf::from("/Library/Application Support/SlideCheck/Helper")
+    dev_state_override()
+        .unwrap_or_else(|| PathBuf::from("/Library/Application Support/SlideCheck/Helper"))
 }
 
 #[cfg(target_os = "macos")]
@@ -20,6 +31,9 @@ pub fn runtime_dir() -> PathBuf {
 
 #[cfg(windows)]
 pub fn state_dir() -> PathBuf {
+    if let Some(d) = dev_state_override() {
+        return d;
+    }
     env_dir("ProgramData", r"C:\ProgramData").join(r"SlideCheck\Helper")
 }
 
@@ -30,6 +44,9 @@ pub fn runtime_dir() -> PathBuf {
 
 #[cfg(not(any(target_os = "macos", windows)))]
 pub fn state_dir() -> PathBuf {
+    if let Some(d) = dev_state_override() {
+        return d;
+    }
     PathBuf::from("/var/lib/slidecheck-helper")
 }
 

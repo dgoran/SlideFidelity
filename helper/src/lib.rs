@@ -6,6 +6,7 @@ pub mod config;
 pub mod fonts;
 pub mod logging;
 pub mod paths;
+pub mod server;
 pub mod update;
 
 /// Version of the HTTP API (`/v1/...`). The add-in refuses helpers with an older API.

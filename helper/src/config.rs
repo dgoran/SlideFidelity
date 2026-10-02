@@ -19,6 +19,11 @@ pub fn allowed_origin(origin: &str) -> bool {
     PROD_ORIGINS.contains(&origin) || DEV_ORIGINS.contains(&origin)
 }
 
+/// The production allowlist only, as a release build sees it.
+pub fn allowed_origin_release(origin: &str) -> bool {
+    PROD_ORIGINS.contains(&origin)
+}
+
 /// Port order for binding: a managed preferred port moves to the front, but only if it is one of
 /// the fixed ports; anything else is ignored, because the add-in would never find it.
 pub fn port_order(preferred: Option<u16>) -> Vec<u16> {

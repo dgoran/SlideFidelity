@@ -304,7 +304,7 @@ impl UpdateState {
         self.0.read().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
-    fn set(&self, info: Option<UpdateInfo>) {
+    pub fn set(&self, info: Option<UpdateInfo>) {
         *self.0.write().unwrap_or_else(|e| e.into_inner()) = info;
     }
 }
