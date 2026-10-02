@@ -8,7 +8,10 @@
 //!
 //! Layers:
 //! - OS: macOS asks CoreText for the installed font files ([`mac`]); Windows walks the system and
-//!   per-user font folders ([`windows`]).
+//!   per-user font folders, then adds the face names GDI enumerates ([`windows`]), which include
+//!   the STAT-derived names of variable fonts' named instances.
+//! - Variable fonts: each `fvar` named instance also gets its Windows-style name
+//!   ("Bahnschrift SemiBold"), including in Office's folders, which GDI does not see.
 //! - Office: PowerPoint's private fonts and its downloaded cloud fonts ([`office::office_roots`]).
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -88,6 +91,35 @@ impl FontInventory {
         entry.names.sort();
         entry.names.dedup();
         entry.sources.extend(sources);
+    }
+
+    /// Add a face name the OS reports for an installed font (Windows: GDI). A name already known
+    /// is ignored. Otherwise it joins the family with the longest name it extends
+    /// ("Segoe UI Variable Display Semib" joins "Segoe UI Variable"), or becomes its own family.
+    pub fn add_registered_name(&mut self, name: &str, source: Source) {
+        let name = name.trim();
+        if name.is_empty() || self.find(name).is_some() {
+            return;
+        }
+        let folded = fold(name);
+        let owner = self
+            .families
+            .keys()
+            .filter(|k| {
+                folded
+                    .strip_prefix(k.as_str())
+                    .is_some_and(|rest| rest.starts_with(' '))
+            })
+            .max_by_key(|k| k.len())
+            .cloned();
+        match owner.and_then(|k| self.families.get_mut(&k)) {
+            Some(f) => {
+                f.names.push(name.to_string());
+                f.names.sort();
+                f.names.dedup();
+            }
+            None => self.add_names(name, [], [source]),
+        }
     }
 
     /// Fold `other` into `self`: same-key families union their names and sources.

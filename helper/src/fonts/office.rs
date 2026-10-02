@@ -102,9 +102,82 @@ fn face_names(data: &[u8], index: u32) -> Result<Option<FaceNames>, String> {
     };
 
     let mut names: Vec<String> = found.into_iter().map(|(_, _, v)| v).collect();
+    names.extend(instance_names(&raw, &table, &family));
     names.sort();
     names.dedup();
     Ok(Some(FaceNames { family, names }))
+}
+
+/// GDI's longest face name (LF_FACESIZE minus the terminating NUL), in UTF-16 units.
+const GDI_FACE_CHARS: usize = 31;
+
+/// The names Windows gives a variable font's named instances. GDI, and so PowerPoint for Windows,
+/// lists each `fvar` instance as its own family, "<family> <instance subfamily>", with "Regular"
+/// dropped and the result cut to 31 characters: "Bahnschrift SemiBold",
+/// "Segoe UI Variable Display Semib". Style-linked endings ("Bold", "Italic", "Bold Italic") are
+/// also tried without, since GDI may fold them into the base family.
+fn instance_names(
+    raw: &ttf_parser::RawFace<'_>,
+    table: &ttf_parser::name::Table<'_>,
+    family: &str,
+) -> Vec<String> {
+    let Some(fvar) = raw.table(ttf_parser::Tag::from_bytes(b"fvar")) else {
+        return Vec::new();
+    };
+    let u16_at = |at: usize| Some(u16::from_be_bytes(fvar.get(at..at + 2)?.try_into().ok()?));
+    let (Some(axes_offset), Some(axis_count), Some(count), Some(size)) =
+        (u16_at(4), u16_at(8), u16_at(12), u16_at(14))
+    else {
+        return Vec::new();
+    };
+    let first = axes_offset as usize + axis_count as usize * 20;
+    let mut out = Vec::new();
+    for i in 0..count as usize {
+        // Each instance record starts with its subfamilyNameID.
+        let Some(id) = u16_at(first + i * size as usize) else {
+            break;
+        };
+        let Some(sub) = english_name(table, id) else {
+            continue;
+        };
+        let words: Vec<&str> = sub
+            .split_whitespace()
+            .filter(|w| !w.eq_ignore_ascii_case("Regular"))
+            .collect();
+        let mut variants = vec![words.clone()];
+        let mut linked = words;
+        while linked
+            .last()
+            .is_some_and(|w| w.eq_ignore_ascii_case("Bold") || w.eq_ignore_ascii_case("Italic"))
+        {
+            linked.pop();
+            variants.push(linked.clone());
+        }
+        for v in variants {
+            let full = std::iter::once(family)
+                .chain(v)
+                .collect::<Vec<_>>()
+                .join(" ");
+            let gdi: Vec<u16> = full.encode_utf16().take(GDI_FACE_CHARS).collect();
+            if let Ok(cut) = String::from_utf16(&gdi) {
+                out.push(cut.trim_end().to_string());
+            }
+            out.push(full);
+        }
+    }
+    out
+}
+
+/// The most English decodable string for `name_id`.
+fn english_name(table: &ttf_parser::name::Table<'_>, name_id: u16) -> Option<String> {
+    table
+        .names
+        .into_iter()
+        .filter(|rec| rec.name_id == name_id)
+        .filter_map(|rec| Some((english_rank(&rec), decode(&rec)?)))
+        .min_by_key(|(rank, _)| *rank)
+        .map(|(_, v)| v.trim().to_string())
+        .filter(|v| !v.is_empty())
 }
 
 const RANK_OTHER: u8 = 4;

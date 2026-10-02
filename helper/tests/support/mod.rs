@@ -95,14 +95,41 @@ fn maxp_table() -> Vec<u8> {
     t
 }
 
+/// An `fvar` table with one `wght` axis and one named instance per subfamily name ID.
+fn fvar_table(instance_name_ids: &[u16]) -> Vec<u8> {
+    let mut t = Vec::new();
+    for v in [1u16, 0, 16, 2, 1, 20, instance_name_ids.len() as u16, 8] {
+        // version 1.0, axesArrayOffset, reserved, axisCount, axisSize, instanceCount, instanceSize
+        t.extend_from_slice(&v.to_be_bytes());
+    }
+    t.extend_from_slice(b"wght");
+    for fixed in [100u32 << 16, 400 << 16, 900 << 16] {
+        t.extend_from_slice(&fixed.to_be_bytes()); // min, default, max
+    }
+    t.extend_from_slice(&[0, 0, 1, 0]); // flags, axisNameID 256
+    for (i, id) in instance_name_ids.iter().enumerate() {
+        t.extend_from_slice(&id.to_be_bytes());
+        t.extend_from_slice(&0u16.to_be_bytes());
+        t.extend_from_slice(&((100 + 100 * i as u32) << 16).to_be_bytes());
+    }
+    t
+}
+
 /// Build one face whose table offsets are relative to a file in which this face starts at `base`.
 fn build_face_at(magic: [u8; 4], names: &[NameRec], base: u32) -> Vec<u8> {
-    let tables: Vec<([u8; 4], Vec<u8>)> = vec![
+    build_face_with(magic, names, None, base)
+}
+
+fn build_face_with(magic: [u8; 4], names: &[NameRec], fvar: Option<Vec<u8>>, base: u32) -> Vec<u8> {
+    let mut tables: Vec<([u8; 4], Vec<u8>)> = vec![
         (*b"head", head_table()),
         (*b"hhea", hhea_table()),
         (*b"maxp", maxp_table()),
         (*b"name", name_table(names)),
     ];
+    tables.extend(fvar.map(|t| (*b"fvar", t)));
+    // Table records must be sorted by tag (readers binary-search them).
+    tables.sort_by_key(|(tag, _)| *tag);
     let n = tables.len() as u16;
     let mut out = Vec::new();
     out.extend_from_slice(&magic);
@@ -125,6 +152,11 @@ fn build_face_at(magic: [u8; 4], names: &[NameRec], base: u32) -> Vec<u8> {
     }
     out.extend_from_slice(&body);
     out
+}
+
+/// A TrueType variable font: `names` plus an `fvar` whose named instances use these name IDs.
+pub fn build_variable_font(names: &[NameRec], instance_name_ids: &[u16]) -> Vec<u8> {
+    build_face_with(TRUETYPE, names, Some(fvar_table(instance_name_ids)), 0)
 }
 
 /// A single-face font file with the given sfnt magic.

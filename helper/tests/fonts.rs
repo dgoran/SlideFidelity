@@ -298,12 +298,104 @@ fn source_serializes_lowercase() {
     );
 }
 
-fn bump_mtime(dir: &Path) {
-    let later = SystemTime::now() + Duration::from_secs(5);
-    std::fs::File::open(dir)
-        .unwrap()
-        .set_modified(later)
-        .unwrap();
+#[test]
+fn variable_font_named_instances_get_their_windows_names() {
+    let dir = tempfile::tempdir().unwrap();
+    write(
+        dir.path(),
+        "var.ttf",
+        &build_variable_font(
+            &[
+                en(1, "Fixture Variable Concept"),
+                en(2, "Regular"),
+                en(17, "Regular"),
+                en(256, "Weight"),
+                en(257, "SemiBold"),
+                en(258, "Black Italic"),
+                en(259, "Bold"),
+            ],
+            &[17, 257, 258, 259],
+        ),
+    );
+    let (inv, errors) = scan_dirs(&[(dir.path().to_path_buf(), Source::Cloud)]);
+    assert!(errors.is_empty(), "{errors:?}");
+    assert_eq!(inv.families.len(), 1, "{:?}", inv.families.keys());
+    let names = &family(&inv, "fixture variable concept").names;
+    for want in [
+        "Fixture Variable Concept",
+        "Fixture Variable Concept SemiBold",
+        // GDI keeps 31 UTF-16 units of the 37-character name.
+        "Fixture Variable Concept Black",
+        "Fixture Variable Concept Black Italic",
+        "Fixture Variable Concept Bold",
+    ] {
+        assert!(
+            names.contains(&want.to_string()),
+            "{want:?} not in {names:?}"
+        );
+    }
+    assert!(
+        !names.iter().any(|n| n.contains("Regular")),
+        "\"Regular\" is dropped: {names:?}"
+    );
+}
+
+#[test]
+fn registered_names_join_the_family_they_extend() {
+    let dir = tempfile::tempdir().unwrap();
+    write(
+        dir.path(),
+        "v.ttf",
+        &build_font(TRUETYPE, &[en(1, "Segoe UI Variable")]),
+    );
+    write(
+        dir.path(),
+        "s.ttf",
+        &build_font(TRUETYPE, &[en(1, "Segoe UI")]),
+    );
+    let (mut inv, _) = scan_dirs(&[(dir.path().to_path_buf(), Source::Os)]);
+
+    inv.add_registered_name("Segoe UI Variable Display Semib", Source::Os);
+    inv.add_registered_name("segoe ui", Source::Os); // already known: no-op
+    inv.add_registered_name("Brand New Face", Source::Os);
+    inv.add_registered_name("Segoe UIX", Source::Os); // not a word boundary: its own family
+
+    assert!(family(&inv, "segoe ui variable")
+        .names
+        .contains(&"Segoe UI Variable Display Semib".to_string()));
+    assert_eq!(family(&inv, "segoe ui").names, ["Segoe UI"]);
+    assert_eq!(family(&inv, "brand new face").sources.len(), 1);
+    assert!(inv.families.contains_key("segoe uix"));
+    assert_eq!(inv.families.len(), 4);
+}
+
+#[cfg(windows)]
+#[test]
+fn gdi_reports_installed_windows_fonts() {
+    let names = slidecheck_helper::fonts::windows::gdi_face_names();
+    assert!(names.contains("Arial"), "{names:?}");
+    assert!(!names.iter().any(|n| n.starts_with('@')));
+    let (inv, _) = slidecheck_helper::fonts::collect();
+    for n in &names {
+        assert!(
+            inv.find(n).is_some(),
+            "GDI face {n:?} missing from the inventory"
+        );
+    }
+}
+
+fn bump_mtime(dir: &Path, secs: u64) {
+    let later = SystemTime::now() + Duration::from_secs(secs);
+    let mut open = std::fs::OpenOptions::new();
+    open.read(true);
+    #[cfg(windows)]
+    {
+        // A directory handle needs FILE_FLAG_BACKUP_SEMANTICS; setting times needs
+        // FILE_WRITE_ATTRIBUTES.
+        use std::os::windows::fs::OpenOptionsExt;
+        open.access_mode(0x100).custom_flags(0x0200_0000);
+    }
+    open.open(dir).unwrap().set_modified(later).unwrap();
 }
 
 #[test]
@@ -331,18 +423,14 @@ fn cache_rescans_only_when_a_watched_folder_changes() {
         "b.ttf",
         &build_font(TRUETYPE, &[en(1, "Second")]),
     );
-    bump_mtime(dir.path());
+    bump_mtime(dir.path(), 5);
     let after = cache.get();
     assert_eq!(cache.generation(), 2);
     assert_eq!(after.families.len(), 2);
 
     // A change inside an immediate subfolder is noticed too.
     write(&sub, "c.ttf", &build_font(TRUETYPE, &[en(1, "Third")]));
-    let later = SystemTime::now() + Duration::from_secs(10);
-    std::fs::File::open(&sub)
-        .unwrap()
-        .set_modified(later)
-        .unwrap();
+    bump_mtime(&sub, 10);
     let after = cache.get();
     assert_eq!(cache.generation(), 3);
     assert_eq!(after.families.len(), 3);
