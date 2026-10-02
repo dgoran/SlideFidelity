@@ -14,7 +14,7 @@ const urlProd = "https://app.slidecheck.io/";
  */
 function contentSecurityPolicy(dev) {
   const connect = ["'self'", "https://api.slidecheck.io"];
-  if (dev) connect.push("https://localhost:*", "wss://localhost:*"");
+  if (dev) connect.push("https://localhost:*", "wss://localhost:*");
   return [
     "default-src 'self'",
     "script-src 'self' https://appsforoffice.microsoft.com",
