@@ -55,6 +55,87 @@ pub fn runtime_dir() -> PathBuf {
     home().join(".local/state/slidecheck-helper")
 }
 
+/// The top directory `install-cert` locks down: `%ProgramData%\SlideCheck`, because whoever owns it
+/// could rename `Helper` away and replace it. A development override locks only itself.
+#[cfg(windows)]
+pub fn state_lock_root() -> PathBuf {
+    let dir = state_dir();
+    match (dev_state_override(), dir.parent()) {
+        (None, Some(parent)) => parent.to_path_buf(),
+        _ => dir,
+    }
+}
+
+/// Windows `install-cert`, before anything is written: any user may create folders under
+/// %ProgramData%, so the state directory may already exist with a user as owner. Remove any
+/// junction or symlink standing in for it, create it, make Administrators the owner of the whole
+/// tree, and replace every ACL: SYSTEM and Administrators full control, Users read and execute.
+#[cfg(windows)]
+pub fn lock_state_dir(top: &Path, dir: &Path) -> io::Result<()> {
+    use std::os::windows::fs::MetadataExt;
+    const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+    for p in [top, dir] {
+        if let Ok(m) = std::fs::symlink_metadata(p) {
+            if m.file_type().is_symlink() || m.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
+            {
+                // Removes the link itself, never its target.
+                std::fs::remove_dir(p).or_else(|_| std::fs::remove_file(p))?;
+            }
+        }
+    }
+    std::fs::create_dir_all(dir)?;
+
+    let icacls = env_dir("SystemRoot", r"C:\Windows").join(r"System32\icacls.exe");
+    let run = |args: &[&std::ffi::OsStr]| -> io::Result<()> {
+        let out = std::process::Command::new(&icacls).args(args).output()?;
+        if out.status.success() {
+            Ok(())
+        } else {
+            Err(io::Error::other(format!(
+                "icacls {:?} failed ({}): {}",
+                args,
+                out.status,
+                String::from_utf8_lossy(&out.stdout).trim()
+            )))
+        }
+    };
+    let os = std::ffi::OsStr::new;
+    // Owner first: an owner can always rewrite the ACL, so a user who pre-created the folder must
+    // lose ownership before the ACL is replaced.
+    run(&[
+        top.as_os_str(),
+        os("/setowner"),
+        os("*S-1-5-32-544"),
+        os("/T"),
+        os("/C"),
+        os("/Q"),
+    ])?;
+    // Drop every explicit entry (a planted "Everyone: full control"), then stop inheriting from
+    // %ProgramData% and grant exactly SYSTEM, Administrators and Users.
+    run(&[top.as_os_str(), os("/reset"), os("/Q")])?;
+    run(&[
+        top.as_os_str(),
+        os("/inheritance:r"),
+        os("/grant:r"),
+        os("*S-1-5-18:(OI)(CI)F"),
+        os("*S-1-5-32-544:(OI)(CI)F"),
+        os("*S-1-5-32-545:(OI)(CI)RX"),
+        os("/Q"),
+    ])?;
+    // Everything below inherits only from `top`.
+    let children = top.join("*");
+    if std::fs::read_dir(top)?.next().is_some() {
+        run(&[
+            children.as_os_str(),
+            os("/reset"),
+            os("/T"),
+            os("/C"),
+            os("/Q"),
+        ])?;
+    }
+    Ok(())
+}
+
 #[cfg(windows)]
 fn env_dir(var: &str, fallback: &str) -> PathBuf {
     std::env::var_os(var)

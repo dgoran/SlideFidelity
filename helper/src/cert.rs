@@ -554,33 +554,38 @@ pub fn install_cert(
     crate::paths::ensure_dir(state_dir, 0o755)?;
     remove_leftovers(&p);
 
-    match check_existing(&p, opts.now) {
-        Ok(existing) => {
-            let root = existing.root_ref(&p.root_pem);
-            if store.is_trusted(&root).unwrap_or_else(|e| {
+    let existing = check_existing(&p, opts.now).and_then(|existing| {
+        let trusted = store
+            .is_trusted(&existing.root_ref(&p.root_pem))
+            .unwrap_or_else(|e| {
                 tracing::warn!("checking trust: {e}");
                 false
-            }) {
-                return Ok(InstallOutcome::Unchanged);
-            }
+            });
+        // Under RollBack a failed trust attempt deletes its files, so an untrusted chain on disk
+        // was not written by us: on Windows any user can pre-create the state directory under
+        // %ProgramData% and plant one. Never trust it; generate a fresh chain instead.
+        if !trusted && opts.on_trust_failure == OnTrustFailure::RollBack {
+            return Err("the chain on disk is not trusted; replacing it".to_string());
+        }
+        Ok((existing, trusted))
+    });
+    match existing {
+        Ok((_, true)) => Ok(InstallOutcome::Unchanged),
+        Ok((existing, false)) => {
+            let root = existing.root_ref(&p.root_pem);
             match store.add(&root) {
                 Ok(()) => {
                     tracing::info!("trusted existing root {}", existing.sha1);
                     Ok(InstallOutcome::TrustRepaired)
                 }
-                Err(e) => match opts.on_trust_failure {
-                    OnTrustFailure::KeepUntrusted => {
-                        tracing::warn!("root is installed but not trusted yet: {e}");
-                        Ok(InstallOutcome::Untrusted {
-                            generated: false,
-                            reason: e.to_string(),
-                        })
-                    }
-                    OnTrustFailure::RollBack => {
-                        delete_files(&p);
-                        Err(e)
-                    }
-                },
+                // Only KeepUntrusted gets here; RollBack regenerates untrusted chains above.
+                Err(e) => {
+                    tracing::warn!("root is installed but not trusted yet: {e}");
+                    Ok(InstallOutcome::Untrusted {
+                        generated: false,
+                        reason: e.to_string(),
+                    })
+                }
             }
         }
         Err(why) => {

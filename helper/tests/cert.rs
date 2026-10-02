@@ -95,8 +95,14 @@ fn fresh() -> (tempfile::TempDir, PathBuf) {
     (tmp, dir)
 }
 
+#[cfg(not(windows))]
+const OPENSSL: &str = "/usr/bin/openssl";
+/// Git for Windows ships OpenSSL; nothing else on a stock PC does.
+#[cfg(windows)]
+const OPENSSL: &str = r"C:\Program Files\Git\usr\bin\openssl.exe";
+
 fn openssl(args: &[&str], pem_path: &Path) -> String {
-    let out = Command::new("/usr/bin/openssl")
+    let out = Command::new(OPENSSL)
         .arg("x509")
         .arg("-in")
         .arg(pem_path)
@@ -344,7 +350,7 @@ fn root_is_a_name_constrained_ca_with_pathlen_zero() {
         leaf_issuer.trim_start_matches("issuer="),
         root_subject.trim_start_matches("subject=")
     );
-    let verify = Command::new("/usr/bin/openssl")
+    let verify = Command::new(OPENSSL)
         .args(["verify", "-CAfile"])
         .arg(&p.root_pem)
         .arg(&p.leaf_pem)
@@ -542,6 +548,25 @@ fn windows_policy_failed_renewal_keeps_the_old_trusted_chain() {
 }
 
 #[test]
+fn windows_policy_never_trusts_an_untrusted_chain_found_on_disk() {
+    // A standard user can pre-create %ProgramData%\SlideCheck\Helper and plant a consistent chain
+    // of their own. The elevated installer must replace it, not add the planted root to the store.
+    let (_t, dir) = fresh();
+    let planter = FakeStore::failing();
+    cert::install_cert(&planter, &dir, &mac_opts()).unwrap();
+    let planted = root_sha1(&dir);
+
+    let store = FakeStore::default();
+    let outcome = cert::install_cert(&store, &dir, &win_opts()).unwrap();
+    assert_eq!(outcome, InstallOutcome::Generated { renewed: true });
+    let installed = root_sha1(&dir);
+    assert_ne!(installed, planted);
+    assert!(!store.trusts(&planted), "planted root was trusted");
+    assert!(store.trusts(&installed));
+    assert_eq!(store.trusted_count(), 1);
+}
+
+#[test]
 fn mac_policy_trust_failure_keeps_files_and_reports_not_trusted() {
     let (_t, dir) = fresh();
     let store = FakeStore::failing();
@@ -582,6 +607,8 @@ fn mac_policy_trust_failure_keeps_files_and_reports_not_trusted() {
     assert_eq!(snapshot(&dir), before);
 }
 
+// The login-time trust prompt is the macOS flow (H2); on Windows the installer owns trust.
+#[cfg(not(windows))]
 #[test]
 fn ensure_user_trust_trusts_an_untrusted_root_once() {
     let (_t, dir) = fresh();
@@ -613,6 +640,7 @@ fn ensure_user_trust_trusts_an_untrusted_root_once() {
     assert_eq!(snapshot(&dir), before);
 }
 
+#[cfg(not(windows))]
 #[test]
 fn ensure_user_trust_reports_refusal() {
     let (_t, dir) = fresh();
@@ -620,6 +648,25 @@ fn ensure_user_trust_reports_refusal() {
     cert::install_cert(&store, &dir, &mac_opts()).unwrap();
     assert!(cert::ensure_user_trust(&store, &dir).is_err());
     assert_eq!(cert::trust_status(&store, &dir), TrustStatus::NotTrusted);
+}
+
+#[cfg(windows)]
+#[test]
+fn ensure_user_trust_only_reports_on_windows() {
+    let (_t, dir) = fresh();
+    let store = FakeStore::failing();
+    cert::install_cert(&store, &dir, &mac_opts()).unwrap();
+    let adds = store.adds.get();
+    store.fail_add.set(false);
+    assert_eq!(
+        cert::ensure_user_trust(&store, &dir).unwrap(),
+        TrustStatus::NotTrusted
+    );
+    assert_eq!(
+        store.adds.get(),
+        adds,
+        "the helper must not touch the machine store"
+    );
 }
 
 #[test]
@@ -733,4 +780,71 @@ fn real_system_keychain_round_trip() {
     assert_eq!(cert::trust_status(&store, &dir), TrustStatus::Trusted);
     cert::uninstall_cert(&store, &dir).unwrap();
     assert_eq!(cert::trust_status(&store, &dir), TrustStatus::Missing);
+}
+
+/// Exercises the real `LocalMachine\Root` store. NEVER runs in CI. Run by hand from an elevated
+/// prompt (it adds, then removes, a root in the machine store):
+///
+/// ```bat
+/// cargo test --test cert -- --ignored real_local_machine_root_round_trip
+/// ```
+///
+/// Then confirm certlm.msc > Trusted Root Certification Authorities no longer lists
+/// "SlideCheck Helper Local Root".
+#[cfg(windows)]
+#[test]
+#[ignore = "modifies the real LocalMachine\\Root store; run manually from an elevated prompt"]
+fn real_local_machine_root_round_trip() {
+    let (_t, dir) = fresh();
+    let store = cert::SystemTrustStore;
+    let outcome = cert::install_cert(&store, &dir, &win_opts()).unwrap();
+    assert!(
+        matches!(outcome, InstallOutcome::Generated { .. }),
+        "{outcome:?}"
+    );
+    assert_eq!(cert::trust_status(&store, &dir), TrustStatus::Trusted);
+
+    // The store entry must be limited to Server Authentication (the EKU property, not the cert).
+    let sha1 = root_sha1(&dir);
+    let out = Command::new("powershell")
+        .args([
+            "-NoProfile",
+            "-Command",
+            &format!(
+                "(Get-Item Cert:\\LocalMachine\\Root\\{sha1}).EnhancedKeyUsageList | \
+                 ForEach-Object {{ $_.ObjectId }}"
+            ),
+        ])
+        .output()
+        .expect("powershell runs");
+    let ekus = String::from_utf8_lossy(&out.stdout);
+    let ekus: Vec<&str> = ekus
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .collect();
+    assert_eq!(
+        ekus,
+        ["1.3.6.1.5.5.7.3.1"],
+        "intended purposes of the store entry"
+    );
+
+    // Installing again finds it trusted and changes nothing.
+    assert_eq!(
+        cert::install_cert(&store, &dir, &win_opts()).unwrap(),
+        InstallOutcome::Unchanged
+    );
+
+    cert::uninstall_cert(&store, &dir).unwrap();
+    assert_eq!(cert::trust_status(&store, &dir), TrustStatus::Missing);
+    assert!(
+        !store
+            .is_trusted(&RootRef {
+                pem_path: Path::new("unused"),
+                sha1_hex: &sha1,
+                common_name: "unused",
+            })
+            .unwrap(),
+        "root still in LocalMachine\\Root"
+    );
 }

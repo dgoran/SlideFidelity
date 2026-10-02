@@ -43,6 +43,12 @@ fn main() -> ExitCode {
         }
         "install-cert" => {
             let _guard = logging::init(false);
+            #[cfg(windows)]
+            if let Err(e) = paths::lock_state_dir(&paths::state_lock_root(), &paths::state_dir()) {
+                // Writing a key into a folder users can modify is worse than not installing.
+                tracing::error!("install-cert: securing the state directory failed: {e}");
+                return ExitCode::FAILURE;
+            }
             match cert::install_cert(
                 &SystemTrustStore,
                 &paths::state_dir(),
@@ -67,7 +73,12 @@ fn main() -> ExitCode {
         "uninstall-cert" => {
             let _guard = logging::init(false);
             match cert::uninstall_cert(&SystemTrustStore, &paths::state_dir()) {
-                Ok(()) => ExitCode::SUCCESS,
+                Ok(()) => {
+                    // %ProgramData%\SlideCheck, if now empty.
+                    #[cfg(windows)]
+                    let _ = std::fs::remove_dir(paths::state_lock_root());
+                    ExitCode::SUCCESS
+                }
                 Err(e) => {
                     tracing::error!("uninstall-cert failed: {e}");
                     ExitCode::FAILURE
