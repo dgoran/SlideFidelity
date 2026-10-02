@@ -229,7 +229,8 @@ interface Inheritance {
   master?: ShapeRef;
 }
 
-class PlaceholderResolver {
+/** Resolves slide-space bounds for placeholders that inherit their position (exported for the layout checks). */
+export class PlaceholderResolver {
   constructor(private readonly pres: Presentation) {}
 
   private shapes(kind: ContainerKind, partName: string | undefined): Promise<ShapeRef[]> {
