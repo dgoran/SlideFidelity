@@ -68,3 +68,20 @@ These came from the review's proposed fixes and were applied as implementation d
 - Email normalization.
 - Master-text-style fonts marked unreachable.
 - Untrusted deck strings rendered only as text, with a strict CSP (U10).
+
+## Graphics Ops addendum (2026-10-01)
+
+The primary user is Graphics Ops reviewing one deck at a time before a show. The add-in leads with show-breaking problems; brand checks stay as they are.
+
+- G1. A **Problems** view opens first after a scan. It has five categories: videos and audio, fonts, off-slide objects, text touching objects, and media and image size. It shows an overall "Ready for show" or "N problems to fix" headline. The headline and counts are free; details and fixes follow the existing gates (D7, D13).
+- G2. **Video and audio playback** checks report: missing media, media linked outside the deck, online media, formats that may not play everywhere (MP4 with H.264 and AAC is the safe target), and missing poster frames.
+- G3. **Fonts that may be missing:**
+  - A font counts as safe when it is embedded, ships with Microsoft 365 on both Mac and Windows, or is on the team's "show machine fonts" list (`AuditOptions.availableFonts`).
+  - Platform-only fonts get a platform note.
+  - "Replace missing fonts" reuses the replace-font fix (D2 applies).
+- G4. **Partly off-slide objects** are reported beyond a tolerance of 0.05 in. Cut-off text, tables, charts, and video are warnings. Pictures and plain shapes that bleed off the edge are notes.
+- G5. **Text touching other objects** (overlap, or a gap under 2 pt) is a heuristic based on shape bounds.
+  - Text that sits fully inside a filled object, and rotated shapes, are notes.
+  - Backgrounds covering 95% or more of the slide are ignored.
+  - There is no dismiss action yet. Add one if real decks prove noisy.
+- G6. A linked video is reported both as `linked-file` (Links) and `media-linked` (Media). Problems shows it once, under Videos.
