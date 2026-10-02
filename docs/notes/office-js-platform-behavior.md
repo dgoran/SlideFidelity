@@ -174,3 +174,28 @@ The real helper ran as a debug build on https://localhost:47317, serving the tru
 | Generated deck using "Futura PT" (not installed) and Arial | "1 problem to fix": **Font missing on this computer: Futura PT**, with Replace missing fonts; the show-machine finding is a note |
 
 The pane negotiated HTTP/2 with the helper. The host guard had to accept `:authority` (fixed in 72f3566). AE1 passes on Mac.
+
+### Helper plan U2 gate: Windows trust and font access, PowerPoint for Windows 16.0.20430.20092 (2026-10-02)
+
+Windows 11 Pro 10.0.26300, PowerPoint for Microsoft 365 16.0.20430.20092 (Current Channel, x64), WebView2 Runtime 154.0.4258.48. The real helper (debug build, branch `feat/slidecheck-addin` after 95097ad) replaced the spike binary. `install-cert` ran from an elevated PowerShell with `SLIDECHECK_HELPER_STATE_DIR=%TEMP%\sc-state`; `serve` ran unelevated with the same variable. The pane was the dev add-in sideloaded by `npm run start --workspace @slidecheck/addin` (origin https://localhost:3000).
+
+| Check | Result |
+|---|---|
+| `install-cert` through the CryptoAPI into `LocalMachine\Root` (elevated) | root added; the store entry's Intended Purposes is **Server Authentication only** (`CERT_ENHKEY_USAGE_PROP_ID`) |
+| State folder ACL after `install-cert` | owner Administrators; `SYSTEM` and `Administrators` full, `Users` read/execute; no inherited entries |
+| `serve` unelevated | listens on `127.0.0.1:47317` and `[::1]:47317` only; leaf 823 days left |
+| Schannel (`curl.exe`) to `localhost`, `[::1]` | chain trusted; `/v1/health` 200, `/v1/fonts` 200; origin `https://evil.example` gets 403. curl's Schannel backend hard-fails the revocation check (`CRYPT_E_NO_REVOCATION_CHECK`: the leaf has no CRL/OCSP) unless `--ssl-no-revoke`; WebView2 does not |
+| SlideCheck pane in PowerPoint (WebView2), root in `LocalMachine\Root` | Fonts row: **"Exact font check: on (SlideCheck Helper v0.1.0)"** |
+| Root in `CurrentUser\Root` instead | not tested (the product only uses `LocalMachine\Root`) |
+| Windows Firewall prompt | one prompt, for **`node.exe`** (the webpack dev server listens on all interfaces). None for `slidecheck-helper.exe`: loopback-only listeners need no rule |
+
+**Font parity** against `tools/list-fonts-windows.ps1` (GDI+ `InstalledFontCollection` plus Office private and cloud folders): the script listed 643 names. The first file-only scan missed about 100, all **named instances of variable fonts**, which Windows lists as separate legacy families cut to 31 characters: Bahnschrift SemiBold, Segoe UI Variable Display Semib, Sitka Heading, Cascadia Code Light, Rubik Black, Acumin Variable Concept Black I (cloud font). PowerPoint stores these names in decks. Fixed in 95097ad:
+- each `fvar` named instance adds "<family> <subfamily>" without "Regular", plus the 31-character cut;
+- on Windows the OS layer adds every face name `EnumFontFamiliesExW` reports (Windows derives some names from `STAT`, e.g. "Segoe UI Variable Display Light", which is not the `fvar` subfamily "Light Display").
+
+After the fix the helper reports 329 families and 1028 names; every GDI face name is covered (`gdi_reports_installed_windows_fonts`). Remaining difference: 21 names of the user-installed **Nunito Sans** variable fonts ("Nunito Sans 10pt Normal Light") that GDI+ synthesizes but GDI does not enumerate, so PowerPoint does not offer them.
+
+**Conclusions:**
+- U2 gate passes: a machine-wide root added by an elevated installer is trusted by WebView2 in PowerPoint with no user prompt, and its purpose is limited to Server Authentication. U9 (MSI) can proceed.
+- The shipped helper triggers no firewall prompt.
+- **Still open: Local Network Access.** This test pane was served from https://localhost:3000, so pane-to-helper was local-to-local. Production serves the pane from https://app.slidecheck.io (public), and Chromium (WebView2 154) restricts public-to-loopback requests (Local Network Access permission). Test with the production origin before release.
