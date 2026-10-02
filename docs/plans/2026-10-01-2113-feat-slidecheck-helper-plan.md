@@ -292,6 +292,8 @@ apps/site/src/helper.html                                  # download page
 - The "missing on this computer" and "not on the show-machine list" split (Key Decision 4) is an agent proposal. Both signals are cheap, and the UI can collapse them later.
 - Office's cloud font cache is readable by a process running as the user without a privacy prompt. U1 verifies this. If it is wrong, the helper falls back to the OS API plus `DFonts`, and the add-in marks cloud fonts "unknown here".
 - No pairing token is needed in v1 (KTD7 threat model). Revisit if the API grows.
+- The leaf private key is readable by every local user on both platforms, because each user's helper must serve TLS. Another local user could impersonate the helper to the add-in and feed it a wrong font list. That user could already alter fonts on the machine, so this is accepted for a font-list-only API.
+- On a Mac with several accounts logged in at once, only the first helper gets port 47317, and the others take 47318 and 47319. The add-in probes all three, so each user's pane may reach another user's helper. Fonts in `/Library/Fonts` and Office's folders are shared, but `~/Library/Fonts` is per user. Accepted for v1. Record it in U1 and revisit if Graphics Ops uses shared Macs.
 - Ports 47317–47319 are free on typical machines. The fallback list covers collisions.
 
 ### Open Questions
@@ -419,7 +421,8 @@ U11 and U12 can start once U5's API contract is fixed, in parallel with C.
    - `fonts`, which prints JSON for debugging;
    - `version`.
 2. Paths:
-   - Mac state: `~/Library/Application Support/SlideCheck/Helper/`, with the leaf certificate and key at mode 600.
+   - Mac state: `/Library/Application Support/SlideCheck/Helper/` (machine-wide). The installer creates the certificate once, as root, and every user account on the Mac runs its own helper with it. The leaf certificate is readable by all; the leaf key is readable by all and writable by root only. A per-user location would break the helper for every account except the installer's.
+   - Per-user runtime data (logs, chosen port): `~/Library/Application Support/SlideCheck/Helper/`.
    - Windows state: `%ProgramData%\SlideCheck\Helper\`, ACL'd to SYSTEM, Administrators, and Users read for the certificate, and the key readable by Users. Note: the key is per machine.
 3. Managed preferences:
    - Mac: `CFPreferences` domain `io.slidecheck.helper`.
