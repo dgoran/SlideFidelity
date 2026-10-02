@@ -156,6 +156,19 @@ fn serve(dir: PathBuf, port: u16) {
 // ---------------------------------------------------------------------------------------------
 // Fonts
 
+#[cfg(windows)]
+fn font_roots() -> Vec<PathBuf> {
+    let var = |k: &str| PathBuf::from(env::var(k).unwrap_or_default());
+    vec![
+        var("WINDIR").join("Fonts"),
+        var("LOCALAPPDATA").join(r"Microsoft\Windows\Fonts"),
+        var("ProgramFiles").join(r"Microsoft Office\root\vfs\Fonts\private"),
+        var("ProgramFiles(x86)").join(r"Microsoft Office\root\vfs\Fonts\private"),
+        var("LOCALAPPDATA").join(r"Microsoft\FontCache\4\CloudFonts"),
+    ]
+}
+
+#[cfg(not(windows))]
 fn font_roots() -> Vec<PathBuf> {
     let home = PathBuf::from(env::var("HOME").unwrap_or_default());
     vec![
