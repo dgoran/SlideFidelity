@@ -54,6 +54,34 @@ Status: not submitted. Items marked **You** need account access or a decision fr
   6. Remove a hidden shape.
 - [ ] Recommended versions: PowerPoint for Mac 16.105 or later, Windows Microsoft 365 2601 or later, or PowerPoint on the web. Older builds disable some fixes and show the reason.
 
+## SlideCheck Helper disclosure
+
+The optional native helper (`docs/plans/2026-10-01-2113-feat-slidecheck-helper-plan.md` U13, R14; decisions in `docs/notes/helper-decisions.md`). Review each item against the current text of the Commercial marketplace certification policies before ticking it.
+
+- [ ] **Optional and free.** The listing, the pane, and `helper.html` say the helper is optional and free, with no Pro gate on installing it.
+- [ ] **Add-in fully functional without it.** Every feature works without the helper. Without it, the Fonts check uses the show-machine font list (G3); with it, "Missing on this computer" is exact (H7).
+- [ ] **What it installs is disclosed (policy 100.11).** The listing, `privacy.html#helper`, and `helper.html` name the app, the login item, and the localhost-only certificate, and say how to uninstall.
+- [ ] **Dependency disclosed in the listing description (policies 100.4 and 100.1.3).** The listing text below is in the description, and the exact-font-check feature is described as depending on the helper.
+- [ ] **No download link on mobile (policy 1120.2).** The pane offers the helper only on PowerPoint desktop for Mac and Windows; web, iPad, and phones never see the offer. `helper.html` shows no download link on phones or tablets, even with `?platform=`.
+- [ ] `apps/site/src/config.js` `helper` values are filled by the release pipeline (U10), and `helper.html` shows a working download with version and SHA-256 for both platforms.
+- [ ] The privacy page's helper section has passed legal review with the rest of the page.
+
+### Listing text (paste into the listing description)
+
+> **Optional: SlideCheck Helper for exact font checks.** On PowerPoint for Mac and Windows, you can install the free SlideCheck Helper to see exactly which fonts in a deck are missing on this computer. SlideCheck works fully without it and checks fonts against your show-machine font list instead. The helper installs a small background app, a login item that starts it at sign-in, and a certificate valid only for this computer's own address (localhost). It reads only the names of installed fonts, never opens presentations, and sends nothing off the computer except a check for its own updates. It is not available for PowerPoint on the web, iPad, or phones. Details and uninstall steps: https://slidecheck.io/helper
+
+### Certification notes (paste into Partner Center)
+
+> SlideCheck Helper is an optional, free companion app for PowerPoint desktop on Mac and Windows. The add-in is fully functional without it; it only makes one font check exact. It is never offered on PowerPoint on the web, iPad, or mobile, and the download page shows no download link on mobile devices.
+>
+> Helper off (default): open any deck on PowerPoint desktop and select Home › Check Deck › Scan. Open Problems › Fonts. The status reads "Using show-machine list" and the pane offers "Install SlideCheck Helper for exact missing-font checks" with Install, Not now, and Don't ask again. Every feature works in this state.
+>
+> Helper on: install the helper from https://slidecheck.io/helper (one administrator prompt from the installer). Return to SlideCheck; the status changes to "Exact font check: on (SlideCheck Helper vX)". Rescan: fonts not installed on the computer are reported as "Missing on this computer".
+>
+> To return to helper off, uninstall: Mac `sudo "/Library/Application Support/SlideCheck/Helper/uninstall.sh"`; Windows Settings › Apps › Installed apps › SlideCheck Helper › Uninstall.
+>
+> What the helper installs: an app, a login item, and a certificate unique to the computer, valid only for localhost, 127.0.0.1 and ::1, trusted for SSL only; its signing key is destroyed after creation. It reads only installed font names, answers only the SlideCheck add-in over loopback, and sends nothing off the computer except an update check that administrators can turn off. Updates are offered in the pane and never install automatically.
+
 ## Before submitting
 
 - [ ] CI is green on `main`.

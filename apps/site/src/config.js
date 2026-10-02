@@ -9,9 +9,31 @@
 // - PADDLE_CLIENT_TOKEN   Paddle > Developer tools > Authentication > client-side token
 //                         (starts with "test_" in sandbox, "live_" in production). Safe to publish.
 // - PADDLE_PRICE_ID       Paddle > Catalog > the SlideCheck Pro yearly price (starts with "pri_").
+//
+// SlideCheck Helper download page (helper.html, U13). The release pipeline (U10) fills these from the
+// signed release; until then the page shows "Download coming soon" instead of a broken link.
+// - helper.version         Released helper version, for example "1.0.0".
+// - helper.mac.url         HTTPS URL of the signed, notarized .pkg.
+// - helper.mac.sha256      SHA-256 of that .pkg, 64 hex characters.
+// - helper.windows.url     HTTPS URL of the signed .msi.
+// - helper.windows.sha256  SHA-256 of that .msi, 64 hex characters.
+// The minimum OS strings are product decisions, not release values; change them only with the installers.
 window.SLIDECHECK_CONFIG = Object.freeze({
   API_BASE_URL: "https://api.slidecheck.io",
   PADDLE_ENVIRONMENT: "sandbox",
   PADDLE_CLIENT_TOKEN: "REPLACE_WITH_PADDLE_CLIENT_TOKEN",
   PADDLE_PRICE_ID: "REPLACE_WITH_PADDLE_PRICE_ID",
+  helper: Object.freeze({
+    version: "REPLACE_WITH_HELPER_VERSION",
+    mac: Object.freeze({
+      url: "REPLACE_WITH_HELPER_MAC_PKG_URL",
+      sha256: "REPLACE_WITH_HELPER_MAC_PKG_SHA256",
+      minimumOs: "macOS 12 Monterey or later, Apple silicon or Intel",
+    }),
+    windows: Object.freeze({
+      url: "REPLACE_WITH_HELPER_WINDOWS_MSI_URL",
+      sha256: "REPLACE_WITH_HELPER_WINDOWS_MSI_SHA256",
+      minimumOs: "Windows 10 or later, 64-bit (x64)",
+    }),
+  }),
 });

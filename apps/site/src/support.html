@@ -19,6 +19,29 @@
 <p>To subscribe, update payment details, download invoices, or cancel, sign in on the website with the same email address.</p>
 <p><a class="button" href="account.html">Start or manage your subscription</a></p>
 <p>After you subscribe, choose <strong>Refresh</strong> in the SlideCheck Account section to unlock Pro. Refunds are covered by the <a href="refund.html">refund policy</a>.</p>
+<h2 id="helper">SlideCheck Helper</h2>
+<p>SlideCheck Helper is an optional, free app for PowerPoint on Mac and Windows computers. With it, SlideCheck shows exactly which fonts are missing on this computer. Without it, SlideCheck checks fonts against your show-machine font list. It is not available for PowerPoint on the web, iPad, or phones. Read <a href="helper.html">what it installs, reads, and sends</a>.</p>
+<h3>Install</h3>
+<p>Download the installer from the <a href="helper.html">SlideCheck Helper page</a>, or choose <strong>Install</strong> when SlideCheck offers it in the pane. The installer asks once for an administrator's approval. On Macs set up by Jamf or another MDM, you are asked once, when you first sign in, to approve the helper's certificate.</p>
+<h3>Uninstall</h3>
+<p><strong>Mac:</strong> in Terminal, run <code>sudo "/Library/Application Support/SlideCheck/Helper/uninstall.sh"</code>. This removes the app, the login item, the certificate and its trust, and the helper's files.</p>
+<p><strong>Windows:</strong> open <strong>Settings › Apps › Installed apps</strong>, find <strong>SlideCheck Helper</strong>, and select <strong>Uninstall</strong>.</p>
+<h3>Troubleshooting</h3>
+<p>If the SlideCheck pane says <strong>Using show-machine list</strong> after you installed the helper, either the helper is not running or its certificate has not been approved yet.</p>
+<ul>
+<li><strong>Mac:</strong> approve the certificate prompt if you see one. If you dismissed it, sign out of your Mac and sign back in to see it again. Signing back in also starts the helper.</li>
+<li><strong>Windows:</strong> sign out and back in to start the helper, or reinstall it.</li>
+<li>The helper's certificate lasts about two years. When SlideCheck says it needs renewing, reinstall the helper.</li>
+<li>When SlideCheck says a helper update is available, download and run the new installer. Nothing installs automatically.</li>
+</ul>
+<h3 id="helper-it">For IT and MDM</h3>
+<ul>
+<li><strong>Silent install:</strong> deploy the pkg with Jamf or another Mac MDM, or the MSI with Intune. Neither needs a user prompt to install.</li>
+<li><strong>Mac certificate approval:</strong> each Mac needs one user approval of the helper's certificate, asked at the user's first sign-in after install. macOS does not allow changes to certificate trust without a user present.</li>
+<li><strong>Turn off update checks:</strong> on Mac, set the managed preference domain <code>io.slidecheck.helper</code>, key <code>AutoUpdate</code>, to <code>false</code>. On Windows, set the registry value <code>HKLM\Software\SlideCheck\Helper</code> <code>AutoUpdate</code> to <code>0</code>. Then deploy new versions through your MDM.</li>
+<li><strong>Uninstall:</strong> run the Mac uninstall script above as root, or remove the MSI with Intune.</li>
+</ul>
+<p>Contact <a href="mailto:support@slidecheck.io">support@slidecheck.io</a> for the Jamf and Intune deployment notes.</p>
 <h2>Why some items cannot be fixed</h2>
 <p>PowerPoint does not let add-ins change fonts and colors inside charts and SmartArt, fonts set only for Asian or complex scripts, or content on slide masters. SlideCheck lists these so you can change them in PowerPoint.</p>
 <h2>Contact</h2>

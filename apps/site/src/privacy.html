@@ -17,6 +17,15 @@
 <p>SlideCheck analyzes the open presentation inside PowerPoint on your device. The content of your presentation is never uploaded to SlideCheck or to anyone else.</p>
 <h2>Link checking</h2>
 <p>When you choose to check links, SlideCheck sends only the web addresses (http and https links) found in your deck to the SlideCheck service, which requests each address and reports whether it works. We do not store or log these addresses. We keep only a count of checks per account and per network address to prevent abuse.</p>
+<h2 id="helper">SlideCheck Helper (optional)</h2>
+<p>SlideCheck Helper is an optional, free app for PowerPoint on Mac and Windows computers. SlideCheck works fully without it. If you install it:</p>
+<ul>
+<li>It reads only the names of the fonts installed on your computer: system fonts, fonts you installed, and Microsoft Office's own and cloud fonts. It never opens your presentations.</li>
+<li>It gives those font names, its version, and its status only to the SlideCheck add-in on the same computer (<code>https://app.slidecheck.io</code>), over the computer's own loopback address. Nothing it reads leaves your computer.</li>
+<li>It sends nothing off your computer, except checking <code>https://app.slidecheck.io/helper/latest.json</code> for a newer version. That request does not include your font names or anything from your presentations. Administrators can turn the check off. Updates are offered in the SlideCheck pane; nothing installs automatically.</li>
+<li>It installs the helper app, a login item that starts it when you sign in, and a certificate unique to your computer that is valid only for <code>localhost</code>, <code>127.0.0.1</code>, and <code>::1</code> and trusted for website (SSL) use only. The key that could sign other certificates is destroyed after the certificate is created.</li>
+</ul>
+<p>Uninstalling removes the app, the login item, the certificate and its trust, and the helper's files. See <a href="helper.html">SlideCheck Helper</a> for details and uninstall steps.</p>
 <h2>Your account</h2>
 <p>If you sign in, we store your email address, your sign-in sessions, your trial dates, and your subscription status. Sign-in codes are stored only as one-way hashes and expire after 10 minutes.</p>
 <h2>Payments</h2>

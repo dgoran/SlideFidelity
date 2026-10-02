@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- CSP: scripts from this site only (config.js, helper.js). No inline scripts or styles. Download links are plain navigations. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<title>SlideCheck Helper</title>
+<meta name="description" content="Optional, free SlideCheck Helper for PowerPoint on Mac and Windows: exact checks for fonts missing on this computer." />
+<link rel="stylesheet" href="styles.css" />
+<script src="config.js" defer></script>
+<script src="helper.js" defer></script>
+</head>
+<body>
+<header><a class="brand" href="index.html">SlideCheck</a><nav><a href="pricing.html">Pricing</a><a href="support.html">Support</a><a href="account.html">Account</a></nav></header>
+<main>
+<h1>SlideCheck Helper</h1>
+<p class="lede">An optional, free companion app for PowerPoint on Mac and Windows computers. With it, SlideCheck can tell you exactly which fonts in a deck are missing on this computer.</p>
+<p>SlideCheck works fully without the helper. Without it, SlideCheck checks fonts against your show-machine font list instead. The helper is not available for PowerPoint on the web, iPad, or phones.</p>
+
+<section id="download" aria-labelledby="download-title">
+<h2 id="download-title">Download</h2>
+<noscript><p class="notice">This page needs JavaScript to show the download. You can also email <a href="mailto:support@slidecheck.io">support@slidecheck.io</a> for the installer.</p></noscript>
+
+<p id="mobile-notice" class="notice" hidden>SlideCheck Helper is for PowerPoint on Mac and Windows computers. Open this page on the computer that runs PowerPoint to download it.</p>
+
+<div id="download-mac" class="download" hidden>
+<h3>For Mac</h3>
+<p class="actions">
+<a id="mac-link" class="button" href="#download" hidden>Download for Mac</a>
+<span id="mac-soon" class="notice">Download coming soon</span>
+</p>
+<dl class="facts">
+<dt>Version</dt><dd id="mac-version">Not released yet</dd>
+<dt>SHA-256</dt><dd><code id="mac-sha256">Not released yet</code></dd>
+<dt>Requires</dt><dd id="mac-requires"></dd>
+</dl>
+<p class="note">To check the download, run <code>shasum -a 256</code> on the file in Terminal and compare the result with the SHA-256 above.</p>
+<p id="mac-other"><a href="helper.html?platform=windows">Need the Windows version?</a></p>
+</div>
+
+<div id="download-windows" class="download" hidden>
+<h3>For Windows</h3>
+<p class="actions">
+<a id="windows-link" class="button" href="#download" hidden>Download for Windows</a>
+<span id="windows-soon" class="notice">Download coming soon</span>
+</p>
+<dl class="facts">
+<dt>Version</dt><dd id="windows-version">Not released yet</dd>
+<dt>SHA-256</dt><dd><code id="windows-sha256">Not released yet</code></dd>
+<dt>Requires</dt><dd id="windows-requires"></dd>
+</dl>
+<p class="note">To check the download, run <code>Get-FileHash</code> on the file in PowerShell and compare the result with the SHA-256 above.</p>
+<p id="windows-other"><a href="helper.html?platform=mac">Need the Mac version?</a></p>
+</div>
+<p>Installing takes one administrator prompt: the installer's own. On Macs set up by Jamf or another MDM, you are asked once, when you first sign in, to approve the helper's certificate.</p>
+</section>
+
+<section aria-labelledby="what-title">
+<h2 id="what-title">What it does</h2>
+<p>An add-in inside PowerPoint cannot see which fonts are installed on your computer. The helper runs quietly in the background and tells the SlideCheck add-in the names of the fonts on this computer. SlideCheck then marks each font in your deck that is missing on this computer, so you can fix it before the show.</p>
+<p>When you install the helper, SlideCheck shows "Exact font check: on" in the pane. When an update is available, SlideCheck offers it in the pane. Nothing installs automatically: you download and run the new installer yourself.</p>
+</section>
+
+<section aria-labelledby="installs-title">
+<h2 id="installs-title">What it installs</h2>
+<ul>
+<li><strong>The SlideCheck Helper app.</strong></li>
+<li><strong>A login item</strong> that starts the helper when you sign in. On Mac this is <code>/Library/LaunchAgents/io.slidecheck.helper.plist</code>. On Windows it is a startup entry.</li>
+<li><strong>A certificate unique to this computer.</strong> It is valid only for <code>localhost</code>, <code>127.0.0.1</code>, and <code>::1</code>, and it is trusted for website (SSL) use only, so it cannot be used to pretend to be any other website. The key that could sign other certificates is destroyed right after the certificate is created. The certificate lasts about two years; reinstalling the helper renews it.</li>
+</ul>
+</section>
+
+<section aria-labelledby="reads-title">
+<h2 id="reads-title">What it reads and sends</h2>
+<ul>
+<li><strong>It reads</strong> the names of the fonts installed on this computer: system fonts, fonts you installed, and Microsoft Office's own and cloud fonts. It never opens your presentations.</li>
+<li><strong>It answers</strong> only the SlideCheck add-in on this computer (<code>https://app.slidecheck.io</code>), and only over this computer's own loopback address.</li>
+<li><strong>It sends nothing off this computer</strong>, except checking <code>https://app.slidecheck.io/helper/latest.json</code> for updates. Administrators can turn that check off.</li>
+</ul>
+<p>See the <a href="privacy.html#helper">privacy policy</a>.</p>
+</section>
+
+<section aria-labelledby="uninstall-title">
+<h2 id="uninstall-title">How to uninstall</h2>
+<p><strong>Mac:</strong> in Terminal, run:</p>
+<p><code>sudo "/Library/Application Support/SlideCheck/Helper/uninstall.sh"</code></p>
+<p>This removes the app, the login item, the certificate and its trust, and the helper's files.</p>
+<p><strong>Windows:</strong> open <strong>Settings › Apps › Installed apps</strong>, find <strong>SlideCheck Helper</strong>, and select <strong>Uninstall</strong>.</p>
+<p>SlideCheck keeps working after you uninstall. It goes back to checking fonts against your show-machine font list.</p>
+</section>
+
+<section aria-labelledby="it-title">
+<h2 id="it-title">For IT and MDM</h2>
+<p>The helper supports silent installs through Jamf (pkg) and Intune (MSI), and you can turn update checks off. See <a href="support.html#helper-it">deployment notes for IT</a>.</p>
+</section>
+</main>
+<footer><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="refund.html">Refunds</a><a href="support.html">Support</a></footer>
+</body>
+</html>
