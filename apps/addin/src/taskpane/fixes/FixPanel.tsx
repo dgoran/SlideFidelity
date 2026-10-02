@@ -2,6 +2,10 @@
  * The area fix panel (`fixPanelSlot`, D11): the area's bulk fix actions, or the open fix session
  * (inline picker → preview → progress → summary). Gated by the `fixes` feature (D13: an inline
  * locked section otherwise) and by host capability (CapabilityButton with the reason, KTD4).
+ *
+ * In the Problems view (G1, `placement: "problems"`) the panel shows only the open fix session of
+ * its area, plus "Replace missing fonts…" when it is given the missing fonts (`initialSources`,
+ * G3): the same replace-font picker, preselected with the missing fonts it can reach (D2).
  */
 import { useEffect, useId, useMemo, useRef } from "react";
 import { Button, makeStyles, tokens } from "@fluentui/react-components";
@@ -47,15 +51,19 @@ const useStyles = makeStyles({
   heading: { margin: 0, fontSize: tokens.fontSizeBase300, fontWeight: tokens.fontWeightSemibold, outlineStyle: "none" },
   actions: { display: "flex", flexWrap: "wrap", gap: tokens.spacingHorizontalS, alignItems: "center" },
   alert: { margin: 0, color: tokens.colorPaletteRedForeground1, fontSize: tokens.fontSizeBase300, wordBreak: "break-word" },
+  note: { margin: 0, fontSize: tokens.fontSizeBase200, color: tokens.colorNeutralForeground3 },
 });
 
 export interface FixPanelProps {
   controller: FixController;
   deps: FixDeps;
   area: Area;
+  placement?: "area" | "problems";
+  /** Problems placement: sources to preselect (fonts: family names). */
+  initialSources?: readonly string[];
 }
 
-export function FixPanel({ controller, deps, area }: FixPanelProps) {
+export function FixPanel({ controller, deps, area, placement = "area", initialSources }: FixPanelProps) {
   const session = useFixSession(controller);
   const plan = usePlan();
   const { state } = usePane();
@@ -68,6 +76,13 @@ export function FixPanel({ controller, deps, area }: FixPanelProps) {
   if (!isFixArea(area)) return null;
 
   const own = session && session.area === area ? session : null;
+  if (placement === "problems") {
+    // The Problems view shows its own locked details; no second lock here.
+    if (!plan.isAllowed("fixes")) return null;
+    if (own) return <FixPanelBody controller={controller} deps={deps} area={area} session={own} busy={isBusy(session)} />;
+    if (area !== "fonts" || initialSources === undefined) return null;
+    return <MissingFontsLauncher controller={controller} sources={initialSources} busy={isBusy(session)} />;
+  }
   if (!own && !visibleFixable) return null;
   if (!plan.isAllowed("fixes")) {
     return (
@@ -104,6 +119,23 @@ function FixPanelBody({ controller, deps, area, session, busy }: { controller: F
         </>
       )}
     </section>
+  );
+}
+
+/** "Replace missing fonts…" (G3): opens the fonts picker preselected with the reachable ones. */
+function MissingFontsLauncher({ controller, sources, busy }: { controller: FixController; sources: readonly string[]; busy: boolean }) {
+  const s = useStyles();
+  const { state } = usePane();
+  const result = currentResult(state.scan);
+  const draft = useMemo(() => initialDraft("fonts", result, { fonts: sources }), [result, sources]);
+  const none = draft.type === "fonts" && draft.from.length === 0;
+  return (
+    <div className={s.bar} data-fix-launch="fonts">
+      <CapabilityButton feature="replaceFonts" size="small" disabled={busy || none} onClick={() => controller.open("fonts", draft)}>
+        Replace missing fonts…
+      </CapabilityButton>
+      {none && <p className={s.note}>These fonts can&apos;t be replaced in place (they are only in charts, SmartArt, masters, or theme fonts).</p>}
+    </div>
   );
 }
 

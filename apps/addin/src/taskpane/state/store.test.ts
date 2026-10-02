@@ -7,10 +7,10 @@ const run = (actions: Parameters<typeof paneReducer>[1][], from: PaneState = ini
   actions.reduce(paneReducer, from);
 
 describe("pane reducer (D10)", () => {
-  it("starts not scanned on the Overview with no filters", () => {
+  it("starts not scanned on the Problems view (G1) with no filters", () => {
     const s = initialPaneState();
     expect(s.scan).toEqual({ status: "not-scanned" });
-    expect(s.area).toBe("overview");
+    expect(s.area).toBe("problems");
     expect(s.severity).toBe("all");
     expect(s.search).toBe("");
   });
@@ -84,6 +84,24 @@ describe("pane reducer (D10)", () => {
     const rescanned = run([{ type: "scan/started" }, { type: "scan/succeeded", result: fakeResult([]), scannedAt: 2 }], changed);
     expect(rescanned.scan).not.toHaveProperty("optionsChanged");
     expect(run([{ type: "scan/options-changed" }]).scan.status).toBe("not-scanned");
+  });
+
+  it("records which settings changed (brand, show-machine fonts) until the next scan", () => {
+    const ready = run([{ type: "scan/started" }, { type: "scan/succeeded", result: fakeResult([]), scannedAt: 1 }]);
+    const fonts = run([{ type: "scan/options-changed", option: "show-fonts" }], ready);
+    expect(fonts.scan).toMatchObject({ optionsChanged: true, changedOptions: ["show-fonts"] });
+    expect(run([{ type: "scan/options-changed", option: "show-fonts" }], fonts)).toBe(fonts);
+    const both = run([{ type: "scan/options-changed", option: "brand" }], fonts);
+    expect(both.scan).toMatchObject({ changedOptions: ["show-fonts", "brand"] });
+    const rescanned = run([{ type: "scan/started" }, { type: "scan/succeeded", result: fakeResult([]), scannedAt: 2 }], both);
+    expect(rescanned.scan).not.toHaveProperty("changedOptions");
+  });
+
+  it("a rescan keeps the selected view; Problems is the default after the first scan", () => {
+    const first = run([{ type: "scan/started" }, { type: "scan/succeeded", result: fakeResult([]), scannedAt: 1 }]);
+    expect(first.area).toBe("problems");
+    const s = run([{ type: "area/selected", area: "fonts" }, { type: "scan/started" }, { type: "scan/succeeded", result: fakeResult([]), scannedAt: 2 }], first);
+    expect(s.area).toBe("fonts");
   });
 
   it("area selection and filters", () => {

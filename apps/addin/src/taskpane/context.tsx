@@ -15,6 +15,8 @@
  *   - `settingsSlot` (D9): the settings entry in the header (brand profile editor).
  *   - `noticeSlot` (U15, D8/D12): non-blocking notices above the pane body (trial ending, offline).
  *   - `brandSlot` (brand editor, D9): entry point rendered in the Fonts and Colors areas.
+ *   - `showFontsSlot` (show-machine fonts editor, G3): rendered in the Problems view's Fonts category
+ *     (the settings entry renders its own copy).
  */
 import { createContext, Fragment, useContext, type ReactNode } from "react";
 import type { Area, Finding, FindingTarget } from "@slidecheck/audit-core";
@@ -97,10 +99,25 @@ export interface FixPanelContext {
   area: Area;
   /** The findings currently visible in the area (allowed by the plan, after filters). */
   findings: readonly Finding[];
+  /**
+   * Where the panel is rendered. `area` (default): the area's bulk actions and fix session.
+   * `problems` (G1): inside a Problems category; only the open fix session for `area`, plus the
+   * seeded bulk action when `initialSources` is given.
+   */
+  placement?: "area" | "problems";
+  /**
+   * Problems only: sources to preselect in the area's picker (fonts: family names; the fix keeps
+   * only those it can reach, D2). Fonts are the only area that takes them today.
+   */
+  initialSources?: readonly string[];
 }
 
 export interface BrandSlotContext {
   area: "fonts" | "colors";
+}
+
+export interface ShowFontsSlotContext {
+  placement: "problems";
 }
 
 export interface PaneSlots {
@@ -111,13 +128,14 @@ export interface PaneSlots {
   settingsSlot?: ReactNode;
   noticeSlot?: ReactNode;
   brandSlot?: (ctx: BrandSlotContext) => ReactNode;
+  showFontsSlot?: (ctx: ShowFontsSlotContext) => ReactNode;
 }
 
-type FnSlot = "renderRowActions" | "fixPanelSlot" | "brandSlot";
-const FN_SLOTS: readonly FnSlot[] = ["renderRowActions", "fixPanelSlot", "brandSlot"];
+type FnSlot = "renderRowActions" | "fixPanelSlot" | "brandSlot" | "showFontsSlot";
+const FN_SLOTS: readonly FnSlot[] = ["renderRowActions", "fixPanelSlot", "brandSlot", "showFontsSlot"];
 
 /**
- * Merges several slot sets. Function slots (`renderRowActions`, `fixPanelSlot`, `brandSlot`) render
+ * Merges several slot sets. Function slots (`renderRowActions`, `fixPanelSlot`, `brandSlot`, `showFontsSlot`) render
  * every contributor in order; node slots take the last one given.
  */
 export function composeSlots(...parts: PaneSlots[]): PaneSlots {
@@ -153,3 +171,6 @@ export const AREA_LABELS: Record<Area, string> = {
   links: "Links",
   review: "File review",
 };
+
+/** Labels for every pane view: the Problems view (G1) and the areas. */
+export const VIEW_LABELS: Record<"problems" | Area, string> = { problems: "Problems", ...AREA_LABELS };

@@ -2,10 +2,9 @@
  * React binding for the pane store and the scan service (D10: no auto-scan).
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type Dispatch, type ReactNode } from "react";
-import type { Area } from "@slidecheck/audit-core";
 import type { ScanService } from "../../office/scan";
 import { toScanError } from "../../office/scan";
-import { initialPaneState, paneReducer, type PaneAction, type PaneState } from "./store";
+import { initialPaneState, paneReducer, type PaneAction, type PaneState, type PaneView } from "./store";
 
 export interface PaneContextValue {
   state: PaneState;
@@ -13,7 +12,7 @@ export interface PaneContextValue {
   /** Start (or restart) a full scan. Outcomes of a superseded scan are ignored. */
   startScan: () => Promise<void>;
   cancelScan: () => void;
-  selectArea: (area: Area) => void;
+  selectArea: (area: PaneView) => void;
   /**
    * The scan service itself, for U12: `rescanForFix()` before every fix (D4) and `last.bytes`
    * (D16 pre-fix copy). After a fix, U12 should dispatch `scan/succeeded` with the new result
@@ -66,7 +65,7 @@ export function PaneProvider({ scanService, initialState, now, subscribeActivity
   }, [scanService, now]);
 
   const cancelScan = useCallback(() => scanService.cancel(), [scanService]);
-  const selectArea = useCallback((area: Area) => dispatch({ type: "area/selected", area }), []);
+  const selectArea = useCallback((area: PaneView) => dispatch({ type: "area/selected", area }), []);
 
   useEffect(() => () => scanService.cancel(), [scanService]);
 

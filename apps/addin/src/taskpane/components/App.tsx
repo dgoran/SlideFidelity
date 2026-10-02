@@ -4,20 +4,24 @@
  * - not scanned: a one-line explanation (the Scan button is in the header);
  * - scanning: per-area progress with Cancel;
  * - failed: a plain-language message with Retry;
- * - ready: the area picker, then the Overview or one area's findings, then the Inspector slot.
+ * - ready: the area picker, then the Problems checklist (G1, the default view), the Overview, or
+ *   one area's findings, then the Inspector slot.
  *
- * After a scan completes, focus moves to the results heading (or the error heading) (D15).
+ * After a scan completes, focus moves to the results heading (or the error heading) (D15). In the
+ * Problems view the heading is the "Ready for show" / "N problems to fix" headline.
  * Extension points: pass `slots` (see `PaneSlots` in ../context) for U11/U12/U13/U15/brand editor.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { makeStyles, tokens } from "@fluentui/react-components";
 import { PaneSlotsContext, AREA_LABELS, usePaneServices, type PaneSlots } from "../context";
+import { buildProblems } from "../model/problems";
 import { usePane } from "../state/PaneContext";
 import { AreaPicker } from "./AreaPicker";
 import { AreaView } from "./AreaView";
 import { ErrorState } from "./ErrorState";
 import { Header } from "./Header";
 import { Overview } from "./Overview";
+import { Problems } from "./Problems";
 import { ScanProgress } from "./ScanProgress";
 
 const useStyles = makeStyles({
@@ -58,6 +62,8 @@ export default function App({ slots = {}, treeViewportHeight }: AppProps) {
   const resultsHeading = useRef<HTMLHeadingElement>(null);
   const errorHeading = useRef<HTMLHeadingElement>(null);
   const prevStatus = useRef(scan.status);
+  const findings = scan.status === "ready" ? scan.result.findings : null;
+  const problems = useMemo(() => (findings ? buildProblems(findings) : null), [findings]);
 
   useEffect(() => {
     const was = prevStatus.current;
@@ -92,17 +98,32 @@ export default function App({ slots = {}, treeViewportHeight }: AppProps) {
     body = <ErrorState ref={errorHeading} kind={scan.kind} message={scan.message} isWeb={isWeb} onRetry={scanNow} />;
   } else {
     const area = state.area;
+    let view;
+    if (area === "problems") {
+      view = <Problems ref={resultsHeading} result={scan.result} {...(problems ? { model: problems } : {})} />;
+    } else {
+      view = (
+        <>
+          <h2 id="results-heading" ref={resultsHeading} tabIndex={-1} className={s.heading}>
+            {AREA_LABELS[area]}
+          </h2>
+          {area === "overview" ? (
+            <Overview result={scan.result} onSelectArea={selectArea} />
+          ) : (
+            <AreaView area={area} result={scan.result} {...(treeViewportHeight !== undefined ? { viewportHeight: treeViewportHeight } : {})} />
+          )}
+        </>
+      );
+    }
     body = (
       <>
-        <AreaPicker value={area} onChange={selectArea} summary={scan.result.stats.perArea} />
-        <h2 id="results-heading" ref={resultsHeading} tabIndex={-1} className={s.heading}>
-          {AREA_LABELS[area]}
-        </h2>
-        {area === "overview" ? (
-          <Overview result={scan.result} onSelectArea={selectArea} />
-        ) : (
-          <AreaView area={area} result={scan.result} {...(treeViewportHeight !== undefined ? { viewportHeight: treeViewportHeight } : {})} />
-        )}
+        <AreaPicker
+          value={area}
+          onChange={selectArea}
+          summary={scan.result.stats.perArea}
+          {...(problems ? { problemCount: problems.problemCount } : {})}
+        />
+        {view}
         {slots.inspectorSlot}
       </>
     );

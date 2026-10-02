@@ -14,7 +14,15 @@ export { createFixController, type FixController } from "./controller";
 
 export function createFixSlots(deps: FixDeps, controller: FixController = createFixController()): Required<Pick<PaneSlots, "fixPanelSlot" | "renderRowActions">> {
   return {
-    fixPanelSlot: ({ area }) => <FixPanel controller={controller} deps={deps} area={area} />,
+    fixPanelSlot: ({ area, placement, initialSources }) => (
+      <FixPanel
+        controller={controller}
+        deps={deps}
+        area={area}
+        {...(placement ? { placement } : {})}
+        {...(initialSources ? { initialSources } : {})}
+      />
+    ),
     renderRowActions: (finding, ctx) => <FixRowAction controller={controller} finding={finding} ctx={ctx} />,
   };
 }

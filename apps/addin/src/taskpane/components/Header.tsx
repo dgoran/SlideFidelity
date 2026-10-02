@@ -2,7 +2,7 @@
 import type { ReactNode } from "react";
 import { Button, Image, makeStyles, tokens } from "@fluentui/react-components";
 import { ArrowClockwise16Regular } from "@fluentui/react-icons";
-import type { ScanState } from "../state/store";
+import type { ScanOptionKind, ScanState } from "../state/store";
 
 const useStyles = makeStyles({
   header: {
@@ -34,6 +34,14 @@ export function statusText(scan: ScanState, formatTime: (t: number) => string): 
   }
 }
 
+/** The "rescan to apply" hint for the settings that changed since the scan. */
+export function optionsChangedText(changed: readonly ScanOptionKind[] | undefined): string {
+  const kinds = new Set(changed ?? []);
+  if (kinds.has("show-fonts") && kinds.has("brand")) return "Settings changed. Rescan to apply them.";
+  if (kinds.has("show-fonts")) return "Show-machine fonts changed. Rescan to apply them.";
+  return "Brand profile changed. Rescan to apply it.";
+}
+
 const defaultFormatTime = (t: number) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 export interface HeaderProps {
@@ -49,6 +57,7 @@ export function Header({ scan, onScan, accountSlot, settingsSlot, formatTime = d
   const hasResults = scan.status === "ready" || (scan.status !== "not-scanned" && scan.previous !== undefined);
   const outdated = scan.status === "ready" && scan.possiblyOutdated;
   const optionsChanged = scan.status === "ready" && scan.optionsChanged === true;
+  const changedText = scan.status === "ready" ? optionsChangedText(scan.changedOptions) : "";
   return (
     <header className={s.header}>
       <div className={s.brand}>
@@ -61,7 +70,7 @@ export function Header({ scan, onScan, accountSlot, settingsSlot, formatTime = d
             {optionsChanged && (
               <span className={s.hint} data-options-changed="">
                 {" "}
-                · Brand profile changed. Rescan to apply it.
+                · {changedText}
               </span>
             )}
           </p>

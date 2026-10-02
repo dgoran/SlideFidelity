@@ -8,6 +8,13 @@ import type { ScanInventory } from "../../inspector/model";
 import type { ScanErrorKind, ScanPhase } from "../../office/scan";
 
 export type AreaProgress = "pending" | "done";
+/**
+ * What the pane shows after a scan: the Problems checklist (G1, a pseudo-area shown first and
+ * selected by default), the Overview, or one area.
+ */
+export type PaneView = "problems" | Area;
+/** Scan settings that can change after a scan: the brand profile (D9), the show-machine fonts (G3). */
+export type ScanOptionKind = "brand" | "show-fonts";
 export type SeverityFilter = "all" | "warning" | "info";
 
 export interface ReadyState {
@@ -18,8 +25,10 @@ export interface ReadyState {
   possiblyOutdated: boolean;
   /** Every scanned slide and shape (U11 Inspector), when the worker built it. */
   inventory?: ScanInventory;
-  /** The scan options (brand profile, D9) changed after this scan: a rescan applies them. */
+  /** The scan options (brand profile D9, show-machine fonts G3) changed after this scan: a rescan applies them. */
   optionsChanged?: boolean;
+  /** Which settings changed, in order, when the dispatcher said so. */
+  changedOptions?: readonly ScanOptionKind[];
 }
 
 export type ScanState =
@@ -38,7 +47,7 @@ export type ScanState =
 
 export interface PaneState {
   scan: ScanState;
-  area: Area;
+  area: PaneView;
   severity: SeverityFilter;
   search: string;
   /**
@@ -57,9 +66,9 @@ export type PaneAction =
   | { type: "scan/failed"; kind: ScanErrorKind; message: string }
   | { type: "scan/cancelled" }
   | { type: "scan/possibly-outdated" }
-  /** The audit options (brand profile) changed; results stay, with a "rescan to apply" hint. */
-  | { type: "scan/options-changed" }
-  | { type: "area/selected"; area: Area }
+  /** The audit options changed; results stay, with a "rescan to apply" hint. */
+  | { type: "scan/options-changed"; option?: ScanOptionKind }
+  | { type: "area/selected"; area: PaneView }
   | { type: "filter/severity"; severity: SeverityFilter }
   | { type: "filter/search"; search: string }
   | { type: "tree/toggle"; area: Area; key: string };
@@ -67,7 +76,7 @@ export type PaneAction =
 export function initialPaneState(): PaneState {
   return {
     scan: { status: "not-scanned" },
-    area: "overview",
+    area: "problems",
     severity: "all",
     search: "",
     toggled: Object.fromEntries(AREAS.map((a) => [a, new Set<string>()])) as unknown as Record<Area, ReadonlySet<string>>,
@@ -121,8 +130,12 @@ function scanReducer(s: ScanState, a: PaneAction): ScanState {
       return s.previous ?? { status: "not-scanned" };
     case "scan/possibly-outdated":
       return s.status === "ready" && !s.possiblyOutdated ? { ...s, possiblyOutdated: true } : s;
-    case "scan/options-changed":
-      return s.status === "ready" && !s.optionsChanged ? { ...s, optionsChanged: true } : s;
+    case "scan/options-changed": {
+      if (s.status !== "ready") return s;
+      const known = s.changedOptions ?? [];
+      if (s.optionsChanged && (a.option === undefined || known.includes(a.option))) return s;
+      return { ...s, optionsChanged: true, ...(a.option ? { changedOptions: [...known, a.option] } : {}) };
+    }
     default:
       return s;
   }

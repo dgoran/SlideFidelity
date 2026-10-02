@@ -63,17 +63,25 @@ export function ctaLabel(action: LockAction): string {
 // ---------------------------------------------------------------------------------------------
 // Findings and areas
 
-/** The feature a finding's details belong to (D13). */
+/** Free Fonts kinds: the font list (D13). Every other Fonts kind is a Pro flag. */
+const FONT_LIST_KINDS: ReadonlySet<string> = new Set(["font-usage", "check-failed"]);
+/** Free Media kinds: the size breakdown (D13). Every other Media kind is a Pro issue. */
+const MEDIA_SIZE_KINDS: ReadonlySet<string> = new Set(["media-size", "file-size-breakdown", "check-failed"]);
+
+/**
+ * The feature a finding's details belong to (D13). Graphics Ops kinds (G1-G5) follow their area:
+ * `font-maybe-missing` / `font-availability-summary` are font flags; `media-missing`,
+ * `media-linked`, `media-online`, `media-format`, `media-poster-missing`, and
+ * `media-playback-settings` are media issues; `partly-off-slide` and `text-collision` are review.
+ */
 export function featureForFinding(f: Pick<Finding, "area" | "kind">): Feature {
   switch (f.area) {
     case "overview":
       return "overview.counts";
     case "fonts":
-      return f.kind === "font-usage" || f.kind === "check-failed" ? "area.fonts.list" : "area.fonts.flags";
+      return FONT_LIST_KINDS.has(f.kind) ? "area.fonts.list" : "area.fonts.flags";
     case "media":
-      return f.kind === "media-size" || f.kind === "file-size-breakdown" || f.kind === "check-failed"
-        ? "area.media.sizes"
-        : "area.media.issues";
+      return MEDIA_SIZE_KINDS.has(f.kind) ? "area.media.sizes" : "area.media.issues";
     case "colors":
       return "area.colors";
     case "masters":
@@ -95,12 +103,28 @@ export const AREA_FEATURES: Record<Area, readonly Feature[]> = {
   review: ["area.review"],
 };
 
+/**
+ * The Problems view (G1): its headline and counts are free (like the Overview, D7); the listed
+ * findings' details follow these features.
+ */
+export const PROBLEMS_FEATURES: readonly Feature[] = ["area.fonts.flags", "area.media.issues", "area.review"];
+
 export type AreaAccess = "full" | "partial" | "locked";
 
-export function areaAccess(plan: Plan, area: Area): AreaAccess {
-  const allowed = AREA_FEATURES[area].filter((f) => isAllowed(plan, f)).length;
-  if (allowed === AREA_FEATURES[area].length) return "full";
+function access(plan: Plan, features: readonly Feature[]): AreaAccess {
+  const allowed = features.filter((f) => isAllowed(plan, f)).length;
+  if (allowed === features.length) return "full";
   return allowed === 0 ? "locked" : "partial";
+}
+
+export function areaAccess(plan: Plan, area: Area): AreaAccess {
+  return access(plan, AREA_FEATURES[area]);
+}
+
+/** Access for a pane view: an area, or the Problems view (never fully locked: its counts are free). */
+export function viewAccess(plan: Plan, view: Area | "problems"): AreaAccess {
+  if (view !== "problems") return areaAccess(plan, view);
+  return access(plan, PROBLEMS_FEATURES) === "full" ? "full" : "partial";
 }
 
 // ---------------------------------------------------------------------------------------------

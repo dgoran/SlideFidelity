@@ -5,6 +5,8 @@ import {
   areaAccess,
   ctaLabel,
   featureForFinding,
+  PROBLEMS_FEATURES,
+  viewAccess,
   isAllowed,
   lockAction,
   type Feature,
@@ -58,6 +60,25 @@ describe("gate: per-finding features (D13)", () => {
     expect(featureForFinding({ area: "masters", kind: "unused-layout" })).toBe("area.masters");
     expect(featureForFinding({ area: "review", kind: "hidden-slide" })).toBe("area.review");
     expect(featureForFinding({ area: "fonts", kind: "check-failed" })).toBe("area.fonts.list");
+  });
+
+  it("Graphics Ops kinds (G1-G5) follow their area's Pro features", () => {
+    for (const kind of ["font-maybe-missing", "font-availability-summary"] as const) {
+      expect(featureForFinding({ area: "fonts", kind })).toBe("area.fonts.flags");
+    }
+    for (const kind of ["media-missing", "media-linked", "media-online", "media-format", "media-poster-missing", "media-playback-settings"] as const) {
+      expect(featureForFinding({ area: "media", kind })).toBe("area.media.issues");
+    }
+    for (const kind of ["partly-off-slide", "text-collision", "off-slide-shape"] as const) {
+      expect(featureForFinding({ area: "review", kind })).toBe("area.review");
+    }
+  });
+
+  it("the Problems view is partial on the free tier (headline and counts free, details Pro)", () => {
+    expect(PROBLEMS_FEATURES).toEqual(["area.fonts.flags", "area.media.issues", "area.review"]);
+    expect(viewAccess("anonymous", "problems")).toBe("partial");
+    expect(viewAccess("pro", "problems")).toBe("full");
+    expect(viewAccess("free", "links")).toBe("locked");
   });
 
   it("area access is partial for fonts/media and locked for Pro areas on the free tier", () => {

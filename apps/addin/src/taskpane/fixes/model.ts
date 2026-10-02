@@ -228,7 +228,14 @@ export interface DraftSeed {
   deleteKind?: DeleteKind;
   /** Links: which action the bulk button asked for. */
   linkMode?: "remove" | "edit";
+  /**
+   * Fonts, from the Problems view (G3): font families to preselect (case-insensitive). Only those
+   * the fix can reach are selected (D2); none of them is offered as the default target.
+   */
+  fonts?: readonly string[];
 }
+
+const lower = (s: string) => s.toLowerCase();
 
 export function initialDraft(area: FixArea, result: AuditResult | null, seed: DraftSeed = {}, canRemoveLinks = true): Draft {
   const findings = (result?.findings ?? []).filter((f) => f.area === area);
@@ -236,11 +243,15 @@ export function initialDraft(area: FixArea, result: AuditResult | null, seed: Dr
   switch (area) {
     case "fonts": {
       const sources = fontSources(findings);
+      const seeded = seed.fonts ? new Set(seed.fonts.map(lower)) : null;
       const from =
-        row && row.kind === "font-usage"
+        row && (row.kind === "font-usage" || row.kind === "font-maybe-missing")
           ? [row.data.typeface]
-          : sources.filter((s) => s.inBrand === false && s.reachable).map((s) => s.name);
-      return { type: "fonts", from, target: defaultFontTarget(from, fontTargets(result)), custom: "" };
+          : seeded
+            ? sources.filter((s) => s.reachable && seeded.has(lower(s.name))).map((s) => s.name)
+            : sources.filter((s) => s.inBrand === false && s.reachable).map((s) => s.name);
+      const avoid = seed.fonts ? [...from, ...seed.fonts] : from;
+      return { type: "fonts", from, target: defaultFontTarget(avoid, fontTargets(result)), custom: "" };
     }
     case "colors": {
       const sources = colorSources(findings);

@@ -28,7 +28,8 @@ describe("scan lifecycle in the pane (D10, D15)", () => {
     expect(container.textContent).toContain("Checking 2 of 7 areas");
     await act(async () => scan.resolve(deckResult()));
     await flush();
-    expect(container.querySelector("[data-overview]")).not.toBeNull();
+    // G1: the Problems checklist opens first; its headline is the results heading.
+    expect(container.querySelector("[data-problems]")).not.toBeNull();
     expect(document.activeElement?.id).toBe("results-heading");
     expect(button(container, "Rescan")).toBeTruthy();
   });
@@ -47,7 +48,7 @@ describe("scan lifecycle in the pane (D10, D15)", () => {
     click(button(container, "Rescan"));
     click(button(container, "Cancel"));
     await flush();
-    expect(container.querySelector("[data-overview]")).not.toBeNull();
+    expect(container.querySelector("[data-problems]")).not.toBeNull();
   });
 
   it.each([
@@ -77,7 +78,7 @@ describe("scan lifecycle in the pane (D10, D15)", () => {
     expect(scan.calls()).toBe(2);
     await act(async () => scan.resolve(deckResult()));
     await flush();
-    expect(container.querySelector("[data-overview]")).not.toBeNull();
+    expect(container.querySelector("[data-problems]")).not.toBeNull();
     expect(all(container, '[role="alert"]')).toHaveLength(0);
   });
 
@@ -85,8 +86,9 @@ describe("scan lifecycle in the pane (D10, D15)", () => {
     const { container } = renderPane({ result: deckResult(), plan: "anonymous" });
     const picker = one(container, "select[data-area-picker]") as HTMLSelectElement;
     const labels = Array.from(picker.options).map((o) => o.textContent);
-    expect(labels).toHaveLength(7);
-    expect(labels[0]).toBe("Overview");
-    expect(labels[2]).toBe("Colors (1 warning, 1 info) - Pro");
+    expect(labels).toHaveLength(8);
+    expect(labels[0]).toBe("Problems (1 to fix)");
+    expect(labels[1]).toBe("Overview");
+    expect(labels[3]).toBe("Colors (1 warning, 1 info) - Pro");
   });
 });

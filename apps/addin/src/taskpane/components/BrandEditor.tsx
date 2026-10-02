@@ -12,7 +12,7 @@
  * `parseBrandJson` and field errors are shown as text. Deck strings (font names, hex values) are
  * rendered as text only; swatch colors are validated hex before they reach a style.
  */
-import { useId, useMemo, useState, useSyncExternalStore, type ChangeEvent, type KeyboardEvent } from "react";
+import { useId, useMemo, useState, useSyncExternalStore, type ChangeEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Button, Input, Label, Textarea, makeStyles, tokens } from "@fluentui/react-components";
 import { Add16Regular, Dismiss12Regular, Settings20Regular } from "@fluentui/react-icons";
 import {
@@ -183,7 +183,7 @@ function BrandEditorBody({
 
   const save = (next: BrandProfile | null) => {
     store.set(next);
-    dispatch({ type: "scan/options-changed" });
+    dispatch({ type: "scan/options-changed", option: "brand" });
   };
 
   const base: BrandProfile = profile ?? themeBrandProfile(theme);
@@ -500,11 +500,15 @@ function BrandEditorBody({
   );
 }
 
-/** The header settings entry (D9): a gear button opening the brand profile editor. */
-export function BrandSettingsEntry({ store, download }: Omit<BrandEditorProps, "placement">) {
+/**
+ * The header settings entry (D9): a gear button opening the brand profile editor, followed by any
+ * other settings (`children`, e.g. the show-machine fonts editor, G3).
+ */
+export function BrandSettingsEntry({ store, download, children }: Omit<BrandEditorProps, "placement"> & { children?: ReactNode }) {
   return (
     <HeaderPanel label="Settings" icon={<Settings20Regular />} title="Settings" dataAttr="settings-entry">
       <BrandEditor store={store} placement="settings" {...(download ? { download } : {})} />
+      {children}
     </HeaderPanel>
   );
 }
