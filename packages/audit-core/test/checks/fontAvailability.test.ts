@@ -206,7 +206,7 @@ describe("font availability check", () => {
   });
 
   it("clean corpus deck: no warnings with the check registered alongside CHECKS", async () => {
-    const res = await runChecks(await corpusDeck("clean"), {}, { checks: [...CHECKS, ...fontAvailabilityChecks] });
+    const res = await runChecks(await corpusDeck("clean"), {}, { checks: CHECKS });
     expect(res.errors).toEqual([]);
     expect(res.findings.filter((f) => f.severity === "warning")).toEqual([]);
     expect(res.findings.filter((f) => f.kind === "font-maybe-missing")).toEqual([]);

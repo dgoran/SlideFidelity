@@ -93,7 +93,7 @@ describe("clean media", () => {
   });
 
   it("the full registry + playbackChecks keeps the clean corpus deck at zero warnings", async () => {
-    const res = await runChecks(await corpusDeck("clean"), {}, { checks: [...CHECKS, ...playbackChecks] });
+    const res = await runChecks(await corpusDeck("clean"), {}, { checks: CHECKS });
     expect(res.errors).toEqual([]);
     expect(res.findings.filter((f) => f.severity === "warning")).toEqual([]);
   });

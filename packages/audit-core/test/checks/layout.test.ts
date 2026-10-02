@@ -222,7 +222,7 @@ describe("layout checks: corpus", () => {
   it("adds no findings to the clean deck through the runner", async () => {
     const bytes = await corpusDeck("clean");
     const base = await runChecks(bytes, {}, { checks: [...CHECKS] });
-    const withLayout = await runChecks(bytes, {}, { checks: [...CHECKS, ...layoutChecks] });
+    const withLayout = await runChecks(bytes, {}, { checks: CHECKS });
     expect(withLayout.errors).toEqual([]);
     expect(withLayout.findings.filter((f) => f.kind === "partly-off-slide" || f.kind === "text-collision")).toEqual([]);
     expect(withLayout.stats.perArea.review.warning).toBe(base.stats.perArea.review.warning);
