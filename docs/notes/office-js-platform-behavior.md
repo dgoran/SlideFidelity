@@ -139,3 +139,26 @@ A stand-in "SlideCheck Helper" (Node) served the installed font list on two loop
 | https://localhost:7318/fonts (certificate trusted in the login keychain) | 200, 484 fonts | request arrived with `Origin: https://localhost:3000`, no Private Network Access preflight |
 
 **Conclusion:** on Mac, a helper must serve **HTTPS on localhost with a certificate that macOS trusts**. Plain HTTP to the loopback address is blocked as mixed content. Windows (WebView2) and Office on the web (Chrome Local Network Access prompt and iframe permission delegation) are untested.
+
+### Helper plan U1 gate: Mac trust and font access, PowerPoint for Mac 16.113 (2026-10-01)
+
+The spike is the Rust binary in `helper/spikes/mac/` (rcgen 0.14, axum-server with rustls/ring, ttf-parser). It served `/v1/health` and `/v1/fonts` on https://localhost:47317 as a per-user LaunchAgent. The pane used the dev-only probe in `HelperProbeDiagnostics.tsx`.
+
+**Certificate design.** A per-machine root with critical `NameConstraints` (permitted: DNS `localhost`, IP `127.0.0.1/32`, IP `::1/128`) and `pathlen:0` signed one leaf. The leaf has SANs `localhost`, `127.0.0.1` and `::1`, critical `CA:FALSE`, key usage `digitalSignature` only, and EKU `serverAuth`. The CA key was never written to disk. The root was trusted in the System keychain with `-p ssl`.
+
+| Check | Result |
+|---|---|
+| Name-constrained root accepted by macOS trust evaluation | yes, the constraints raise no error; the KTD2 fallback is not needed |
+| Leaf valid for 826 days (825 + 1-day backdate), and 3650 days | **rejected**: "Certificate exceeds maximum temporal validity period", even with the root trusted |
+| Leaf valid for 825 days in total (824 + 1-day backdate), and 398 days | accepted |
+| `nscurl` (NSURLSession) to https://localhost:47317 with the 825-day chain trusted | 200 |
+| SlideCheck pane in PowerPoint, origin https://localhost:3000 | health 200; fonts 200, 991 families; no preflight |
+| Trust step run as root from a LaunchDaemon, no user session (Jamf stand-in) | **fails**: `SecTrustSettingsSetTrustSettings: The authorization was denied since no user interaction was possible.` exit 1. The certificate is added to the keychain but not trusted |
+| Trust step run with `sudo` in Terminal (logged-in admin) | succeeds with only the sudo password, no extra dialog |
+| Office and user font folders read from the LaunchAgent (DFonts, Office FontCache, ~/Library/Fonts, /Library/Fonts) | 991 families, 0 read errors, no privacy prompt; identical to the list read from Terminal |
+
+**Conclusions:**
+- The constrained-root design works. The leaf must be valid for **825 days or less in total**: macOS applies the 825-day limit to certificates under admin-trusted roots too. A 10-year leaf is never accepted. The certificate therefore needs renewal about every two years.
+- **A silent MDM install cannot trust a certificate generated on the machine.** On macOS 11 and later, changing admin trust settings needs user interaction even as root. The Jamf path needs another design (a decision is pending). An interactive install trusts it with the installer's own authorization; the pkg postinstall case still has to be confirmed with a real pkg in U8.
+- Font access from a background login item needs no Full Disk Access and raises no prompt.
+- Not tested here: a pane served from a public origin. WKWebView has no Local Network Access check; that question belongs to the Windows spike (U2).

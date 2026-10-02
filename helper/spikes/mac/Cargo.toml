@@ -1,0 +1,15 @@
+[package]
+name = "slidecheck-helper-spike-mac"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+axum = "0.8"
+axum-server = { version = "0.7", features = ["tls-rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rcgen = "0.14"
+time = "0.3"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+ttf-parser = "0.25"
+serde_json = "1"
