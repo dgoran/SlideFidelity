@@ -162,3 +162,15 @@ The spike is the Rust binary in `helper/spikes/mac/` (rcgen 0.14, axum-server wi
 - **A silent MDM install cannot trust a certificate generated on the machine.** On macOS 11 and later, changing admin trust settings needs user interaction even as root. The Jamf path needs another design (a decision is pending). An interactive install trusts it with the installer's own authorization; the pkg postinstall case still has to be confirmed with a real pkg in U8.
 - Font access from a background login item needs no Full Disk Access and raises no prompt.
 - Not tested here: a pane served from a public origin. WKWebView has no Local Network Access check; that question belongs to the Windows spike (U2).
+
+### Helper end to end: PowerPoint for Mac 16.113 (2026-10-01)
+
+The real helper ran as a debug build on https://localhost:47317, serving the trusted 825-day spike chain. The add-in was the dev build at commit 0a629fb.
+
+| Case | Result in the pane |
+|---|---|
+| Blank deck | Fonts row: "Exact font check: on (SlideCheck Helper v0.1.0)"; Ready for show |
+| Corpus deck using MS Gothic (Windows-only, delivered to Mac as an Office cloud font) | 1 note: the show-machine finding says "It is installed on this computer" — the helper found it in the Office FontCache |
+| Generated deck using "Futura PT" (not installed) and Arial | "1 problem to fix": **Font missing on this computer: Futura PT**, with Replace missing fonts; the show-machine finding is a note |
+
+The pane negotiated HTTP/2 with the helper. The host guard had to accept `:authority` (fixed in 72f3566). AE1 passes on Mac.
