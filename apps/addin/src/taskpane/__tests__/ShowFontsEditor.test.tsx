@@ -170,3 +170,63 @@ describe("show-machine fonts editor", () => {
     expect(t.editor().textContent).toContain("lasts until the pane closes");
   });
 });
+
+describe("show-machine fonts editor with the SlideCheck Helper (U12, R15)", () => {
+  function helperStub(phase: "connected" | "offered", fonts: string[] | null) {
+    const snap = { phase, platform: "mac", health: null, port: 47317, fonts, reason: null, dismissPersistent: true } as const;
+    return { getSnapshot: () => snap, subscribe: () => () => {} };
+  }
+
+  function setupWithHelper(helper: ReturnType<typeof helperStub>, initial: string[] = []) {
+    const store = createShowFontsStore({ storage: null });
+    store.set(initial);
+    const r = renderPane({
+      result: deck(),
+      slots: {
+        settingsSlot: (
+          <BrandSettingsEntry store={createBrandStore({ storage: null })}>
+            <ShowFontsEditor store={store} placement="settings" helper={helper} />
+          </BrandSettingsEntry>
+        ),
+      },
+    });
+    click(button(r.container, "Settings"));
+    return { ...r, store, editor: () => one(r.container, '[data-show-fonts-editor="settings"]') };
+  }
+
+  const dialog = () => document.body.querySelector<HTMLElement>('[role="dialog"]');
+
+  it("is offered only when the helper is Connected", () => {
+    const t = setupWithHelper(helperStub("offered", null));
+    expect(t.editor().querySelector("[data-machine-fonts]")).toBeNull();
+  });
+
+  it("confirms, then merges this computer's fonts: dedupes case-insensitively and keeps existing entries", async () => {
+    const t = setupWithHelper(helperStub("connected", ["Segoe UI", "gotham", "Avenir Next", "Segoe UI Semibold", "avenir next"]), ["Gotham", "Brand Sans"]);
+    click(button(t.editor(), "This is a show machine: add its fonts to the list"));
+    await flush();
+    const d = dialog();
+    expect(d).not.toBeNull();
+    expect(d!.textContent).toContain("This adds 3 font names from this computer to the show-machine list. Fonts already on the list are kept.");
+    expect(t.store.get()).toEqual(["Gotham", "Brand Sans"]); // nothing yet
+    click(button(d!, "Add 3 fonts"));
+    await flush();
+    expect(t.store.get()).toEqual(["Gotham", "Brand Sans", "Segoe UI", "Avenir Next", "Segoe UI Semibold"]);
+    expect(t.editor().textContent).toContain("Added 3 fonts.");
+  });
+
+  it("Cancel adds nothing", async () => {
+    const t = setupWithHelper(helperStub("connected", ["Segoe UI"]), ["Gotham"]);
+    click(button(t.editor(), "This is a show machine: add its fonts to the list"));
+    await flush();
+    click(button(dialog()!, "Cancel"));
+    await flush();
+    expect(t.store.get()).toEqual(["Gotham"]);
+  });
+
+  it("says so when every font is already listed", () => {
+    const t = setupWithHelper(helperStub("connected", ["gotham"]), ["Gotham"]);
+    click(button(t.editor(), "This is a show machine: add its fonts to the list"));
+    expect(t.editor().textContent).toContain("Every font on this computer is already on the list.");
+  });
+});

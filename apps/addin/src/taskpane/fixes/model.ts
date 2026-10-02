@@ -374,7 +374,7 @@ export function initialDraft(area: FixArea, result: AuditResult | null, seed: Dr
       const sources = fontSources(findings);
       const seeded = seed.fonts ? new Set(seed.fonts.map(lower)) : null;
       const from =
-        row && (row.kind === "font-usage" || row.kind === "font-maybe-missing")
+        row && (row.kind === "font-usage" || row.kind === "font-maybe-missing" || row.kind === "font-missing-here")
           ? [row.data.typeface]
           : seeded
             ? sources.filter((s) => s.reachable && seeded.has(lower(s.name))).map((s) => s.name)

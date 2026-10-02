@@ -41,14 +41,42 @@ export function fontMaybeMissing(typeface: string, targets: FindingTarget[], opt
   return f;
 }
 
-export function fontSummary(teamListProvided: boolean, maybeMissing = 0): Finding {
+export function fontSummary(teamListProvided: boolean, maybeMissing = 0, local?: { missingHere: number }): Finding {
   return fakeFinding({
     area: "fonts",
     kind: "font-availability-summary",
     title: "Font availability",
     group: "font-availability",
-    data: { safeByEmbedding: 0, subsetEmbedded: 0, safeByOffice: 2, safeByTeamList: 0, maybeMissing, teamListProvided, fonts: [] },
+    data: {
+      safeByEmbedding: 0,
+      subsetEmbedded: 0,
+      safeByOffice: 2,
+      safeByTeamList: 0,
+      maybeMissing,
+      teamListProvided,
+      localListProvided: local !== undefined,
+      missingHere: local?.missingHere ?? 0,
+      fonts: [],
+    },
   });
+}
+
+/** `font-missing-here` (helper plan U11/U12): not installed on this computer, per the helper. */
+export function fontMissingHere(typeface: string, targets: FindingTarget[], opts: { severity?: Severity; reachable?: boolean } = {}): Finding {
+  const f = fakeFinding({
+    area: "fonts",
+    kind: "font-missing-here",
+    severity: opts.severity ?? "warning",
+    title: `Font '${typeface}' is not installed on this computer`,
+    detail: "Install it, embed it, or replace it.",
+    group: typeface,
+    count: targets.length,
+    targets,
+    data: { typeface, usageCount: targets.length, slideNumbers: [1], sources: ["direct"], scripts: ["latin"], symbolOnly: false, cloud: false, officeFont: false, onTeamList: false, suggestion: "Install it" },
+  });
+  (f as { fixes: string[] }).fixes = ["replace-font"];
+  (f as { reachable?: boolean }).reachable = opts.reachable ?? targets.some((t) => t.reachable === true);
+  return f;
 }
 
 export function partlyOff(slide: number, severity: Severity = "warning"): Finding {

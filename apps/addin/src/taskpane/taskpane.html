@@ -6,7 +6,8 @@
     <!--
       Strict CSP (review decisions: untrusted deck strings render only as text). The policy is
       built in webpack.config.js (templateParameters.csp): production allows only 'self',
-      office.js, and the license API; development builds add https://localhost:* to connect-src.
+      office.js, the license API, and the SlideCheck Helper's three localhost ports
+      (47317-47319); development builds add https://localhost:* to connect-src.
     -->
     <meta http-equiv="Content-Security-Policy" content="<%= csp %>" />
     <title>SlideCheck</title>

@@ -11,8 +11,11 @@ import { MAX_FONT_NAME_LENGTH, type AuditOptions } from "@slidecheck/audit-core"
 import type { BrandStore, StorageLike } from "../brand/brandStore";
 
 export const SHOW_FONTS_STORAGE_KEY = "slidecheck:showFonts";
-/** Upper bound on the list (a show machine's installed families, with room to spare). */
-export const MAX_SHOW_FONTS = 2000;
+/**
+ * Upper bound on the list: a show machine's installed font names, with room to spare. Matches the
+ * SlideCheck Helper's cap, so "add its fonts" can take a whole machine's list (helper plan U12).
+ */
+export const MAX_SHOW_FONTS = 20_000;
 
 export interface ShowFontsStore {
   /** The list (empty when none is set). Stable between changes. */
@@ -146,7 +149,14 @@ export function createShowFontsStore(options: ShowFontsStoreOptions = {}): ShowF
   };
 }
 
-/** The scan service's `getOptions`: the brand profile (D9) plus the show-machine fonts (G3). */
-export function composeAuditOptions(brand: Pick<BrandStore, "auditOptions">, showFonts: Pick<ShowFontsStore, "auditOptions">): () => AuditOptions {
-  return () => ({ ...brand.auditOptions(), ...showFonts.auditOptions() });
+/**
+ * The scan service's `getOptions`: the brand profile (D9), the show-machine fonts (G3), and, when
+ * the SlideCheck Helper is Connected, this computer's fonts (`localFonts`, helper plan U12).
+ */
+export function composeAuditOptions(
+  brand: Pick<BrandStore, "auditOptions">,
+  showFonts: Pick<ShowFontsStore, "auditOptions">,
+  helper?: { auditOptions(): Pick<AuditOptions, "localFonts"> },
+): () => AuditOptions {
+  return () => ({ ...brand.auditOptions(), ...showFonts.auditOptions(), ...(helper ? helper.auditOptions() : {}) });
 }

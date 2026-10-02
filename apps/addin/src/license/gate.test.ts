@@ -63,7 +63,7 @@ describe("gate: per-finding features (D13)", () => {
   });
 
   it("Graphics Ops kinds (G1-G5) follow their area's Pro features", () => {
-    for (const kind of ["font-maybe-missing", "font-availability-summary"] as const) {
+    for (const kind of ["font-maybe-missing", "font-missing-here", "font-availability-summary"] as const) {
       expect(featureForFinding({ area: "fonts", kind })).toBe("area.fonts.flags");
     }
     for (const kind of ["media-missing", "media-linked", "media-online", "media-format", "media-poster-missing", "media-playback-settings"] as const) {

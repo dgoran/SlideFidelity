@@ -17,6 +17,8 @@
  *   - `brandSlot` (brand editor, D9): entry point rendered in the Fonts and Colors areas.
  *   - `showFontsSlot` (show-machine fonts editor, G3): rendered in the Problems view's Fonts category
  *     (the settings entry renders its own copy).
+ *   - `helperSlot` (SlideCheck Helper status and offer, helper plan U12): rendered in the Problems
+ *     view's Fonts category (the settings entry renders its own copy).
  */
 import { createContext, Fragment, useContext, type ReactNode } from "react";
 import type { Area, Finding, FindingTarget } from "@slidecheck/audit-core";
@@ -120,6 +122,10 @@ export interface ShowFontsSlotContext {
   placement: "problems";
 }
 
+export interface HelperSlotContext {
+  placement: "problems";
+}
+
 export interface PaneSlots {
   inspectorSlot?: ReactNode;
   renderRowActions?: (finding: Finding, ctx: RowActionContext) => ReactNode;
@@ -129,13 +135,14 @@ export interface PaneSlots {
   noticeSlot?: ReactNode;
   brandSlot?: (ctx: BrandSlotContext) => ReactNode;
   showFontsSlot?: (ctx: ShowFontsSlotContext) => ReactNode;
+  helperSlot?: (ctx: HelperSlotContext) => ReactNode;
 }
 
-type FnSlot = "renderRowActions" | "fixPanelSlot" | "brandSlot" | "showFontsSlot";
-const FN_SLOTS: readonly FnSlot[] = ["renderRowActions", "fixPanelSlot", "brandSlot", "showFontsSlot"];
+type FnSlot = "renderRowActions" | "fixPanelSlot" | "brandSlot" | "showFontsSlot" | "helperSlot";
+const FN_SLOTS: readonly FnSlot[] = ["renderRowActions", "fixPanelSlot", "brandSlot", "showFontsSlot", "helperSlot"];
 
 /**
- * Merges several slot sets. Function slots (`renderRowActions`, `fixPanelSlot`, `brandSlot`, `showFontsSlot`) render
+ * Merges several slot sets. Function slots (`renderRowActions`, `fixPanelSlot`, `brandSlot`, `showFontsSlot`, `helperSlot`) render
  * every contributor in order; node slots take the last one given.
  */
 export function composeSlots(...parts: PaneSlots[]): PaneSlots {

@@ -70,7 +70,7 @@ const MEDIA_SIZE_KINDS: ReadonlySet<string> = new Set(["media-size", "file-size-
 
 /**
  * The feature a finding's details belong to (D13). Graphics Ops kinds (G1-G5) follow their area:
- * `font-maybe-missing` / `font-availability-summary` are font flags; `media-missing`,
+ * `font-maybe-missing` / `font-missing-here` / `font-availability-summary` are font flags; `media-missing`,
  * `media-linked`, `media-online`, `media-format`, `media-poster-missing`, and
  * `media-playback-settings` are media issues; `partly-off-slide` and `text-collision` are review.
  */

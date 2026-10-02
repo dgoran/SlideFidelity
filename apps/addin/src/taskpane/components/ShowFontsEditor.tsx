@@ -6,15 +6,34 @@
  * - Import a `.txt` (one per line) or `.json` (array, or `{ "fonts": [...] }`) file; export either.
  * - "Add fonts used in this deck": the deck's fonts as unchecked checkboxes; only the ones the user
  *   confirms are installed are added.
+ * - With the SlideCheck Helper Connected (helper plan U12, R15): "This is a show machine: add its
+ *   fonts to the list" merges this computer's font names into the list after a confirmation
+ *   dialog; existing entries are kept and duplicates (case-insensitive) dropped.
  *
  * Every change is saved in the store (which the scan service reads through `getOptions`) and marks
  * the results as needing a rescan. Font names (typed, imported, or from the deck) are untrusted and
  * rendered as React text only.
  */
 import { useId, useMemo, useState, useSyncExternalStore, type ChangeEvent, type KeyboardEvent } from "react";
-import { Button, Checkbox, Input, Label, Textarea, makeStyles, tokens } from "@fluentui/react-components";
+import {
+  Button,
+  Checkbox,
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogContent,
+  DialogSurface,
+  DialogTitle,
+  Input,
+  Label,
+  Textarea,
+  makeStyles,
+  tokens,
+} from "@fluentui/react-components";
 import { Add16Regular, Dismiss12Regular } from "@fluentui/react-icons";
 import { MAX_FONT_NAME_LENGTH, type AuditResult } from "@slidecheck/audit-core";
+import { useHelperSnapshot } from "../../helper/HelperStatus";
+import type { HelperStore } from "../../helper/state";
 import { usePlan } from "../../license/gate";
 import { currentResult } from "../brand/themeBrand";
 import { MAX_SHOW_FONTS, parseFontLines, parseFontListFile, serializeFontList, type ShowFontsStore } from "../fonts/showFontsStore";
@@ -76,7 +95,7 @@ export function deckFontCandidates(result: AuditResult | null, list: readonly st
   const listed = new Set(list.map((f) => f.toLowerCase()));
   const missing = new Set<string>();
   if (flagsAllowed) {
-    for (const f of result?.findings ?? []) if (f.kind === "font-maybe-missing") missing.add(f.data.typeface.toLowerCase());
+    for (const f of result?.findings ?? []) if (f.kind === "font-maybe-missing" || f.kind === "font-missing-here") missing.add(f.data.typeface.toLowerCase());
   }
   const out: DeckFontCandidate[] = [];
   const seen = new Set<string>();
@@ -98,11 +117,36 @@ export interface ShowFontsEditorProps {
   placement?: "settings" | "problems";
   /** Test hook for export. */
   download?: (filename: string, text: string, type?: string) => void;
+  /** The SlideCheck Helper (U12): when Connected, offers to add this computer's fonts. */
+  helper?: Pick<HelperStore, "getSnapshot" | "subscribe">;
 }
 
-export function ShowFontsEditor({ store, placement = "settings", download = downloadText }: ShowFontsEditorProps) {
+const NO_HELPER: Pick<HelperStore, "getSnapshot" | "subscribe"> = {
+  getSnapshot: () => NO_HELPER_SNAPSHOT,
+  subscribe: () => () => {},
+};
+const NO_HELPER_SNAPSHOT = { phase: "silent", platform: "other", health: null, port: null, fonts: null, reason: "host", dismissPersistent: true } as const;
+
+/** Names in `incoming` not yet in `list` (case-insensitive, deduped), up to the list's room. */
+export function newFontNames(list: readonly string[], incoming: readonly string[]): string[] {
+  const have = new Set(list.map((f) => f.toLowerCase()));
+  const out: string[] = [];
+  for (const raw of incoming) {
+    const name = raw.trim();
+    if (!name || name.length > MAX_FONT_NAME_LENGTH) continue;
+    const k = name.toLowerCase();
+    if (have.has(k)) continue;
+    have.add(k);
+    out.push(name);
+  }
+  return out.slice(0, Math.max(0, MAX_SHOW_FONTS - list.length));
+}
+
+export function ShowFontsEditor({ store, placement = "settings", download = downloadText, helper = NO_HELPER }: ShowFontsEditorProps) {
   const s = useStyles();
   const fonts = useSyncExternalStore(store.subscribe, store.get, store.get);
+  const helperSnap = useHelperSnapshot(helper);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const { state, dispatch } = usePane();
   const { isAllowed } = usePlan();
   const result = currentResult(state.scan);
@@ -126,12 +170,17 @@ export function ShowFontsEditor({ store, placement = "settings", download = down
 
   /** Add names; returns how many were new. */
   const addMany = (names: readonly string[]): number => {
-    const have = new Set(fonts.map((f) => f.toLowerCase()));
-    const fresh = names.filter((n) => !have.has(n.toLowerCase()));
-    const room = Math.max(0, MAX_SHOW_FONTS - fonts.length);
-    const added = fresh.slice(0, room);
+    const added = newFontNames(fonts, names);
     if (added.length) save([...fonts, ...added]);
     return added.length;
+  };
+
+  const machineFonts = helperSnap.phase === "connected" ? helperSnap.fonts : null;
+  const machineNew = useMemo(() => (machineFonts ? newFontNames(fonts, machineFonts).length : 0), [fonts, machineFonts]);
+
+  const addMachineFonts = () => {
+    setConfirmOpen(false);
+    setMessage(addedMessage(machineFonts ? addMany(machineFonts) : 0));
   };
 
   const addFont = () => {
@@ -268,6 +317,39 @@ export function ShowFontsEditor({ store, placement = "settings", download = down
           Add pasted fonts
         </Button>
       </div>
+
+      {machineFonts && (
+        <div className={s.bar} data-machine-fonts="">
+          <Button
+            size="small"
+            appearance="secondary"
+            onClick={() => {
+              if (machineNew === 0) setMessage("Every font on this computer is already on the list.");
+              else setConfirmOpen(true);
+            }}
+          >
+            This is a show machine: add its fonts to the list
+          </Button>
+          <Dialog open={confirmOpen} onOpenChange={(_e, d) => setConfirmOpen(d.open)} modalType="modal">
+            <DialogSurface aria-describedby={`${headingId}-machine`}>
+              <DialogBody>
+                <DialogTitle>Add this computer&apos;s fonts?</DialogTitle>
+                <DialogContent id={`${headingId}-machine`}>
+                  {`This adds ${plural(machineNew, "font name")} from this computer to the show-machine list. Fonts already on the list are kept.`}
+                </DialogContent>
+                <DialogActions>
+                  <Button appearance="primary" onClick={addMachineFonts}>
+                    {`Add ${plural(machineNew, "font")}`}
+                  </Button>
+                  <Button appearance="secondary" onClick={() => setConfirmOpen(false)}>
+                    Cancel
+                  </Button>
+                </DialogActions>
+              </DialogBody>
+            </DialogSurface>
+          </Dialog>
+        </div>
+      )}
 
       <fieldset className={s.group}>
         <legend className={s.legend}>Fonts used in this deck</legend>

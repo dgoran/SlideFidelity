@@ -26,7 +26,7 @@ describe("Problems model over real scans", () => {
     const m = buildProblems((await scan("clean")).findings);
     expect(m.headline).toBe("Ready for show");
     expect(m.categories.map((c) => c.status)).toEqual(["pass", "pass", "pass", "pass", "pass"]);
-    expect(m.fontList).toEqual({ teamListProvided: false });
+    expect(m.fontList).toEqual({ teamListProvided: false, localListProvided: false });
     expect(m.size?.totalBytes).toBeGreaterThan(0);
   });
 
@@ -42,7 +42,19 @@ describe("Problems model over real scans", () => {
   it("fonts-hidden with MS Gothic on the show-machine list: no longer flagged, list noted as provided", async () => {
     const m = buildProblems((await scan("fonts-hidden", { availableFonts: ["ms gothic"] })).findings);
     expect(m.missingFonts).not.toContain("MS Gothic");
-    expect(m.fontList).toEqual({ teamListProvided: true });
+    expect(m.fontList).toEqual({ teamListProvided: true, localListProvided: false });
+  });
+
+  it("fonts-hidden with the helper's list (H7): missing here is the problem, the show-list finding a note", async () => {
+    const without = buildProblems((await scan("fonts-hidden", { localFonts: [] })).findings);
+    const fonts = status(without, "fonts");
+    expect(fonts.findings.filter((f) => f.kind === "font-missing-here").map((f) => f.severity)).toContain("warning");
+    expect(fonts.findings.filter((f) => f.kind === "font-maybe-missing").every((f) => f.severity === "info")).toBe(true);
+    expect(without.missingFonts).toContain("MS Gothic");
+    expect(without.fontList).toEqual({ teamListProvided: false, localListProvided: true });
+
+    const installed = buildProblems((await scan("fonts-hidden", { localFonts: ["MS Gothic"] })).findings);
+    expect(installed.missingFonts).not.toContain("MS Gothic");
   });
 
   it("review-leaks: off-slide objects", async () => {

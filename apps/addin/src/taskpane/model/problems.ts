@@ -13,6 +13,11 @@
  * size…"), but are not a show-breaker. Slide numbers (`slide-numbers`) are a cleanup, not a
  * problem, and are not listed here (they stay in Review).
  *
+ * Fonts with the SlideCheck Helper (helper plan U12, H7): `font-missing-here` (not installed on this
+ * computer) is the primary font problem; `font-maybe-missing` (not on the show-machine list) is
+ * then info from the engine, so it is listed as a note. "Missing fonts" for the replace-font picker
+ * are the missing-here ones when the helper's list was used, else the may-be-missing ones.
+ *
  * G6: a linked video is reported by the engine as both `linked-file` (Links) and `media-linked`
  * (Media); only `media-linked` is listed here, so it shows once, under Videos & audio.
  */
@@ -34,7 +39,7 @@ export const CATEGORY_LABELS: Record<ProblemCategoryId, string> = {
 /** The finding kinds each category lists. */
 export const CATEGORY_KINDS: Record<ProblemCategoryId, readonly string[]> = {
   playback: ["media-missing", "media-linked", "media-online", "media-format", "media-poster-missing"],
-  fonts: ["font-maybe-missing", "title-sizes-inconsistent"],
+  fonts: ["font-missing-here", "font-maybe-missing", "title-sizes-inconsistent"],
   "off-slide": ["off-slide-shape", "partly-off-slide"],
   "text-collision": ["text-collision"],
   size: ["image-issue"],
@@ -84,8 +89,11 @@ export interface ProblemsModel {
   ready: boolean;
   headline: string;
   size?: SizeSummary;
-  /** From `font-availability-summary`, when the fonts check ran. */
-  fontList?: { teamListProvided: boolean };
+  /**
+   * From `font-availability-summary`, when the fonts check ran: whether the show-machine list was
+   * set, and whether the SlideCheck Helper's list of this computer's fonts was used.
+   */
+  fontList?: { teamListProvided: boolean; localListProvided: boolean };
   /** Every font family that may be missing, in engine order. */
   missingFonts: string[];
   /** Those the in-place replace-font fix can reach (at least one reachable target, D2). */
@@ -137,7 +145,7 @@ export function buildProblems(findings: readonly Finding[]): ProblemsModel {
       if (typeof f.data.mediaKind === "string") item.mediaKind = f.data.mediaKind;
       media.push(item);
     } else if (f.kind === "font-availability-summary") {
-      fontList = { teamListProvided: f.data.teamListProvided === true };
+      fontList = { teamListProvided: f.data.teamListProvided === true, localListProvided: f.data.localListProvided === true };
     }
   }
 
@@ -161,8 +169,10 @@ export function buildProblems(findings: readonly Finding[]): ProblemsModel {
     };
   });
 
-  const missing = byCategory.get("fonts")!.filter((f) => f.kind === "font-maybe-missing");
-  const typeface = (f: Finding) => (f.kind === "font-maybe-missing" ? f.data.typeface : f.group);
+  const fontFindings = byCategory.get("fonts")!;
+  const here = fontFindings.filter((f) => f.kind === "font-missing-here");
+  const missing = fontList?.localListProvided || here.length > 0 ? here : fontFindings.filter((f) => f.kind === "font-maybe-missing");
+  const typeface = (f: Finding) => (f.kind === "font-maybe-missing" || f.kind === "font-missing-here" ? f.data.typeface : f.group);
   const problemCount = categories.reduce((n, c) => n + c.warnings, 0);
 
   return {

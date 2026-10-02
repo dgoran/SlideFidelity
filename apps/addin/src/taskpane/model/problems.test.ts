@@ -4,6 +4,7 @@ import { fakeFinding, slideShape } from "../testing/fixtures";
 import {
   fileSize,
   fontMaybeMissing,
+  fontMissingHere,
   fontSummary,
   imageIssue,
   mediaFinding,
@@ -90,9 +91,35 @@ describe("buildProblems", () => {
     expect([c.warnings, c.notes]).toEqual([2, 1]);
     // Warnings first.
     expect(c.findings.map((f) => f.severity)).toEqual(["warning", "warning", "info"]);
-    expect(m.fontList).toEqual({ teamListProvided: false });
+    expect(m.fontList).toEqual({ teamListProvided: false, localListProvided: false });
     expect(m.missingFonts).toEqual(["Wingdings 3", "MS Gothic", "Segoe UI"]);
     expect(m.reachableMissingFonts).toEqual(["MS Gothic"]);
+  });
+
+  it("fonts with the helper (H7): font-missing-here is the problem, show-list findings are notes", () => {
+    const findings = [
+      fontMaybeMissing("Gotham", [slideShape(1, 2)], { severity: "info" }),
+      fontMissingHere("Gotham", [reachable(1, 2)]),
+      fontMaybeMissing("Avenir Next", [slideShape(2, 3)], { severity: "info" }),
+      fontSummary(false, 2, { missingHere: 1 }),
+    ];
+    const m = buildProblems(findings);
+    const c = cat(findings, "fonts");
+    expect(c.status).toBe("warning");
+    expect([c.warnings, c.notes]).toEqual([1, 2]);
+    expect(c.findings.map((f) => f.kind)).toEqual(["font-missing-here", "font-maybe-missing", "font-maybe-missing"]);
+    expect(m.problemCount).toBe(1);
+    expect(m.fontList).toEqual({ teamListProvided: false, localListProvided: true });
+    expect(m.missingFonts).toEqual(["Gotham"]);
+    expect(m.reachableMissingFonts).toEqual(["Gotham"]);
+  });
+
+  it("fonts with the helper and nothing missing here: the show-list notes don't count as problems", () => {
+    const findings = [fontMaybeMissing("Gotham", [slideShape(1, 2)], { severity: "info" }), fontSummary(false, 1, { missingHere: 0 })];
+    const m = buildProblems(findings);
+    expect(cat(findings, "fonts").status).toBe("note");
+    expect(m.ready).toBe(true);
+    expect(m.missingFonts).toEqual([]);
   });
 
   it("off-slide objects: off-slide-shape and partly-off-slide (bleeding pictures are notes)", () => {

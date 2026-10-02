@@ -8,13 +8,18 @@ const { DefinePlugin } = require("webpack");
 const urlDev = "https://localhost:3000/";
 const urlProd = "https://app.slidecheck.io/";
 
+/** The SlideCheck Helper's ports (helper plan U12): exactly these three, never a wildcard. */
+const HELPER_ORIGINS = ["https://localhost:47317", "https://localhost:47318", "https://localhost:47319"];
+
 /**
  * Task-pane Content-Security-Policy (U10). Deck content is untrusted: it is rendered only as text,
- * and this policy is the second line of defence. Only development builds may talk to localhost.
+ * and this policy is the second line of defence. Production may reach localhost only on the
+ * SlideCheck Helper's three ports; development builds may talk to any localhost port.
  */
 function contentSecurityPolicy(dev) {
   const connect = ["'self'", "https://api.slidecheck.io"];
   if (dev) connect.push("https://localhost:*", "wss://localhost:*");
+  else connect.push(...HELPER_ORIGINS);
   return [
     "default-src 'self'",
     "script-src 'self' https://appsforoffice.microsoft.com",
@@ -125,3 +130,5 @@ module.exports = async (env, options) => {
     },
   };
 };
+
+module.exports.contentSecurityPolicy = contentSecurityPolicy;

@@ -127,6 +127,9 @@ const PASS_TEXT: Record<ProblemCategoryId, string> = {
   size: "No oversized, distorted, or low-resolution images.",
 };
 
+/** Fonts passed with the SlideCheck Helper's list of this computer's fonts (helper plan U12). */
+const FONTS_PASS_WITH_HELPER = "Every font is embedded, a standard Office font, or installed on this computer.";
+
 export interface ProblemsProps {
   result: AuditResult;
   /** Precomputed model (the pane also uses it for the picker label). */
@@ -265,7 +268,9 @@ function CategoryBody({ category: c, model, onShow }: { category: ProblemCategor
 
   return (
     <>
-      {empty && <p className={s.hint}>{PASS_TEXT[c.id]}</p>}
+      {empty && (
+        <p className={s.hint}>{c.id === "fonts" && model.fontList?.localListProvided ? FONTS_PASS_WITH_HELPER : PASS_TEXT[c.id]}</p>
+      )}
       {locked ? (
         <LockedSection
           title={LOCKED_TITLES[c.id]}
@@ -340,19 +345,22 @@ function ProblemList({ findings, label, onShow }: { findings: readonly Finding[]
 }
 
 /**
- * The show-machine font list status and its editor. Shown on every plan: the setting only changes
- * which fonts the (free) counts include.
+ * The SlideCheck Helper status (helper plan U12), the show-machine font list status, and its
+ * editor. Shown on every plan: the settings only change which fonts the (free) counts include.
+ * With the helper's list in use, the show-machine list is secondary (H7), so the "no list" hint
+ * is not shown.
  */
 function FontsExtras({ model }: { model: ProblemsModel }) {
   const s = useStyles();
-  const { showFontsSlot } = usePaneSlots();
+  const { showFontsSlot, helperSlot } = usePaneSlots();
   const [editing, setEditing] = useState(false);
   const editorId = useId();
   const provided = model.fontList?.teamListProvided === true;
-  const showHint = model.fontList !== undefined && !provided;
-  if (!showFontsSlot && !showHint) return null;
+  const showHint = model.fontList !== undefined && !provided && !model.fontList.localListProvided;
+  if (!showFontsSlot && !showHint && !helperSlot) return null;
   return (
     <>
+      {helperSlot?.({ placement: "problems" })}
       <div className={s.hintRow}>
         {showHint && (
           <p className={s.hint} data-show-fonts-hint="">

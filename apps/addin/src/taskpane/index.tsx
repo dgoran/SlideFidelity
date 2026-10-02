@@ -11,12 +11,20 @@
  * the Links area's reachability check (U9 UI, R11) with its per-row statuses, composed into the same
  * `fixPanelSlot` / `renderRowActions` slots. The check authenticates with the license service's
  * session token and talks to the same API base as licensing.
+ *
+ * SlideCheck Helper (helper plan U12): one helper store, created once Office is ready (the offer
+ * depends on the host platform) and probed once right away. Its font list joins the scan options
+ * (`localFonts`) when Connected, and the scan service refreshes it before every full scan
+ * (`beforeScan`, R4). Its status and offer render in the Problems Fonts row (`helperSlot`) and in
+ * Settings; the show-machine fonts editor gets "add its fonts" from it.
  */
 import { createRoot } from "react-dom/client";
 import { FluentProvider, webLightTheme } from "@fluentui/react-components";
 import { createLicenseConfig } from "../license/config";
 import { devUnlockFromEnvironment, effectivePlan } from "../license/devUnlock";
 import { createLicenseService } from "../license/license";
+import { HelperStatus } from "../helper/HelperStatus";
+import { createHelperStore, helperPlatformOf } from "../helper/state";
 import { getHostCapabilities } from "../office/capabilities";
 import { createNavigator } from "../office/navigate";
 import { createScanService } from "../office/scan";
@@ -25,7 +33,6 @@ import { composeAuditOptions, createShowFontsStore } from "./fonts/showFontsStor
 import { AccountEntry, AccountNotices } from "./components/Account";
 import { BrandEditor, BrandSettingsEntry } from "./components/BrandEditor";
 import { DevUnlockBanner } from "./components/DevUnlockBanner";
-import { HelperProbeDiagnostics } from "./components/HelperProbeDiagnostics";
 import { Inspector } from "./components/Inspector";
 import { ShowFontsEditor } from "./components/ShowFontsEditor";
 import { composeSlots, createSelectionEchoGuard, type PaneServices, type PaneSlots } from "./context";
@@ -70,7 +77,16 @@ void Office.onReady(() => {
     isWeb: Office.context.platform === Office.PlatformType.OfficeOnline,
     selectionGuard: createSelectionEchoGuard(),
   };
-  const scanService = createScanService({ getOptions: composeAuditOptions(brandStore, showFontsStore) });
+  const helperStore = createHelperStore({
+    fetch: (url, init) => globalThis.fetch(url, init),
+    platform: helperPlatformOf(Office.context.platform),
+    openBrowserWindow: (url) => Office.context.ui.openBrowserWindow(url),
+  });
+  void helperStore.start();
+  const scanService = createScanService({
+    getOptions: composeAuditOptions(brandStore, showFontsStore, helperStore),
+    beforeScan: () => helperStore.beforeScan(),
+  });
   const fixSlots = createFixSlots({
     run: (batch) => PowerPoint.run(batch),
     createPresentation: (base64File) => PowerPoint.createPresentation(base64File),
@@ -94,17 +110,18 @@ void Office.onReady(() => {
     noticeSlot: (
       <>
         {devUnlock && <DevUnlockBanner />}
-        {devUnlock && <HelperProbeDiagnostics />}
         <AccountNotices />
       </>
     ),
     settingsSlot: (
       <BrandSettingsEntry store={brandStore}>
-        <ShowFontsEditor store={showFontsStore} placement="settings" />
+        <HelperStatus store={helperStore} placement="settings" />
+        <ShowFontsEditor store={showFontsStore} placement="settings" helper={helperStore} />
       </BrandSettingsEntry>
     ),
     brandSlot: ({ area }) => <BrandEditor store={brandStore} placement={area} />,
-    showFontsSlot: ({ placement }) => <ShowFontsEditor store={showFontsStore} placement={placement} />,
+    showFontsSlot: ({ placement }) => <ShowFontsEditor store={showFontsStore} placement={placement} helper={helperStore} />,
+    helperSlot: ({ placement }) => <HelperStatus store={helperStore} placement={placement} />,
   });
   root?.render(
     <FluentProvider theme={webLightTheme}>

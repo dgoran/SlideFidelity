@@ -119,6 +119,12 @@ export interface ScanServiceDeps {
   client?: Pick<AuditClient, "scan" | "cancel" | "dispose">;
   /** Current audit options (brand profile). Read at the start of each scan. */
   getOptions?: () => AuditOptions;
+  /**
+   * Async preparation before each full `scan()` (not `rescanForFix`), e.g. refreshing the SlideCheck
+   * Helper's font list so the synchronous `getOptions` sees it (helper plan U12, R4). Failures
+   * are ignored: the scan goes ahead with whatever options are current.
+   */
+  beforeScan?: () => Promise<void>;
   now?: () => number;
 }
 
@@ -135,6 +141,7 @@ export function createScanService(deps: ScanServiceDeps = {}): ScanService {
   let client = deps.client;
   const getClient = () => (client ??= createAuditClient());
   const getOptions = deps.getOptions ?? (() => ({}));
+  const beforeScan = deps.beforeScan;
   const now = deps.now ?? (() => Date.now());
 
   let last: LastScan | null = null;
@@ -195,7 +202,18 @@ export function createScanService(deps: ScanServiceDeps = {}): ScanService {
       return running !== null;
     },
     scan(o = {}) {
-      return guarded(o, async (ctrl) => audit(ctrl, await readFile(ctrl, o), o));
+      return guarded(o, async (ctrl) => {
+        if (beforeScan) {
+          o.onPhase?.("reading");
+          try {
+            await beforeScan();
+          } catch {
+            /* scan with the current options */
+          }
+          assertLive(ctrl);
+        }
+        return audit(ctrl, await readFile(ctrl, o), o);
+      });
     },
     rescanForFix(o = {}) {
       return guarded(o, async (ctrl) => {
