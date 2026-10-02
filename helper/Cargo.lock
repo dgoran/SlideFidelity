@@ -1436,6 +1436,7 @@ dependencies = [
  "tracing-appender",
  "tracing-subscriber",
  "ttf-parser",
+ "windows-sys 0.61.2",
  "zeroize",
 ]
 

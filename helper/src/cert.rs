@@ -176,7 +176,7 @@ pub trait TrustStore {
 #[derive(Debug, Default, Clone, Copy)]
 pub struct SystemTrustStore;
 
-#[cfg(any(target_os = "macos", windows))]
+#[cfg(target_os = "macos")]
 fn run(program: &str, args: &[&std::ffi::OsStr]) -> Result<String, CertError> {
     let out = std::process::Command::new(program)
         .args(args)
@@ -307,55 +307,162 @@ mod mac {
 
 #[cfg(windows)]
 mod win {
+    //! `LocalMachine\Root` through the CryptoAPI. Writing needs elevation (the MSI runs
+    //! `install-cert` as SYSTEM); reading works for every user.
     use super::*;
-    use std::ffi::OsStr;
+    use std::ffi::c_void;
+    use std::ptr;
+    use windows_sys::Win32::Security::Cryptography::{
+        CertAddEncodedCertificateToStore, CertCloseStore, CertDeleteCertificateFromStore,
+        CertFindCertificateInStore, CertFreeCertificateContext, CertOpenStore,
+        CertSetCertificateContextProperty, CERT_CONTEXT, CERT_ENHKEY_USAGE_PROP_ID,
+        CERT_FIND_SHA1_HASH, CERT_STORE_ADD_REPLACE_EXISTING, CERT_STORE_OPEN_EXISTING_FLAG,
+        CERT_STORE_PROV_SYSTEM_W, CERT_STORE_READONLY_FLAG, CERT_SYSTEM_STORE_LOCAL_MACHINE,
+        CRYPT_INTEGER_BLOB, HCERTSTORE, X509_ASN_ENCODING,
+    };
 
-    const CERTUTIL: &str = "certutil";
+    /// DER of an EnhancedKeyUsage extension value listing only serverAuth (1.3.6.1.5.5.7.3.1).
+    /// Set on the store entry, it limits what Windows trusts this root for.
+    const EKU_SERVER_AUTH_ONLY: [u8; 12] = [
+        0x30, 0x0a, 0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x01,
+    ];
+
+    struct Store(HCERTSTORE);
+
+    impl Store {
+        fn open(writable: bool) -> Result<Self, CertError> {
+            let name: Vec<u16> = "ROOT".encode_utf16().chain(Some(0)).collect();
+            let mut flags = CERT_SYSTEM_STORE_LOCAL_MACHINE | CERT_STORE_OPEN_EXISTING_FLAG;
+            if !writable {
+                flags |= CERT_STORE_READONLY_FLAG;
+            }
+            // SAFETY: valid provider constant and a NUL-terminated UTF-16 store name.
+            let h = unsafe {
+                CertOpenStore(
+                    CERT_STORE_PROV_SYSTEM_W,
+                    0,
+                    0,
+                    flags,
+                    name.as_ptr() as *const c_void,
+                )
+            };
+            if h.is_null() {
+                return Err(last_error("CertOpenStore(LocalMachine\\Root)"));
+            }
+            Ok(Self(h))
+        }
+
+        /// The store entry whose SHA-1 thumbprint is `sha1_hex`, if present. Caller frees it.
+        fn find(&self, sha1_hex: &str) -> Result<Option<*mut CERT_CONTEXT>, CertError> {
+            let mut hash = hex_decode(sha1_hex)
+                .ok_or_else(|| CertError::Parse(format!("bad thumbprint {sha1_hex}")))?;
+            let blob = CRYPT_INTEGER_BLOB {
+                cbData: hash.len() as u32,
+                pbData: hash.as_mut_ptr(),
+            };
+            // SAFETY: the store handle is open; `blob` outlives the call.
+            let ctx = unsafe {
+                CertFindCertificateInStore(
+                    self.0,
+                    X509_ASN_ENCODING,
+                    0,
+                    CERT_FIND_SHA1_HASH,
+                    &blob as *const _ as *const c_void,
+                    ptr::null(),
+                )
+            };
+            Ok((!ctx.is_null()).then_some(ctx))
+        }
+    }
+
+    impl Drop for Store {
+        fn drop(&mut self) {
+            // SAFETY: handle came from CertOpenStore.
+            unsafe { CertCloseStore(self.0, 0) };
+        }
+    }
+
+    fn last_error(what: &str) -> CertError {
+        CertError::Trust(format!("{what}: {}", std::io::Error::last_os_error()))
+    }
+
+    fn hex_decode(s: &str) -> Option<Vec<u8>> {
+        if s.len() % 2 != 0 {
+            return None;
+        }
+        (0..s.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(s.get(i..i + 2)?, 16).ok())
+            .collect()
+    }
 
     impl TrustStore for SystemTrustStore {
         fn add(&self, root: &RootRef<'_>) -> Result<(), CertError> {
-            // LocalMachine\Root; requires elevation (the MSI runs `install-cert` as SYSTEM).
-            // TODO: restrict the root's purposes to Server Authentication by setting
-            // CERT_ENHKEY_USAGE_PROP_ID on the store entry (CertSetCertificateContextProperty);
-            // the name constraints already limit it to localhost.
-            run(
-                CERTUTIL,
-                &[
-                    OsStr::new("-f"),
-                    OsStr::new("-addstore"),
-                    OsStr::new("Root"),
-                    root.pem_path.as_os_str(),
-                ],
-            )
-            .map(drop)
+            let pem = std::fs::read_to_string(root.pem_path)?;
+            let der = pem_to_der(&pem)?;
+            let store = Store::open(true)?;
+            let mut ctx: *mut CERT_CONTEXT = ptr::null_mut();
+            // SAFETY: `der` is a complete DER certificate; `ctx` receives a context we free below.
+            let ok = unsafe {
+                CertAddEncodedCertificateToStore(
+                    store.0,
+                    X509_ASN_ENCODING,
+                    der.as_ptr(),
+                    der.len() as u32,
+                    CERT_STORE_ADD_REPLACE_EXISTING,
+                    &mut ctx,
+                )
+            };
+            if ok == 0 {
+                return Err(last_error("CertAddEncodedCertificateToStore"));
+            }
+            let blob = CRYPT_INTEGER_BLOB {
+                cbData: EKU_SERVER_AUTH_ONLY.len() as u32,
+                pbData: EKU_SERVER_AUTH_ONLY.as_ptr() as *mut u8,
+            };
+            // SAFETY: `ctx` is valid; the property data is read, not written.
+            let set = unsafe {
+                CertSetCertificateContextProperty(
+                    ctx,
+                    CERT_ENHKEY_USAGE_PROP_ID,
+                    0,
+                    &blob as *const _ as *const c_void,
+                )
+            };
+            let err = (set == 0).then(|| last_error("CertSetCertificateContextProperty(EKU)"));
+            // SAFETY: context from CertAddEncodedCertificateToStore.
+            unsafe { CertFreeCertificateContext(ctx) };
+            match err {
+                // Trust without the purpose restriction is not acceptable: undo it.
+                Some(e) => {
+                    let _ = self.remove(root);
+                    Err(e)
+                }
+                None => Ok(()),
+            }
         }
 
         fn remove(&self, root: &RootRef<'_>) -> Result<(), CertError> {
-            if !self.is_trusted(root)? {
-                return Ok(());
+            let store = Store::open(true)?;
+            while let Some(ctx) = store.find(root.sha1_hex)? {
+                // SAFETY: CertDeleteCertificateFromStore frees `ctx` whether or not it succeeds.
+                if unsafe { CertDeleteCertificateFromStore(ctx) } == 0 {
+                    return Err(last_error("CertDeleteCertificateFromStore"));
+                }
             }
-            run(
-                CERTUTIL,
-                &[
-                    OsStr::new("-delstore"),
-                    OsStr::new("Root"),
-                    OsStr::new(root.sha1_hex),
-                ],
-            )
-            .map(drop)
+            Ok(())
         }
 
         fn is_trusted(&self, root: &RootRef<'_>) -> Result<bool, CertError> {
-            // `certutil -store Root <sha1>` exits non-zero when the certificate is absent.
-            Ok(run(
-                CERTUTIL,
-                &[
-                    OsStr::new("-store"),
-                    OsStr::new("Root"),
-                    OsStr::new(root.sha1_hex),
-                ],
-            )
-            .is_ok())
+            let store = Store::open(false)?;
+            match store.find(root.sha1_hex)? {
+                Some(ctx) => {
+                    // SAFETY: context from CertFindCertificateInStore.
+                    unsafe { CertFreeCertificateContext(ctx) };
+                    Ok(true)
+                }
+                None => Ok(false),
+            }
         }
     }
 }
