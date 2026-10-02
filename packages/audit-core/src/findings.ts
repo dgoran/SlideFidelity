@@ -34,7 +34,14 @@ export type Area = (typeof AREAS)[number];
 export type Severity = "error" | "warning" | "info";
 
 /** Fix kinds the fix engine (U12/U13) implements. A finding lists the ones that apply to it. */
-export type FixKind = "replace-font" | "replace-color" | "delete-shapes" | "remove-hyperlink" | "edit-hyperlink";
+export type FixKind =
+  | "replace-font"
+  | "replace-color"
+  | "delete-shapes"
+  | "remove-hyperlink"
+  | "edit-hyperlink"
+  | "set-title-size"
+  | "remove-slide-numbers";
 
 // ---------------------------------------------------------------------------------------------
 // Targets
