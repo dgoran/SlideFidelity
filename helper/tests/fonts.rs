@@ -397,7 +397,11 @@ fn parity_with_list_fonts_mac_script() {
         .map(String::from)
         .collect();
     let (inv, _) = slidecheck_helper::fonts::collect();
-    let missing: Vec<&String> = expected.iter().filter(|n| inv.find(n).is_none()).collect();
+    // The script also lists Office's font-picker preview faces (msofp_*), which the helper skips.
+    let missing: Vec<&String> = expected
+        .iter()
+        .filter(|n| !n.starts_with("msofp_") && inv.find(n).is_none())
+        .collect();
     eprintln!(
         "parity: script lists {} families; helper has {} families; missing {}: {:?}",
         expected.len(),
