@@ -1,0 +1,50 @@
+[package]
+name = "slidecheck-helper"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+description = "SlideCheck Helper: serves this computer's font families to the SlideCheck add-in over HTTPS on localhost"
+publish = false
+
+[[bin]]
+name = "slidecheck-helper"
+path = "src/main.rs"
+
+[lib]
+name = "slidecheck_helper"
+path = "src/lib.rs"
+
+[dependencies]
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
+axum-server = { version = "0.7", features = ["tls-rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "signal", "fs"] }
+rcgen = "0.14"
+time = { version = "0.3", features = ["serde", "formatting", "parsing"] }
+ttf-parser = "0.25"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+minisign-verify = "0.3"
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
+sha2 = "0.10"
+semver = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std", "env-filter"] }
+tracing-appender = "0.2"
+zeroize = "1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-core-text = "0.3"
+objc2-core-foundation = "0.3"
+
+[dev-dependencies]
+tempfile = "3"
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring"] }
+rustls-pemfile = "2"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
