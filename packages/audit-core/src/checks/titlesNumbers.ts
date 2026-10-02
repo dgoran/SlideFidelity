@@ -281,6 +281,8 @@ function runSizes(
 interface TitleRow {
   ref: ShapeRef;
   info: SlideTitleInfo;
+  /** Inherited position (layout / master) for titles without their own `a:xfrm`. */
+  bounds?: { x: number; y: number; cx: number; cy: number };
 }
 
 async function runTitles(pres: Presentation): Promise<Finding[]> {
@@ -323,7 +325,10 @@ async function runTitles(pres: Presentation): Promise<Finding[]> {
       };
       if (autofit.fontScale !== undefined) info.fontScale = autofit.fontScale;
       if (autofit.lnSpcReduction !== undefined) info.lnSpcReduction = autofit.lnSpcReduction;
-      rows.push({ ref, info });
+      const row: TitleRow = { ref, info };
+      const b = await resolver.bounds(ref);
+      if (b) row.bounds = { x: b.bounds.x, y: b.bounds.y, cx: b.bounds.cx, cy: b.bounds.cy };
+      rows.push(row);
     }
   }
 
@@ -355,6 +360,7 @@ async function runTitles(pres: Presentation): Promise<Finding[]> {
 
   const target = (r: TitleRow): FindingTarget => {
     const t = shapeTarget(r.ref, pres, { property: "text" });
+    if (!t.bounds && r.bounds) t.bounds = { ...r.bounds };
     t.reachable = true;
     return t;
   };

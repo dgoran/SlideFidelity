@@ -20,7 +20,9 @@ export type CapabilityFeature =
   | "hyperlinkEdit"
   | "hyperlinkRemove"
   | "shapeVisible"
-  | "themeColors";
+  | "themeColors"
+  | "setTitleSize"
+  | "removeSlideNumbers";
 
 /** Minimum `PowerPointApi` version per feature (KTD4). */
 export const FEATURE_MIN_VERSION: Record<CapabilityFeature, ApiVersion> = {
@@ -36,6 +38,8 @@ export const FEATURE_MIN_VERSION: Record<CapabilityFeature, ApiVersion> = {
   hyperlinkRemove: "1.10",
   shapeVisible: "1.10",
   themeColors: "1.10",
+  setTitleSize: "1.4",
+  removeSlideNumbers: "1.4",
 };
 
 export interface RequirementsLike {

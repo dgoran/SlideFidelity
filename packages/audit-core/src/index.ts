@@ -15,6 +15,7 @@ export * from "./checks/review";
 export * from "./checks/fontAvailability";
 export * from "./checks/playback";
 export * from "./checks/layout";
+export * from "./checks/titlesNumbers";
 export * from "./officeFonts";
 export * from "./mediaContainer";
 export * from "./geometry";

@@ -5,7 +5,8 @@
  *
  * In the Problems view (G1, `placement: "problems"`) the panel shows only the open fix session of
  * its area, plus "Replace missing fonts…" when it is given the missing fonts (`initialSources`,
- * G3): the same replace-font picker, preselected with the missing fonts it can reach (D2).
+ * G3): the same replace-font picker, preselected with the missing fonts it can reach (D2); and,
+ * under Fonts, "Set title size…" when the deck has slide titles.
  */
 import { useEffect, useId, useMemo, useRef } from "react";
 import { Button, makeStyles, tokens } from "@fluentui/react-components";
@@ -29,11 +30,13 @@ import {
   initialDraft,
   isFixArea,
   linkSources,
+  slideNumberSources,
+  titleSources,
   type Draft,
   type DraftSeed,
   type FixArea,
 } from "./model";
-import { ColorPicker, DeletePicker, FontPicker, LinkPicker } from "./Pickers";
+import { ColorPicker, DeletePicker, FontPicker, LinkPicker, SlideNumbersPicker, TitleSizePicker } from "./Pickers";
 import { PreviewView, ProgressView, SummaryView } from "./SessionViews";
 import { useFixActions, type FixDeps } from "./useFixActions";
 
@@ -80,8 +83,15 @@ export function FixPanel({ controller, deps, area, placement = "area", initialSo
     // The Problems view shows its own locked details; no second lock here.
     if (!plan.isAllowed("fixes")) return null;
     if (own) return <FixPanelBody controller={controller} deps={deps} area={area} session={own} busy={isBusy(session)} />;
-    if (area !== "fonts" || initialSources === undefined) return null;
-    return <MissingFontsLauncher controller={controller} sources={initialSources} busy={isBusy(session)} />;
+    if (area !== "fonts") return null;
+    const hasTitles = titleSources(result?.findings ?? []).length > 0;
+    if (initialSources === undefined && !hasTitles) return null;
+    return (
+      <>
+        {initialSources !== undefined && <MissingFontsLauncher controller={controller} sources={initialSources} busy={isBusy(session)} />}
+        {hasTitles && <TitleSizeLauncher controller={controller} busy={isBusy(session)} />}
+      </>
+    );
   }
   if (!own && !visibleFixable) return null;
   if (!plan.isAllowed("fixes")) {
@@ -139,6 +149,20 @@ function MissingFontsLauncher({ controller, sources, busy }: { controller: FixCo
   );
 }
 
+/** "Set title size…" in the Problems view's Fonts category. */
+function TitleSizeLauncher({ controller, busy }: { controller: FixController; busy: boolean }) {
+  const s = useStyles();
+  const { state } = usePane();
+  const result = currentResult(state.scan);
+  return (
+    <div className={s.bar} data-fix-launch="title-size">
+      <CapabilityButton feature="setTitleSize" size="small" disabled={busy} onClick={() => controller.open("fonts", initialDraft("fonts", result, { titleSize: true }))}>
+        Set title size…
+      </CapabilityButton>
+    </div>
+  );
+}
+
 function BulkActions({ area, findings, busy, onOpen }: { area: FixArea; findings: readonly Finding[]; busy: boolean; onOpen: (seed: DraftSeed) => void }) {
   const hasFonts = useMemo(() => area === "fonts" && fontSources(findings).length > 0, [area, findings]);
   const hasColors = useMemo(() => area === "colors" && colorSources(findings).length > 0, [area, findings]);
@@ -148,12 +172,21 @@ function BulkActions({ area, findings, busy, onOpen }: { area: FixArea; findings
     return DELETE_KINDS.filter((k) => sources.some((x) => x.kind === k));
   }, [area, findings]);
   const hasLinks = useMemo(() => area === "links" && linkSources(findings).length > 0, [area, findings]);
+  const hasTitles = useMemo(() => area === "fonts" && titleSources(findings).length > 0, [area, findings]);
+  const hasNumbers = useMemo(() => area === "review" && slideNumberSources(findings).some((x) => x.removable.length > 0), [area, findings]);
   switch (area) {
     case "fonts":
       return (
-        <CapabilityButton feature="replaceFonts" size="small" disabled={busy || !hasFonts} onClick={() => onOpen({})}>
-          Replace fonts…
-        </CapabilityButton>
+        <>
+          <CapabilityButton feature="replaceFonts" size="small" disabled={busy || !hasFonts} onClick={() => onOpen({})}>
+            Replace fonts…
+          </CapabilityButton>
+          {hasTitles && (
+            <CapabilityButton feature="setTitleSize" size="small" disabled={busy} onClick={() => onOpen({ titleSize: true })}>
+              Set title size…
+            </CapabilityButton>
+          )}
+        </>
       );
     case "colors":
       return (
@@ -169,6 +202,11 @@ function BulkActions({ area, findings, busy, onOpen }: { area: FixArea; findings
               {DELETE_ACTION_LABELS[k]}
             </CapabilityButton>
           ))}
+          {hasNumbers && (
+            <CapabilityButton feature="removeSlideNumbers" size="small" disabled={busy} onClick={() => onOpen({ slideNumbers: true })}>
+              Remove slide numbers…
+            </CapabilityButton>
+          )}
         </>
       );
     }
@@ -255,6 +293,8 @@ function SessionView({
       {session.draft.type === "colors" && <ColorPicker {...pickerProps} />}
       {session.draft.type === "delete" && <DeletePicker {...pickerProps} />}
       {session.draft.type === "links" && <LinkPicker {...pickerProps} />}
+      {session.draft.type === "title-size" && <TitleSizePicker {...pickerProps} />}
+      {session.draft.type === "slide-numbers" && <SlideNumbersPicker {...pickerProps} />}
 
       {!running && (
         <div className={s.actions}>

@@ -112,3 +112,123 @@ export function fileSize(totalBytes: number, media: number): Finding {
 export function mediaSize(partName: string, bytes: number, mediaKind = "image"): Finding {
   return fakeFinding({ area: "media", kind: "media-size", title: partName, group: "media-size", data: { partName, bytes, mediaKind } });
 }
+
+// ---------------------------------------------------------------------------------------------
+// Slide titles and slide numbers (set-title-size / remove-slide-numbers)
+
+export interface TitleSpec {
+  slide: number;
+  size: number;
+  type?: "title" | "ctrTitle";
+  text?: string;
+  shrink?: boolean;
+}
+
+/** Title placeholders inherit their position from the master: (1in, 0.5in) in points. */
+export const TITLE_LEFT = 72;
+export const TITLE_TOP = 36;
+
+function titleTarget(slide: number): FindingTarget {
+  return { ...slideShape(slide, 2, "Title 1"), path: [], bounds: { x: TITLE_LEFT * 12700, y: TITLE_TOP * 12700, cx: 100, cy: 100 }, locator: { property: "text" }, reachable: true };
+}
+
+/** `slide-titles` (info) plus one `title-sizes-inconsistent` warning per placeholder type with 2+ sizes. */
+export function titleFindings(specs: readonly TitleSpec[]): Finding[] {
+  const titles = specs.map((t) => ({
+    slideNumber: t.slide,
+    slideId: 255 + t.slide,
+    shapeId: 2,
+    shapeName: "Title 1",
+    placeholderType: t.type ?? "title",
+    hidden: false,
+    text: t.text ?? `Title ${t.slide}`,
+    sizesPt: [t.size],
+    inheritedFrom: "shape",
+    autofit: t.shrink ? "shrink" : "none",
+    autofitFrom: "shape",
+  }));
+  const distinct = [...new Set(specs.map((t) => t.size))].sort((a, b) => a - b);
+  const all = fakeFinding({
+    area: "fonts",
+    kind: "slide-titles",
+    title: `${specs.length} slide titles`,
+    group: "slide-titles",
+    count: specs.length,
+    targets: specs.map((t) => titleTarget(t.slide)),
+    data: {
+      titles,
+      distinctSizesPt: distinct,
+      slidesWithoutTitle: [],
+      layoutTitles: [{ partName: "ppt/slideLayouts/slideLayout2.xml", name: "Title and Content", placeholderType: "title", effectiveSizePt: 44 }],
+      masterTitles: [{ partName: "ppt/slideMasters/slideMaster1.xml", name: "", sizePt: 44, effectiveSizePt: 44 }],
+    },
+  });
+  Object.assign(all, { fixes: ["set-title-size"], reachable: true });
+  const out: Finding[] = [all];
+  for (const type of ["title", "ctrTitle"] as const) {
+    const list = specs.filter((t) => (t.type ?? "title") === type);
+    const sizes = [...new Set(list.map((t) => t.size))].sort((a, b) => a - b);
+    if (sizes.length < 2) continue;
+    const bySize = sizes.map((sizePt) => ({ sizePt, slideNumbers: list.filter((t) => t.size === sizePt).map((t) => t.slide) }));
+    const mostCommonPt = bySize.reduce((best, s) => (s.slideNumbers.length >= best.slideNumbers.length ? s : best)).sizePt;
+    const f = fakeFinding({
+      area: "fonts",
+      kind: "title-sizes-inconsistent",
+      severity: "warning",
+      title: `${type === "ctrTitle" ? "Title-slide titles" : "Slide titles"} use ${sizes.length} different sizes`,
+      detail: bySize.map((s) => `${s.sizePt} pt on slides ${s.slideNumbers.join(", ")}`).join("; "),
+      group: "slide-titles",
+      count: list.length,
+      targets: list.map((t) => titleTarget(t.slide)),
+      data: { placeholderType: type, sizes: bySize, mostCommonPt },
+    });
+    Object.assign(f, { fixes: ["set-title-size"], reachable: true });
+    out.push(f);
+  }
+  return out;
+}
+
+export interface SlideNumberSpec {
+  slide: number;
+  kind: "placeholder" | "field-only-textbox" | "field-in-text";
+  shapeId?: number;
+  name?: string;
+}
+
+/** `slide-numbers` (info, Review): field-in-text entries are unreachable. */
+export function slideNumbersFinding(specs: readonly SlideNumberSpec[], opts: { flagOn?: boolean } = {}): Finding {
+  const name = (s: SlideNumberSpec) => s.name ?? (s.kind === "placeholder" ? "Slide Number Placeholder 2" : s.kind === "field-only-textbox" ? "Number Box" : "Page Box");
+  const slides = specs.map((s) => ({
+    slideNumber: s.slide,
+    slideId: 255 + s.slide,
+    shapeId: s.shapeId ?? 3,
+    shapeName: name(s),
+    kind: s.kind,
+    hidden: false,
+    text: s.kind === "field-in-text" ? `Page ${s.slide} of 10` : String(s.slide),
+    ...(s.kind === "field-in-text" ? { reason: "The slide number is mixed with other text; removing the shape would delete that text too." } : {}),
+  }));
+  const f = fakeFinding({
+    area: "review",
+    kind: "slide-numbers",
+    title: `Slide numbers on ${specs.length} slides`,
+    group: "slide-numbers",
+    count: specs.length,
+    targets: specs.map((s) => ({
+      ...slideShape(s.slide, s.shapeId ?? 3, name(s)),
+      path: [],
+      bounds: { x: 720 * 12700, y: 504 * 12700, cx: 100, cy: 100 },
+      locator: { property: s.kind === "placeholder" ? "placeholder" : "text" },
+      reachable: s.kind !== "field-in-text",
+    })),
+    data: {
+      slides,
+      slidesWithNumbers: specs.map((s) => s.slide),
+      layoutsWithSldNumPlaceholder: [],
+      mastersWithSldNumPlaceholder: [],
+      ...(opts.flagOn ? { headerFooterFlag: [{ partName: "ppt/slideMasters/slideMaster1.xml", containerKind: "master", sldNum: true }] } : {}),
+    },
+  });
+  Object.assign(f, { fixes: ["remove-slide-numbers"], reachable: specs.some((s) => s.kind !== "field-in-text") });
+  return f;
+}

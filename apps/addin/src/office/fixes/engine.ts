@@ -29,6 +29,7 @@ import type {
   RunFixDeps,
   RunFixResult,
   SlideCount,
+  SlideScope,
   TargetOutcome,
   TargetResult,
   TargetSelection,
@@ -68,7 +69,7 @@ function gate<K extends FixKindId>(kind: FixKindDef<K>, params: FixParamsMap[K],
   return null;
 }
 
-function supported(isSetSupported: IsSetSupported, version: string): boolean {
+export function supported(isSetSupported: IsSetSupported, version: string): boolean {
   try {
     return isSetSupported(version);
   } catch {
@@ -84,7 +85,7 @@ function buildPlan<K extends FixKindId>(kind: FixKindDef<K>, findings: readonly 
     destructive: kind.destructive,
     targets: kp.targets,
     unreachable: kp.unreachable,
-    perSlide: perSlide(kp.targets),
+    perSlide: perSlide(kp.targets.filter((t) => t.op.type !== "title-size-layout")),
     notes: [UNDO_NOTE, ...(kp.notes ?? [])],
   };
 }
@@ -348,6 +349,20 @@ export function unitRequirement(u: PlannedTarget, isSetSupported: IsSetSupported
   if (cell && !supported(isSetSupported, "1.9")) return `Table cell; ${requiresReason("1.9")}`;
   if (u.path.length > 0 && !supported(isSetSupported, "1.8")) return `Inside a group; ${requiresReason("1.8")}`;
   return null;
+}
+
+/** Filter for slide targets in a `SlideScope`. */
+export function scopeSelector(scope: SlideScope): (t: FindingTarget) => boolean {
+  if (scope === "all") return () => true;
+  const ids = new Set(scope.slideIds);
+  return (t) => t.container.slideId !== undefined && ids.has(t.container.slideId);
+}
+
+/** A reason when a `SlideScope` selects nothing, else null. */
+export function validateScope(scope: SlideScope | undefined, what: string): string | null {
+  if (scope === "all") return null;
+  if (!scope || typeof scope !== "object" || !Array.isArray(scope.slideIds) || scope.slideIds.length === 0) return `Choose the slides ${what}.`;
+  return scope.slideIds.every((id) => Number.isInteger(id)) ? null : `Choose the slides ${what}.`;
 }
 
 /** Build a filter for (finding, target) pairs from a `TargetSelection`. */

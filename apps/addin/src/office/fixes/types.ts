@@ -53,12 +53,34 @@ export type RemoveHyperlinkParams =
   | { targetKeys: string[] }
   | { all: true };
 
+/** Which slides a slide-scoped fix acts on: every slide, or the given slide ids (`p:sldId/@id`). */
+export type SlideScope = "all" | { slideIds: number[] };
+
+/** Title placeholder types (`p:ph/@type`). */
+export type TitlePlaceholderType = "title" | "ctrTitle";
+
+export interface SetTitleSizeParams {
+  /** New size in points (6–200). */
+  sizePt: number;
+  scope: SlideScope;
+  /** Default: both. */
+  placeholderTypes?: TitlePlaceholderType[];
+  /** Also set the title placeholders on every slide layout and master (PowerPointApi 1.8). */
+  alsoLayouts?: boolean;
+}
+
+export interface RemoveSlideNumbersParams {
+  scope: SlideScope;
+}
+
 export interface FixParamsMap {
   "replace-font": ReplaceFontParams;
   "replace-color": ReplaceColorParams;
   "delete-shapes": DeleteShapesParams;
   "edit-hyperlink": EditHyperlinkParams;
   "remove-hyperlink": RemoveHyperlinkParams;
+  "set-title-size": SetTitleSizeParams;
+  "remove-slide-numbers": RemoveSlideNumbersParams;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -74,6 +96,23 @@ export type FixOp =
   | { type: "color-cell-fill"; cell: { row: number; col: number } }
   | { type: "color-cell-text"; cell: { row: number; col: number } }
   | { type: "delete-shape" }
+  /** A slide title: set its whole text range to `sizePt`. `fromPt`: sizes the scan saw. */
+  | { type: "title-size"; sizePt: number; fromPt: number[]; placeholderType: string; autofit: string }
+  /**
+   * The title placeholder of slide layouts (matched by name) or of a slide master (matched by
+   * position in the master list). Not a slide unit: `slideId` is 0 and it is left out of `perSlide`.
+   */
+  | {
+      type: "title-size-layout";
+      sizePt: number;
+      container: "layout" | "master";
+      name: string;
+      /** Master: 0-based position, and how many masters the scan saw. */
+      index?: number;
+      count?: number;
+      placeholderType: string;
+      fromPt?: number;
+    }
   | { type: "hyperlink"; address: string; occurrence: number; sameAddressCount: number };
 
 /**

@@ -14,17 +14,22 @@ import { usePane } from "../state/PaneContext";
 import { isBusy, useFixSession, type FixController } from "./controller";
 import { initialDraft, isFixable, isFixArea, KIND_FEATURE, type FixArea } from "./model";
 
-const ROW_LABELS: Record<FixArea, string> = {
-  fonts: "Replace font",
-  colors: "Replace color",
-  review: "Delete shape",
-  links: "Fix link",
+type Kind = Finding["fixes"][number];
+
+const ROW_LABELS: Record<Kind, string> = {
+  "replace-font": "Replace font",
+  "replace-color": "Replace color",
+  "delete-shapes": "Delete shape",
+  "remove-hyperlink": "Fix link",
+  "edit-hyperlink": "Fix link",
+  "set-title-size": "Set title size",
+  "remove-slide-numbers": "Remove slide numbers",
 };
 
-const AREA_KINDS: Record<FixArea, readonly Finding["fixes"][number][]> = {
-  fonts: ["replace-font"],
+const AREA_KINDS: Record<FixArea, readonly Kind[]> = {
+  fonts: ["replace-font", "set-title-size"],
   colors: ["replace-color"],
-  review: ["delete-shapes"],
+  review: ["delete-shapes", "remove-slide-numbers"],
   links: ["remove-hyperlink", "edit-hyperlink"],
 };
 
@@ -46,7 +51,7 @@ export function FixRowAction({ controller, finding, ctx }: FixRowActionProps) {
 
   const supported = kinds.filter((k) => caps.supports(KIND_FEATURE[k]));
   const reason = supported.length === 0 ? caps.explain(KIND_FEATURE[kinds[0]!]) : null;
-  const label = ROW_LABELS[area];
+  const label = ROW_LABELS[kinds[0]!];
   const open = () => {
     const result = currentResult(state.scan);
     controller.open(area, initialDraft(area, result, { finding }, caps.supports("hyperlinkRemove")));

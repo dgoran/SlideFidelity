@@ -11,8 +11,11 @@ import {
   normalizeHex,
   targetLabel,
   validateHyperlinkAddress,
+  validateTitleSize,
   type FixKindId,
   type FixParamsMap,
+  type SlideScope,
+  type TitlePlaceholderType,
 } from "../../office/fixes";
 import type { CapabilityFeature } from "../../office/capabilities";
 import { themeBrandFromResult } from "../brand/themeBrand";
@@ -37,6 +40,8 @@ export const KIND_FEATURE: Record<FixKindId, CapabilityFeature> = {
   "delete-shapes": "deleteShapes",
   "edit-hyperlink": "hyperlinkEdit",
   "remove-hyperlink": "hyperlinkRemove",
+  "set-title-size": "setTitleSize",
+  "remove-slide-numbers": "removeSlideNumbers",
 };
 
 /** At least one target the in-place fix engine can reach (per-target override, else finding). */
@@ -155,6 +160,99 @@ export function linkSources(findings: readonly Finding[]): LinkSource[] {
   return out;
 }
 
+/** Finding kinds whose row action opens the title-size picker. */
+export const TITLE_KINDS: readonly string[] = ["slide-titles", "title-sizes-inconsistent", "title-autofit-shrinks"];
+
+export interface TitleSource {
+  slideId: number;
+  slideNumber: number;
+  placeholderType: TitlePlaceholderType;
+  sizesPt: number[];
+  /** Untrusted deck text: render as text. */
+  text: string;
+  hidden: boolean;
+  shrink: boolean;
+  reachable: boolean;
+}
+
+/** Slide titles from the `slide-titles` finding, in slide order. */
+export function titleSources(findings: readonly Finding[]): TitleSource[] {
+  const out: TitleSource[] = [];
+  for (const f of findings) {
+    if (f.kind !== "slide-titles" || !f.fixes.includes("set-title-size")) continue;
+    f.targets.forEach((t, i) => {
+      const info = f.data.titles[i];
+      if (!info) return;
+      out.push({
+        slideId: info.slideId,
+        slideNumber: info.slideNumber,
+        placeholderType: info.placeholderType === "ctrTitle" ? "ctrTitle" : "title",
+        sizesPt: [...info.sizesPt],
+        text: info.text,
+        hidden: info.hidden,
+        shrink: info.autofit === "shrink",
+        reachable: isReachable(f, t),
+      });
+    });
+  }
+  return out.sort((a, b) => a.slideNumber - b.slideNumber);
+}
+
+/** Distinct sizes of the given titles, ascending. */
+export function titleSizes(titles: readonly TitleSource[]): number[] {
+  return [...new Set(titles.flatMap((t) => t.sizesPt))].sort((a, b) => a - b);
+}
+
+/** The size most titles use (ties → the larger size). */
+export function mostCommonSize(titles: readonly TitleSource[]): number | undefined {
+  const counts = new Map<number, number>();
+  for (const t of titles) for (const p of t.sizesPt) counts.set(p, (counts.get(p) ?? 0) + 1);
+  let best: number | undefined;
+  let n = 0;
+  for (const [p, c] of counts) {
+    if (c > n || (c === n && best !== undefined && p > best)) {
+      best = p;
+      n = c;
+    }
+  }
+  return best;
+}
+
+export interface SlideNumberSource {
+  slideId: number;
+  slideNumber: number;
+  /** Shapes the fix can delete / that stay (number mixed with other text). */
+  removable: { label: string; kind: string }[];
+  kept: { label: string; reason: string }[];
+  hidden: boolean;
+}
+
+/** Slides showing a slide number (`slide-numbers` finding), in slide order. */
+export function slideNumberSources(findings: readonly Finding[]): SlideNumberSource[] {
+  const by = new Map<number, SlideNumberSource>();
+  for (const f of findings) {
+    if (f.kind !== "slide-numbers" || !f.fixes.includes("remove-slide-numbers")) continue;
+    f.targets.forEach((t, i) => {
+      const e = f.data.slides[i];
+      if (!e) return;
+      let s = by.get(e.slideId);
+      if (!s) {
+        s = { slideId: e.slideId, slideNumber: e.slideNumber, removable: [], kept: [], hidden: e.hidden };
+        by.set(e.slideId, s);
+      }
+      const label = targetLabel(t);
+      if (e.kind !== "field-in-text" && isReachable(f, t)) s.removable.push({ label, kind: e.kind });
+      else s.kept.push({ label, reason: e.reason ?? "Can't be removed in place" });
+    });
+  }
+  return [...by.values()].sort((a, b) => a.slideNumber - b.slideNumber);
+}
+
+/** Whether the deck has Header & Footer slide numbers turned on for new slides. */
+export function slideNumbersFlagOn(findings: readonly Finding[]): boolean {
+  return findings.some((f) => f.kind === "slide-numbers" && (f.data.headerFooterFlag ?? []).some((h) => h.sldNum));
+}
+
 // ---------------------------------------------------------------------------------------------
 // Targets (D11)
 
@@ -196,6 +294,16 @@ export type Draft =
   | { type: "fonts"; from: string[]; target: string; custom: string }
   | { type: "colors"; from: string[]; target: string; custom: string }
   | { type: "delete"; findingIds: string[] }
+  | {
+      type: "title-size";
+      /** The size input, as typed (points). */
+      size: string;
+      placeholderTypes: TitlePlaceholderType[];
+      alsoLayouts: boolean;
+      /** Every slide with a title, or the chosen slide ids. */
+      slides: "all" | number[];
+    }
+  | { type: "slide-numbers"; slides: "all" | number[] }
   | { type: "links"; mode: "remove"; addresses: string[] }
   | { type: "links"; mode: "edit"; address: string | null; newAddress: string };
 
@@ -226,6 +334,9 @@ export interface DraftSeed {
   finding?: Finding;
   /** Area bulk action for one delete kind. */
   deleteKind?: DeleteKind;
+  /** Fonts: open the title-size picker. Review: open the slide-number picker. */
+  titleSize?: boolean;
+  slideNumbers?: boolean;
   /** Links: which action the bulk button asked for. */
   linkMode?: "remove" | "edit";
   /**
@@ -237,11 +348,29 @@ export interface DraftSeed {
 
 const lower = (s: string) => s.toLowerCase();
 
+function initialTitleDraft(findings: readonly Finding[], row: Finding | undefined): Draft {
+  const titles = titleSources(findings);
+  let types: TitlePlaceholderType[];
+  let size: number | undefined;
+  if (row?.kind === "title-sizes-inconsistent") {
+    types = [row.data.placeholderType === "ctrTitle" ? "ctrTitle" : "title"];
+    size = row.data.mostCommonPt;
+  } else {
+    // Title slides are often intentionally larger: slide titles only, unless there are none.
+    types = titles.some((t) => t.placeholderType === "title") || titles.length === 0 ? ["title"] : ["ctrTitle"];
+    const inconsistent = findings.find((f) => f.kind === "title-sizes-inconsistent" && f.data.placeholderType === types[0]);
+    size = inconsistent?.kind === "title-sizes-inconsistent" ? inconsistent.data.mostCommonPt : undefined;
+  }
+  size ??= mostCommonSize(titles.filter((t) => types.includes(t.placeholderType))) ?? 32;
+  return { type: "title-size", size: String(size), placeholderTypes: types, alsoLayouts: false, slides: "all" };
+}
+
 export function initialDraft(area: FixArea, result: AuditResult | null, seed: DraftSeed = {}, canRemoveLinks = true): Draft {
   const findings = (result?.findings ?? []).filter((f) => f.area === area);
   const row = seed.finding;
   switch (area) {
     case "fonts": {
+      if (seed.titleSize || (row && TITLE_KINDS.includes(row.kind))) return initialTitleDraft(findings, row);
       const sources = fontSources(findings);
       const seeded = seed.fonts ? new Set(seed.fonts.map(lower)) : null;
       const from =
@@ -260,6 +389,7 @@ export function initialDraft(area: FixArea, result: AuditResult | null, seed: Dr
       return { type: "colors", from, target: defaultColorTarget(from, colorTargets(result)), custom: "" };
     }
     case "review": {
+      if (seed.slideNumbers || row?.kind === "slide-numbers") return { type: "slide-numbers", slides: "all" };
       const sources = deleteSources(findings);
       const ids = row
         ? sources.filter((s) => s.findingId === row.id).map((s) => s.findingId)
@@ -284,6 +414,16 @@ export type FixRequest = { [K in FixKindId]: { kind: K; params: FixParamsMap[K] 
 
 export const HEX_HINT = "Enter a 6-digit hex color, like #1F4E79.";
 
+/** The typed title size as a number, or NaN. */
+export function parseSize(text: string): number {
+  const t = text.trim().replace(/\s*pt$/i, "");
+  return t === "" || !/^\d+(\.\d+)?$/.test(t) ? Number.NaN : Number(t);
+}
+
+function scopeOf(slides: "all" | number[]): SlideScope {
+  return slides === "all" ? "all" : { slideIds: [...slides] };
+}
+
 /** Inline validation message for the draft's free-text input, if any (shown next to it). */
 export function draftInputError(draft: Draft): string | null {
   if (draft.type === "colors" && draft.target === CUSTOM && draft.custom.trim() !== "" && normalizeHex(draft.custom) === null) {
@@ -292,6 +432,7 @@ export function draftInputError(draft: Draft): string | null {
   if (draft.type === "links" && draft.mode === "edit" && draft.address !== null && draft.newAddress.trim() !== "") {
     return validateHyperlinkAddress(draft.newAddress);
   }
+  if (draft.type === "title-size") return validateTitleSize(parseSize(draft.size));
   return null;
 }
 
@@ -311,6 +452,20 @@ export function draftRequest(draft: Draft): FixRequest | null {
     }
     case "delete":
       return draft.findingIds.length ? { kind: "delete-shapes", params: { findingIds: [...draft.findingIds] } } : null;
+    case "title-size":
+      if (draft.placeholderTypes.length === 0 || (draft.slides !== "all" && draft.slides.length === 0)) return null;
+      return {
+        kind: "set-title-size",
+        params: {
+          sizePt: parseSize(draft.size),
+          scope: scopeOf(draft.slides),
+          placeholderTypes: [...draft.placeholderTypes],
+          ...(draft.alsoLayouts ? { alsoLayouts: true } : {}),
+        },
+      };
+    case "slide-numbers":
+      if (draft.slides !== "all" && draft.slides.length === 0) return null;
+      return { kind: "remove-slide-numbers", params: { scope: scopeOf(draft.slides) } };
     case "links":
       if (draft.mode === "remove") {
         return draft.addresses.length ? { kind: "remove-hyperlink", params: { addresses: [...draft.addresses] } } : null;
@@ -328,6 +483,10 @@ export function draftKind(draft: Draft): FixKindId {
       return "replace-color";
     case "delete":
       return "delete-shapes";
+    case "title-size":
+      return "set-title-size";
+    case "slide-numbers":
+      return "remove-slide-numbers";
     case "links":
       return draft.mode === "remove" ? "remove-hyperlink" : "edit-hyperlink";
   }
@@ -339,6 +498,8 @@ export const DRAFT_TITLES: Record<FixKindId, string> = {
   "delete-shapes": "Delete shapes",
   "remove-hyperlink": "Remove links",
   "edit-hyperlink": "Edit link",
+  "set-title-size": "Set title size",
+  "remove-slide-numbers": "Remove slide numbers",
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -356,6 +517,8 @@ export function unitNoun(kind: FixKindId): string {
     case "remove-hyperlink":
     case "edit-hyperlink":
       return "link";
+    case "remove-slide-numbers":
+      return "slide number";
     default:
       return "change";
   }
@@ -372,13 +535,17 @@ export function applyLabel(kind: FixKindId, n: number): string {
       return `Remove ${plural(n, "link")}`;
     case "edit-hyperlink":
       return `Update ${plural(n, "link")}`;
+    case "set-title-size":
+      return `Change ${plural(n, "title")}`;
+    case "remove-slide-numbers":
+      return `Delete ${plural(n, "slide number")}`;
   }
 }
 
 export function confirmLabel(kind: FixKindId, n: number): string {
-  return kind === "delete-shapes"
-    ? `Yes, delete ${plural(n, "shape")}. PowerPoint's undo may not bring them back.`
-    : `Yes, remove ${plural(n, "link")}. PowerPoint's undo may not bring them back.`;
+  if (kind === "delete-shapes") return `Yes, delete ${plural(n, "shape")}. PowerPoint's undo may not bring them back.`;
+  if (kind === "remove-slide-numbers") return `Yes, delete ${plural(n, "slide number")}. PowerPoint's undo may not bring them back.`;
+  return `Yes, remove ${plural(n, "link")}. PowerPoint's undo may not bring them back.`;
 }
 
 /** Group items by a string key, keeping first-seen order. */

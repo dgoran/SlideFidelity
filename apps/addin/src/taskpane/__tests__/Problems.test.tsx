@@ -16,7 +16,9 @@ import {
   mediaSize,
   offSlide,
   partlyOff,
+  slideNumbersFinding,
   textCollision,
+  titleFindings,
 } from "../testing/problemFindings";
 import { all, button, cleanup, click, flush, one, renderPane } from "../testing/render";
 
@@ -288,5 +290,50 @@ describe("fixes inside a category", () => {
     const panel = one(off, "[data-fix-panel]");
     expect(panel.getAttribute("data-fix-panel")).toBe("review");
     expect(panel.textContent).toContain("Delete shapes");
+  });
+});
+
+describe("slide titles in Problems", () => {
+  const result = () =>
+    fakeResult([
+      ...titleFindings([
+        { slide: 1, size: 32 },
+        { slide: 2, size: 40 },
+        { slide: 3, size: 40 },
+      ]),
+      slideNumbersFinding([{ slide: 2, kind: "placeholder" }]),
+    ]);
+  const slots = () => createFixSlots({ run: createFakePowerPoint({ slides: [] }).run, createPresentation: async () => {} });
+
+  it("lists title-sizes-inconsistent under Fonts as a note (not a problem); slide numbers are not listed", () => {
+    const { container } = renderPane({ result: result(), slots: slots() });
+    expect(one(container, "[data-problems-headline]").textContent).toBe("Ready for show");
+    expect(category(container, "fonts").getAttribute("data-status")).toBe("note");
+    click(toggleOf(container, "fonts"));
+    const fonts = category(container, "fonts");
+    const row = one(fonts, '[data-problem="title-sizes-inconsistent"]');
+    expect(row.getAttribute("data-severity")).toBe("info");
+    expect(container.querySelector('[data-problem="slide-numbers"]')).toBeNull();
+    expect(container.querySelector('[data-problem="slide-titles"]')).toBeNull();
+  });
+
+  it("offers Set title size… in the Fonts category and from the row, opening the picker there", () => {
+    const { container } = renderPane({ result: result(), slots: slots() });
+    click(toggleOf(container, "fonts"));
+    const fonts = category(container, "fonts");
+    click(button(fonts, "Set title size…"));
+    const panel = one(fonts, "[data-fix-panel]");
+    expect(panel.textContent).toContain("Set title size");
+    click(button(panel, "Close"));
+    const row = one(fonts, '[data-problem="title-sizes-inconsistent"]');
+    click(one(row, "[data-row-fix]"));
+    const again = one(fonts, "[data-fix-panel]");
+    expect((again.querySelector('input[type="number"]') as HTMLInputElement).value).toBe("40");
+  });
+
+  it("is not offered without the fixes feature", () => {
+    const { container } = renderPane({ result: result(), slots: slots(), plan: "free" });
+    click(toggleOf(container, "fonts"));
+    expect(all(category(container, "fonts"), "button").some((b) => b.textContent === "Set title size…")).toBe(false);
   });
 });

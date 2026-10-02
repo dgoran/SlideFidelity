@@ -20,7 +20,7 @@ import { formatBytes, type AuditResult, type Finding, type FindingTarget } from 
 import { featureForFinding, usePlan, type Feature } from "../../license/gate";
 import { primaryTarget } from "../../office/navigate";
 import { navigateFromPane, usePaneServices, usePaneSlots } from "../context";
-import { buildProblems, type CategoryStatus, type ProblemCategory, type ProblemCategoryId, type ProblemsModel } from "../model/problems";
+import { buildProblems, isNoteLevel, type CategoryStatus, type ProblemCategory, type ProblemCategoryId, type ProblemsModel } from "../model/problems";
 import { describeTarget } from "../model/tree";
 import { describeNavigation } from "./FindingsTree";
 import { SeverityIcon } from "./FindingRow";
@@ -311,9 +311,10 @@ function ProblemList({ findings, label, onShow }: { findings: readonly Finding[]
       {findings.map((f) => {
         const target = primaryTarget(f);
         const sub = f.detail ?? (target ? describeTarget(target) : undefined);
+        const severity = isNoteLevel(f) ? "info" : f.severity;
         return (
-          <li key={f.id} className={s.item} data-problem={f.kind} data-severity={f.severity}>
-            <SeverityIcon severity={f.severity} />
+          <li key={f.id} className={s.item} data-problem={f.kind} data-severity={severity}>
+            <SeverityIcon severity={severity} />
             <span className={s.itemText}>
               <span className={s.itemTitle}>{f.title}</span>
               {sub && <span className={s.itemSub}>{sub}</span>}

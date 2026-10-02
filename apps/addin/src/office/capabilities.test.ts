@@ -32,6 +32,8 @@ describe("capabilities", () => {
       hyperlinkRemove: false,
       shapeVisible: false,
       themeColors: false,
+      setTitleSize: true,
+      removeSlideNumbers: true,
     });
     const c15 = probeCapabilities(host("1.5"));
     expect(c15.flags.selectSlides).toBe(true);

@@ -10,9 +10,11 @@ import {
   mediaSize,
   offSlide,
   partlyOff,
+  slideNumbersFinding,
   textCollision,
+  titleFindings,
 } from "../testing/problemFindings";
-import { buildProblems, PROBLEM_CATEGORIES, type ProblemCategoryId } from "./problems";
+import { buildProblems, isNoteLevel, PROBLEM_CATEGORIES, type ProblemCategoryId } from "./problems";
 
 const cat = (findings: Finding[], id: ProblemCategoryId) => {
   const c = buildProblems(findings).categories.find((x) => x.id === id);
@@ -147,5 +149,36 @@ describe("buildProblems", () => {
     expect(m.ready).toBe(false);
     expect(m.headline).toBe("5 problems to fix");
     expect(buildProblems([offSlide(1)]).headline).toBe("1 problem to fix");
+  });
+});
+
+describe("buildProblems: slide titles and slide numbers", () => {
+  const titles = () => titleFindings([{ slide: 1, size: 32 }, { slide: 2, size: 40 }, { slide: 3, size: 40 }]);
+
+  it("lists title-sizes-inconsistent under Fonts as a note, not a problem", () => {
+    const m = buildProblems(titles());
+    const fonts = m.categories.find((c) => c.id === "fonts")!;
+    expect(fonts.findings.map((f) => f.kind)).toEqual(["title-sizes-inconsistent"]);
+    expect(fonts.status).toBe("note");
+    expect(fonts.warnings).toBe(0);
+    expect(fonts.notes).toBe(1);
+    expect(m.ready).toBe(true);
+    expect(m.missingFonts).toEqual([]);
+    expect(isNoteLevel(fonts.findings[0]!)).toBe(true);
+  });
+
+  it("keeps missing fonts first (problems) and the title note after them", () => {
+    const m = buildProblems([...titles(), fontMaybeMissing("MS Gothic", [slideShape(3, 5)])]);
+    const fonts = m.categories.find((c) => c.id === "fonts")!;
+    expect(fonts.findings.map((f) => f.kind)).toEqual(["font-maybe-missing", "title-sizes-inconsistent"]);
+    expect(fonts.status).toBe("warning");
+    expect(m.problemCount).toBe(1);
+  });
+
+  it("never lists slide-titles or slide-numbers", () => {
+    const m = buildProblems([...titleFindings([{ slide: 1, size: 32 }]), slideNumbersFinding([{ slide: 2, kind: "placeholder" }])]);
+    const listed = m.categories.flatMap((c) => [...c.findings, ...c.intentional]).map((f) => f.kind);
+    expect(listed).toEqual([]);
+    expect(m.categories.every((c) => c.status === "pass")).toBe(true);
   });
 });

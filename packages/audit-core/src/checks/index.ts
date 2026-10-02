@@ -12,10 +12,12 @@ import { masterChecks } from "./masters";
 import { mediaChecks } from "./media";
 import { playbackChecks } from "./playback";
 import { reviewChecks } from "./review";
+import { titleNumberChecks } from "./titlesNumbers";
 
 export const CHECKS: readonly Check[] = [
   ...fontChecks,
   ...fontAvailabilityChecks,
+  ...titleNumberChecks,
   ...colorChecks,
   ...mediaChecks,
   ...playbackChecks,
@@ -35,4 +37,5 @@ export {
   mediaChecks,
   playbackChecks,
   reviewChecks,
+  titleNumberChecks,
 };

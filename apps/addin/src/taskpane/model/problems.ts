@@ -8,6 +8,11 @@
  * - `pass`: nothing found.
  * The headline counts warnings across the categories: "Ready for show" or "N problems to fix".
  *
+ * Note-level kinds (`NOTE_KINDS`) are listed as notes whatever their engine severity: titles at
+ * different sizes (`title-sizes-inconsistent`) are worth a look under Fonts (with "Set title
+ * size…"), but are not a show-breaker. Slide numbers (`slide-numbers`) are a cleanup, not a
+ * problem, and are not listed here (they stay in Review).
+ *
  * G6: a linked video is reported by the engine as both `linked-file` (Links) and `media-linked`
  * (Media); only `media-linked` is listed here, so it shows once, under Videos & audio.
  */
@@ -29,7 +34,7 @@ export const CATEGORY_LABELS: Record<ProblemCategoryId, string> = {
 /** The finding kinds each category lists. */
 export const CATEGORY_KINDS: Record<ProblemCategoryId, readonly string[]> = {
   playback: ["media-missing", "media-linked", "media-online", "media-format", "media-poster-missing"],
-  fonts: ["font-maybe-missing"],
+  fonts: ["font-maybe-missing", "title-sizes-inconsistent"],
   "off-slide": ["off-slide-shape", "partly-off-slide"],
   "text-collision": ["text-collision"],
   size: ["image-issue"],
@@ -89,7 +94,15 @@ export interface ProblemsModel {
 
 const LARGEST_COUNT = 3;
 
-const isProblem = (f: Finding) => f.severity !== "info";
+/** Kinds listed as notes whatever their engine severity. */
+export const NOTE_KINDS: ReadonlySet<string> = new Set(["title-sizes-inconsistent"]);
+
+/** Whether a listed finding counts as a note (info severity, or a note-level kind). */
+export function isNoteLevel(f: Pick<Finding, "kind" | "severity">): boolean {
+  return f.severity === "info" || NOTE_KINDS.has(f.kind);
+}
+
+const isProblem = (f: Finding) => !isNoteLevel(f);
 
 function num(v: unknown): number {
   return typeof v === "number" && Number.isFinite(v) ? v : 0;

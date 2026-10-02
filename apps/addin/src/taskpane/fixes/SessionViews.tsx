@@ -68,6 +68,45 @@ function Unreachable({ items, title }: { items: readonly UnreachableTarget[]; ti
   );
 }
 
+/** Per-title "current → new" list (set-title-size) and the "will be deleted" list (remove-slide-numbers). */
+function KindDetails({ plan }: { plan: FixPlan }) {
+  const s = useStyles();
+  if (plan.targets.length === 0) return null;
+  if (plan.kind === "set-title-size") {
+    return (
+      <div>
+        <p className={s.sub}>Title sizes</p>
+        <ul className={s.scroll} data-title-changes="" aria-label="Title size changes" tabIndex={0}>
+          {plan.targets.map((t) => {
+            const op = t.op;
+            if (op.type === "title-size") {
+              const from = op.fromPt.length ? op.fromPt.map((p) => `${p} pt`).join(" / ") : "?";
+              return <li key={t.key}>{`${t.label}: ${from} → ${op.sizePt} pt`}</li>;
+            }
+            if (op.type === "title-size-layout") {
+              return <li key={t.key}>{`${t.label}: ${op.fromPt !== undefined ? `${op.fromPt} pt` : "?"} → ${op.sizePt} pt`}</li>;
+            }
+            return null;
+          })}
+        </ul>
+      </div>
+    );
+  }
+  if (plan.kind === "remove-slide-numbers") {
+    return (
+      <div>
+        <p className={s.sub}>{`Will be deleted (${plan.targets.length})`}</p>
+        <ul className={s.scroll} data-deleted="" aria-label="Slide numbers to delete" tabIndex={0}>
+          {plan.targets.map((t) => (
+            <li key={t.key}>{t.label}</li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------------------------
 
 export interface PreviewViewProps {
@@ -105,7 +144,8 @@ export const PreviewView = forwardRef<HTMLHeadingElement, PreviewViewProps>(func
           ))}
         </ul>
       )}
-      <Unreachable items={plan.unreachable} title="Can't be changed in place" />
+      <KindDetails plan={plan} />
+      <Unreachable items={plan.unreachable} title={plan.kind === "remove-slide-numbers" ? "Left in place" : "Can't be changed in place"} />
       {plan.notes.length > 0 && (
         <ul className={s.notes} data-fix-notes="">
           {plan.notes.map((note) => (

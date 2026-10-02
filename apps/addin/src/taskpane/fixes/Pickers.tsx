@@ -7,6 +7,7 @@
  */
 import { Button, Checkbox, Field, Input, Select, makeStyles, tokens } from "@fluentui/react-components";
 import { useMemo } from "react";
+import { HEADER_FOOTER_NOTE, TITLE_SIZE_MAX, TITLE_SIZE_MIN, type TitlePlaceholderType } from "../../office/fixes";
 import { CapabilityButton } from "../components/CapabilityButton";
 import {
   colorSources,
@@ -20,7 +21,12 @@ import {
   fontTargets,
   linkSources,
   optionValue,
+  parseSize,
   plural,
+  slideNumberSources,
+  slideNumbersFlagOn,
+  titleSizes,
+  titleSources,
   type Draft,
 } from "./model";
 import type { AuditResult, Finding } from "@slidecheck/audit-core";
@@ -55,6 +61,7 @@ const usePickerStyles = makeStyles({
   caveat: { margin: 0, fontSize: tokens.fontSizeBase200, color: tokens.colorNeutralForeground2 },
   sub: { margin: 0, fontSize: tokens.fontSizeBase200, color: tokens.colorNeutralForeground3 },
   address: { margin: 0, wordBreak: "break-all", fontFamily: tokens.fontFamilyMonospace, fontSize: tokens.fontSizeBase200 },
+  chips: { display: "flex", flexWrap: "wrap", gap: tokens.spacingHorizontalXS, alignItems: "center" },
 });
 
 export interface PickerProps {
@@ -302,5 +309,173 @@ function EditLinkButton({ address, disabled, onEdit }: { address: string; disabl
     <CapabilityButton feature="hyperlinkEdit" size="small" appearance="subtle" disabled={!!disabled} onClick={onEdit} ariaLabel={`Edit link ${address}`}>
       Edit
     </CapabilityButton>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
+// Slide titles and slide numbers (Graphics Ops bulk fixes)
+
+/** Toggle one slide in an "all" / explicit selection over `ids`; a full selection becomes "all". */
+function toggleSlide(slides: "all" | number[], ids: readonly number[], id: number, on: boolean): "all" | number[] {
+  const cur = slides === "all" ? [...ids] : slides.filter((x) => ids.includes(x));
+  const next = on ? [...cur.filter((x) => x !== id), id] : cur.filter((x) => x !== id);
+  return ids.every((x) => next.includes(x)) ? "all" : ids.filter((x) => next.includes(x));
+}
+
+function allState(slides: "all" | number[], ids: readonly number[]): boolean | "mixed" {
+  if (slides === "all") return true;
+  const n = ids.filter((x) => slides.includes(x)).length;
+  return n === 0 ? false : n === ids.length ? true : "mixed";
+}
+
+const TYPE_LABELS: Record<TitlePlaceholderType, string> = { title: "Slide titles", ctrTitle: "Title slides" };
+const sizeText = (sizes: readonly number[]) => (sizes.length ? sizes.map((p) => `${p} pt`).join(" / ") : "size unknown");
+
+export function TitleSizePicker({ draft, onChange, findings, disabled }: PickerProps) {
+  const s = usePickerStyles();
+  const titles = useMemo(() => titleSources(findings), [findings]);
+  if (draft.type !== "title-size") return null;
+  const error = draftInputError(draft);
+  const chosen = titles.filter((t) => draft.placeholderTypes.includes(t.placeholderType));
+  const chips = titleSizes(chosen.length ? chosen : titles);
+  const current = parseSize(draft.size);
+  const ids = [...new Set(chosen.map((t) => t.slideId))];
+  const checked = (id: number) => draft.slides === "all" || draft.slides.includes(id);
+  return (
+    <>
+      <Field
+        label="New size (pt)"
+        hint={error ? undefined : `${TITLE_SIZE_MIN} to ${TITLE_SIZE_MAX} pt.`}
+        validationState={error ? "error" : "none"}
+        validationMessage={error ?? undefined}
+      >
+        <Input
+          type="number"
+          min={TITLE_SIZE_MIN}
+          max={TITLE_SIZE_MAX}
+          step={1}
+          value={draft.size}
+          disabled={disabled}
+          onChange={(_e, d) => onChange({ ...draft, size: d.value })}
+        />
+      </Field>
+      {chips.length > 0 && (
+        <div className={s.chips} role="group" aria-label="Sizes in this presentation">
+          <span className={s.meta}>In this presentation:</span>
+          {chips.map((p) => (
+            <Button
+              key={p}
+              size="small"
+              appearance={current === p ? "primary" : "outline"}
+              aria-pressed={current === p}
+              disabled={disabled}
+              onClick={() => onChange({ ...draft, size: String(p) })}
+            >
+              {`${p} pt`}
+            </Button>
+          ))}
+        </div>
+      )}
+      <fieldset className={s.fieldset} disabled={disabled}>
+        <legend className={s.legend}>Titles to change</legend>
+        {(["title", "ctrTitle"] as const).map((type) => {
+          const n = titles.filter((t) => t.placeholderType === type).length;
+          return (
+            <span key={type} className={s.item}>
+              <Checkbox
+                label={TYPE_LABELS[type]}
+                disabled={n === 0}
+                checked={draft.placeholderTypes.includes(type)}
+                onChange={(_e, d) =>
+                  onChange({
+                    ...draft,
+                    placeholderTypes: (["title", "ctrTitle"] as const).filter((t) => (t === type ? d.checked === true : draft.placeholderTypes.includes(t))),
+                    slides: "all",
+                  })
+                }
+              />
+              <span className={s.meta}>{plural(n, "slide")}</span>
+            </span>
+          );
+        })}
+        <Checkbox
+          label="Also update layouts and master so new slides match"
+          checked={draft.alsoLayouts}
+          onChange={(_e, d) => onChange({ ...draft, alsoLayouts: d.checked === true })}
+        />
+      </fieldset>
+      {ids.length > 0 && (
+        <fieldset className={s.fieldset} disabled={disabled}>
+          <legend className={s.legend}>Slides</legend>
+          <Checkbox
+            label="All slides"
+            checked={allState(draft.slides, ids)}
+            onChange={(_e, d) => onChange({ ...draft, slides: d.checked === true ? "all" : [] })}
+          />
+          <div className={s.list}>
+            {chosen.map((t) => (
+              <span key={`${t.slideId}:${t.placeholderType}`} className={s.item}>
+                <Checkbox
+                  label={`Slide ${t.slideNumber}: ${t.text || "(empty title)"}`}
+                  checked={checked(t.slideId)}
+                  onChange={(_e, d) => onChange({ ...draft, slides: toggleSlide(draft.slides, ids, t.slideId, d.checked === true) })}
+                />
+                <span className={s.meta}>{`${sizeText(t.sizesPt)}${t.shrink ? " · shrinks to fit" : ""}${t.hidden ? " · hidden" : ""}`}</span>
+              </span>
+            ))}
+          </div>
+        </fieldset>
+      )}
+    </>
+  );
+}
+
+export function SlideNumbersPicker({ draft, onChange, findings, disabled }: PickerProps) {
+  const s = usePickerStyles();
+  const sources = useMemo(() => slideNumberSources(findings), [findings]);
+  const flagOn = useMemo(() => slideNumbersFlagOn(findings), [findings]);
+  if (draft.type !== "slide-numbers") return null;
+  const removable = sources.filter((x) => x.removable.length > 0);
+  const ids = removable.map((x) => x.slideId);
+  const kept = sources.flatMap((x) => x.kept);
+  return (
+    <>
+      <fieldset className={s.fieldset} disabled={disabled}>
+        <legend className={s.legend}>Slides with numbers</legend>
+        {ids.length > 1 && (
+          <Checkbox label="Select all" checked={allState(draft.slides, ids)} onChange={(_e, d) => onChange({ ...draft, slides: d.checked === true ? "all" : [] })} />
+        )}
+        <div className={s.list}>
+          {removable.map((x) => (
+            <span key={x.slideId} className={s.item}>
+              <Checkbox
+                label={`Slide ${x.slideNumber}`}
+                checked={draft.slides === "all" || draft.slides.includes(x.slideId)}
+                onChange={(_e, d) => onChange({ ...draft, slides: toggleSlide(draft.slides, ids, x.slideId, d.checked === true) })}
+              />
+              <span className={s.meta}>
+                {x.removable.map((r) => (r.kind === "placeholder" ? "number placeholder" : "number text box")).join(", ")}
+                {x.hidden ? " · hidden" : ""}
+              </span>
+            </span>
+          ))}
+        </div>
+      </fieldset>
+      {kept.length > 0 && (
+        <div data-slide-numbers-kept="">
+          <p className={s.sub}>{`Left in place (${kept.length}): the number is part of other text — edit it by hand`}</p>
+          <ul className={s.list}>
+            {kept.map((k, i) => (
+              <li key={i} className={s.meta}>
+                {k.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <p className={s.caveat} data-header-footer-note="">
+        {flagOn ? `New slides are set to show numbers. ${HEADER_FOOTER_NOTE}` : HEADER_FOOTER_NOTE}
+      </p>
+    </>
   );
 }

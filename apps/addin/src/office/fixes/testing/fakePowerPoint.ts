@@ -11,8 +11,9 @@
  *
  * Covered surface: `presentation.slides` (id, shapes, hyperlinks), shapes (id, name, type, left,
  * top, width, height, visible, delete, textFrame.textRange, fill, lineFormat, getTable, group),
- * text ranges (text, font.name/color, getSubstring), table cells (text, font, fill,
- * isNullObject), groups (shapes), hyperlinks (address, delete).
+ * text ranges (text, font.name/color/size, getSubstring), table cells (text, font, fill,
+ * isNullObject), groups (shapes), hyperlinks (address, delete), `presentation.slideMasters`
+ * (id, name, shapes, layouts → id, name, shapes) and `shape.placeholderFormat.type` (1.8).
  */
 import {
   makeFinding,
@@ -26,6 +27,8 @@ import {
 export interface FakeFont {
   name: string;
   color: string;
+  /** Points. */
+  size?: number;
 }
 
 export interface FakeRun {
@@ -59,6 +62,8 @@ export interface FakeShape {
   table?: { cells: FakeCell[][] };
   /** Group children (type "Group"). */
   shapes?: FakeShape[];
+  /** Office.js placeholder type ("Title", "CenterTitle", "SlideNumber", ...): the shape type is "Placeholder". */
+  placeholderType?: string;
   /** Set by the fake when the shape is deleted. */
   deleted?: boolean;
 }
@@ -74,8 +79,22 @@ export interface FakeSlide {
   hyperlinks?: FakeHyperlink[];
 }
 
+export interface FakeLayout {
+  id: string;
+  name: string;
+  shapes: FakeShape[];
+}
+
+export interface FakeMaster {
+  id: string;
+  name: string;
+  shapes: FakeShape[];
+  layouts: FakeLayout[];
+}
+
 export interface FakeDeck {
   slides: FakeSlide[];
+  masters?: FakeMaster[];
 }
 
 export interface SyncFailure {
@@ -148,13 +167,13 @@ function runsIn(runs: readonly FakeRun[], start: number, length: number): FakeRu
   return out;
 }
 
-function uniform(runs: readonly FakeRun[], prop: keyof FakeFont): string | null {
+function uniform(runs: readonly FakeRun[], prop: keyof FakeFont): string | number | null {
   if (runs.length === 0) return null;
   const first = runs[0]!.font[prop];
-  return runs.every((r) => r.font[prop] === first) ? first : null;
+  return first !== undefined && runs.every((r) => r.font[prop] === first) ? first : null;
 }
 
-function setFontProp(runs: FakeRun[], start: number, length: number, prop: keyof FakeFont, value: string): void {
+function setFontProp<P extends keyof FakeFont>(runs: FakeRun[], start: number, length: number, prop: P, value: NonNullable<FakeFont[P]>): void {
   const total = textOf(runs).length;
   if (length === 0 && total === 0) {
     for (const r of runs) r.font[prop] = value;
@@ -204,9 +223,12 @@ interface World {
 
 class Ctx {
   queue: Op[] = [];
-  presentation: { slides: SlideCollection };
+  presentation: { slides: SlideCollection; slideMasters: MasterCollection };
   constructor(readonly world: World) {
-    this.presentation = { slides: new SlideCollection(this, () => world.deck.slides) };
+    this.presentation = {
+      slides: new SlideCollection(this, () => world.deck.slides),
+      slideMasters: new MasterCollection(this, () => world.deck.masters ?? []),
+    };
   }
   enqueue(op: Op): void {
     this.queue.push(op);
@@ -299,8 +321,18 @@ class FontProxy extends FakeObject {
     this.alive();
   }
   protected live(prop: string): unknown {
-    if (prop !== "name" && prop !== "color") return undefined;
+    if (prop !== "name" && prop !== "color" && prop !== "size") return undefined;
     return uniform(runsIn(this.runs(), this.start(), this.length()), prop);
+  }
+  get size(): number | null {
+    return this.read("size");
+  }
+  set size(v: number | null) {
+    if (v === null) return;
+    this.ctx.write(`${this.label} font.size=${v}`, () => {
+      this.alive();
+      setFontProp(this.runs(), this.start(), this.length(), "size", v);
+    });
   }
   get name(): string | null {
     return this.read("name");
@@ -314,7 +346,7 @@ class FontProxy extends FakeObject {
   set color(v: string | null) {
     this.set("color", v);
   }
-  private set(prop: keyof FakeFont, v: string | null): void {
+  private set(prop: "name" | "color", v: string | null): void {
     if (v === null) return;
     this.ctx.write(`${this.label} font.${prop}=${v}`, () => {
       this.alive();
@@ -501,7 +533,7 @@ class ShapeProxy extends FakeObject {
       case "name":
         return d.name;
       case "type":
-        return d.type ?? (d.shapes ? "Group" : d.table ? "Table" : d.runs ? "TextBox" : "GeometricShape");
+        return d.type ?? (d.placeholderType ? "Placeholder" : d.shapes ? "Group" : d.table ? "Table" : d.runs ? "TextBox" : "GeometricShape");
       case "left":
         return d.left ?? 0;
       case "top":
@@ -570,6 +602,9 @@ class ShapeProxy extends FakeObject {
       }),
     };
   }
+  get placeholderFormat(): PlaceholderFormatProxy {
+    return new PlaceholderFormatProxy(this.ctx, this.data, this.alive);
+  }
   getTable(): TableProxy {
     return new TableProxy(this.ctx, this.data, this.alive);
   }
@@ -581,6 +616,26 @@ class ShapeProxy extends FakeObject {
       if (i >= 0) list.splice(i, 1);
       this.data.deleted = true;
     });
+  }
+}
+
+class PlaceholderFormatProxy extends FakeObject {
+  constructor(
+    ctx: Ctx,
+    private shape: FakeShape,
+    private alive: () => void,
+  ) {
+    super(ctx);
+  }
+  protected override assertAlive(): void {
+    this.alive();
+    if (!this.shape.placeholderType) throw new Error(`GeneralException: shape ${this.shape.id} is not a placeholder`);
+  }
+  protected live(prop: string): unknown {
+    return prop === "type" ? this.shape.placeholderType : undefined;
+  }
+  get type(): string {
+    return this.read("type");
   }
 }
 
@@ -705,6 +760,60 @@ class SlideCollection extends Collection<SlideProxy> {
   }
   protected list(): SlideProxy[] {
     return this.slides().map((s) => new SlideProxy(this.ctx, s));
+  }
+}
+
+class LayoutProxy extends FakeObject {
+  readonly shapes: ShapeCollection;
+  constructor(
+    ctx: Ctx,
+    readonly data: FakeLayout | FakeMaster,
+  ) {
+    super(ctx);
+    this.shapes = new ShapeCollection(ctx, () => data.shapes);
+  }
+  protected live(prop: string): unknown {
+    if (prop === "id") return this.data.id;
+    if (prop === "name") return this.data.name;
+    return undefined;
+  }
+  get id(): string {
+    return this.read("id");
+  }
+  get name(): string {
+    return this.read("name");
+  }
+}
+
+class LayoutCollection extends Collection<LayoutProxy> {
+  constructor(
+    ctx: Ctx,
+    private layouts: () => FakeLayout[],
+  ) {
+    super(ctx);
+  }
+  protected list(): LayoutProxy[] {
+    return this.layouts().map((l) => new LayoutProxy(this.ctx, l));
+  }
+}
+
+class MasterProxy extends LayoutProxy {
+  readonly layouts: LayoutCollection;
+  constructor(ctx: Ctx, data: FakeMaster) {
+    super(ctx, data);
+    this.layouts = new LayoutCollection(ctx, () => data.layouts);
+  }
+}
+
+class MasterCollection extends Collection<MasterProxy> {
+  constructor(
+    ctx: Ctx,
+    private masters: () => FakeMaster[],
+  ) {
+    super(ctx);
+  }
+  protected list(): MasterProxy[] {
+    return this.masters().map((m) => new MasterProxy(this.ctx, m));
   }
 }
 

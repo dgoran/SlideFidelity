@@ -18,6 +18,7 @@ import {
   type FakePowerPoint,
 } from "../../office/fixes/testing/fakePowerPoint";
 import { fakeFinding, fakeResult } from "../testing/fixtures";
+import { slideNumbersFinding, TITLE_LEFT, TITLE_TOP, titleFindings, type TitleSpec } from "../testing/problemFindings";
 import { all, button, changeValue, cleanup, click, flush, one, renderPane } from "../testing/render";
 import { createFixSlots, type FixDeps } from "./index";
 
@@ -454,5 +455,241 @@ describe("untrusted deck strings", () => {
     expect(checkbox(lp, evilAddress)).toBeTruthy();
     expect(links.container.querySelector("script, [onerror]")).toBeNull();
     expect((window as { __pwned?: number }).__pwned).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Graphics Ops bulk fixes: slide title size and slide numbers
+
+const TITLES: TitleSpec[] = [
+  { slide: 1, size: 54, type: "ctrTitle", text: "Welcome" },
+  { slide: 2, size: 32, text: "Agenda" },
+  { slide: 3, size: 40, text: "Numbers" },
+  { slide: 4, size: 40, text: "Long title", shrink: true },
+];
+
+function titlesDeck(specs: readonly TitleSpec[] = TITLES): FakeDeck {
+  return {
+    slides: specs.map((t) => ({
+      id: `${255 + t.slide}#`,
+      shapes: [
+        {
+          id: "2",
+          name: "Title 1",
+          left: TITLE_LEFT,
+          top: TITLE_TOP,
+          placeholderType: t.type === "ctrTitle" ? "CenterTitle" : "Title",
+          runs: [{ text: t.text ?? "T", font: { name: "Calibri", color: "#000000", size: t.size } }],
+        },
+      ],
+    })),
+    masters: [
+      {
+        id: "m1",
+        name: "Office Theme",
+        shapes: [{ id: "2", name: "Title 1", placeholderType: "Title", runs: [{ text: "Master", font: { name: "Calibri", color: "#000000", size: 44 } }] }],
+        layouts: [
+          { id: "l2", name: "Title and Content", shapes: [{ id: "2", name: "Title 1", placeholderType: "Title", runs: [{ text: "Layout", font: { name: "Calibri", color: "#000000", size: 44 } }] }] },
+        ],
+      },
+    ],
+  };
+}
+
+const sizeInput = (p: ParentNode) => fieldControl<HTMLInputElement>(p, "New size (pt)");
+const liveSizes = (h: Harness) => h.fake.deck.slides.map((s) => s.shapes[0]!.runs![0]!.font.size);
+
+describe("set title size", () => {
+  it("Fonts bulk action: defaults to the most common slide-title size, previews current → new, and applies", async () => {
+    const result = fakeResult(titleFindings(TITLES));
+    const h = harness(titlesDeck());
+    const r = renderPane({ result, state: { area: "fonts" }, slots: createFixSlots(h.deps) });
+    r.scan.service.rescanForFix = rescanWith(result);
+    click(button(r.container, "Set title size…"));
+    const p = panel(r.container);
+    expect(document.activeElement?.textContent).toBe("Set title size");
+    expect(sizeInput(p).value).toBe("40");
+    expect(checkbox(p, "Slide titles").checked).toBe(true);
+    expect(checkbox(p, "Title slides").checked).toBe(false);
+    expect(checkbox(p, "Also update layouts and master so new slides match").checked).toBe(false);
+    // Quick chips for the sizes of the chosen titles.
+    const chips = all(one(p, '[aria-label="Sizes in this presentation"]'), "button").map((b) => b.textContent);
+    expect(chips).toEqual(["32 pt", "40 pt"]);
+    click(button(p, "32 pt"));
+    expect(sizeInput(p).value).toBe("32");
+    changeValue(sizeInput(p), "36");
+    expect(checkbox(p, "All slides").checked).toBe(true);
+    expect(checkbox(p, "Slide 2: Agenda").checked).toBe(true);
+
+    click(button(p, "Preview changes"));
+    const preview = one(p, "[data-fix-preview]");
+    expect(document.activeElement?.textContent).toBe("Preview");
+    expect(all(preview, "[data-title-changes] li").map((li) => li.textContent)).toEqual([
+      "Slide 2 · Title 1: 32 pt → 36 pt",
+      "Slide 3 · Title 1: 40 pt → 36 pt",
+      "Slide 4 · Title 1: 40 pt → 36 pt",
+    ]);
+    expect(preview.textContent).toContain("PowerPoint may shrink these titles to fit");
+    expect(preview.textContent).toContain("PowerPoint's undo history may not capture changes made by add-ins");
+    // Not destructive: no confirmation.
+    expect(preview.querySelector('input[type="checkbox"]')).toBeNull();
+    click(button(p, "Change 3 titles"));
+    await flush(6);
+    expect(one(p, "[data-fix-summary]").textContent).toContain("3 changed");
+    expect(document.activeElement?.textContent).toBe("Fix results");
+    expect(liveSizes(h)).toEqual([54, 36, 36, 36]);
+  });
+
+  it("validates the size inline and blocks the preview", () => {
+    const result = fakeResult(titleFindings(TITLES));
+    const r = renderPane({ result, state: { area: "fonts" }, slots: createFixSlots(harness(titlesDeck()).deps) });
+    click(button(r.container, "Set title size…"));
+    const p = panel(r.container);
+    changeValue(sizeInput(p), "300");
+    expect(p.textContent).toContain("Enter a size from 6 to 200 pt.");
+    expect(button(p, "Preview changes").disabled).toBe(true);
+    changeValue(sizeInput(p), "");
+    expect(button(p, "Preview changes").disabled).toBe(true);
+    changeValue(sizeInput(p), "28");
+    expect(button(p, "Preview changes").disabled).toBe(false);
+  });
+
+  it("per-slide selection and title slides narrow the preview; layouts and master can follow", async () => {
+    const result = fakeResult(titleFindings(TITLES));
+    const h = harness(titlesDeck());
+    const r = renderPane({ result, state: { area: "fonts" }, slots: createFixSlots(h.deps) });
+    r.scan.service.rescanForFix = rescanWith(result);
+    click(button(r.container, "Set title size…"));
+    const p = panel(r.container);
+    click(checkbox(p, "Slide 3: Numbers"));
+    expect(checkbox(p, "All slides").indeterminate || checkbox(p, "All slides").getAttribute("aria-checked") === "mixed").toBe(true);
+    click(button(p, "Preview changes"));
+    expect(all(p, "[data-title-changes] li").map((li) => li.textContent)).toEqual(["Slide 2 · Title 1: 32 pt → 40 pt", "Slide 4 · Title 1: 40 pt → 40 pt"]);
+
+    click(checkbox(p, "Title slides"));
+    click(checkbox(p, "Also update layouts and master so new slides match"));
+    click(button(p, "Preview changes"));
+    const lines = all(p, "[data-title-changes] li").map((li) => li.textContent);
+    expect(lines).toContain("Slide 1 · Title 1: 54 pt → 40 pt");
+    expect(lines).toContain('Layout "Title and Content" · title: 44 pt → 40 pt');
+    expect(lines).toContain("Slide master · title: 44 pt → 40 pt");
+    expect(one(p, "[data-fix-preview]").textContent).toContain("6 changes on 4 slides");
+    click(button(p, "Change 6 titles"));
+    await flush(8);
+    expect(liveSizes(h)).toEqual([40, 40, 40, 40]);
+    expect(h.fake.deck.masters![0]!.layouts[0]!.shapes[0]!.runs![0]!.font.size).toBe(40);
+    expect(h.fake.deck.masters![0]!.shapes[0]!.runs![0]!.font.size).toBe(40);
+  });
+
+  it("the title-sizes-inconsistent row action opens the picker for that placeholder type", () => {
+    const specs: TitleSpec[] = [...TITLES, { slide: 5, size: 60, type: "ctrTitle", text: "Part two" }];
+    const result = fakeResult(titleFindings(specs));
+    const r = renderPane({ result, state: { area: "fonts" }, slots: createFixSlots(harness(titlesDeck(specs)).deps) });
+    const rows = all(r.container, "[data-row-fix]");
+    const ctr = rows.find((b) => /Title-slide titles use 2 different sizes/.test(b.getAttribute("aria-label") ?? ""));
+    expect(ctr?.getAttribute("aria-label")).toBe("Set title size: Title-slide titles use 2 different sizes");
+    click(ctr!);
+    const p = panel(r.container);
+    expect(checkbox(p, "Title slides").checked).toBe(true);
+    expect(checkbox(p, "Slide titles").checked).toBe(false);
+    expect(sizeInput(p).value).toBe("60");
+  });
+
+  it("is disabled with the reason below PowerPointApi 1.4", () => {
+    const result = fakeResult(titleFindings(TITLES));
+    const r = renderPane({ result, api: "1.3", state: { area: "fonts" }, slots: createFixSlots(harness(titlesDeck()).deps) });
+    const b = button(r.container, "Set title size…");
+    expect(b.disabled).toBe(true);
+    expect(document.getElementById(b.getAttribute("aria-describedby")!)?.textContent).toBe("Requires a newer version of PowerPoint (PowerPointApi 1.4)");
+  });
+
+  it("renders title text from the deck as text", () => {
+    const evil = '<img src=x onerror="alert(1)">';
+    const result = fakeResult(titleFindings([{ slide: 1, size: 32, text: evil }, { slide: 2, size: 40 }]));
+    const r = renderPane({ result, state: { area: "fonts" }, slots: createFixSlots(harness(titlesDeck()).deps) });
+    click(button(r.container, "Set title size…"));
+    const p = panel(r.container);
+    expect(p.querySelector("img")).toBeNull();
+    expect(checkbox(p, `Slide 1: ${evil}`).checked).toBe(true);
+  });
+});
+
+function numbersDeck(): FakeDeck {
+  const box = (id: string, name: string, text: string) => ({ id, name, left: 720, top: 504, runs: [fakeRun(text, "Calibri")] });
+  return {
+    slides: [
+      { id: "256#", shapes: [box("3", "Slide Number Placeholder 2", "1")] },
+      { id: "257#", shapes: [box("3", "Number Box", "2")] },
+      { id: "258#", shapes: [box("3", "Page Box", "Page 3 of 10")] },
+    ],
+  };
+}
+
+describe("remove slide numbers", () => {
+  const finding = () =>
+    slideNumbersFinding(
+      [
+        { slide: 1, kind: "placeholder" },
+        { slide: 2, kind: "field-only-textbox" },
+        { slide: 3, kind: "field-in-text" },
+      ],
+      { flagOn: true },
+    );
+
+  it("Review bulk action: checklist, kept items, Header & Footer note, destructive confirm, delete", async () => {
+    const result = fakeResult([finding()]);
+    const h = harness(numbersDeck());
+    const r = renderPane({ result, state: { area: "review" }, slots: createFixSlots(h.deps) });
+    r.scan.service.rescanForFix = rescanWith(result);
+    click(button(r.container, "Remove slide numbers…"));
+    const p = panel(r.container);
+    expect(document.activeElement?.textContent).toBe("Remove slide numbers");
+    expect(checkbox(p, "Select all").checked).toBe(true);
+    expect(checkbox(p, "Slide 1").checked).toBe(true);
+    expect(checkbox(p, "Slide 2").checked).toBe(true);
+    expect(one(p, "[data-slide-numbers-kept]").textContent).toContain("Slide 3 · Page Box");
+    expect(one(p, "[data-header-footer-note]").textContent).toContain("Insert > Header & Footer");
+
+    click(button(p, "Preview changes"));
+    const preview = one(p, "[data-fix-preview]");
+    expect(all(preview, "[data-deleted] li").map((li) => li.textContent)).toEqual(["Slide 1 · Slide Number Placeholder 2", "Slide 2 · Number Box"]);
+    const kept = one(preview, "[data-unreachable]");
+    expect(kept.textContent).toContain("Left in place (1)");
+    expect(kept.textContent).toContain("Slide number is part of other text — edit it by hand");
+    expect(preview.textContent).toContain("add-ins can't change that setting");
+
+    const apply = button(p, "Delete 2 slide numbers");
+    expect(apply.disabled).toBe(true);
+    click(checkbox(p, /^Yes, delete 2 slide numbers/));
+    click(button(p, "Delete 2 slide numbers"));
+    await flush(6);
+    expect(one(p, "[data-fix-summary]").textContent).toContain("2 changed");
+    expect(h.fake.deck.slides.map((s) => s.shapes.length)).toEqual([0, 0, 1]);
+  });
+
+  it("scopes to the chosen slides", async () => {
+    const result = fakeResult([finding()]);
+    const h = harness(numbersDeck());
+    const r = renderPane({ result, state: { area: "review" }, slots: createFixSlots(h.deps) });
+    r.scan.service.rescanForFix = rescanWith(result);
+    click(button(r.container, "Remove slide numbers…"));
+    const p = panel(r.container);
+    click(checkbox(p, "Slide 1"));
+    expect(checkbox(p, "Select all").checked).toBe(false);
+    click(button(p, "Preview changes"));
+    expect(all(p, "[data-deleted] li").map((li) => li.textContent)).toEqual(["Slide 2 · Number Box"]);
+    click(checkbox(p, /^Yes, delete 1 slide number/));
+    click(button(p, "Delete 1 slide number"));
+    await flush(6);
+    expect(h.fake.deck.slides.map((s) => s.shapes.length)).toEqual([1, 0, 1]);
+  });
+
+  it("the slide-numbers row offers Remove slide numbers", () => {
+    const result = fakeResult([finding()]);
+    const r = renderPane({ result, state: { area: "review" }, slots: createFixSlots(harness(numbersDeck()).deps) });
+    const row = all(r.container, "[data-row-fix]").find((b) => (b.getAttribute("aria-label") ?? "").startsWith("Remove slide numbers"));
+    expect(row).toBeDefined();
+    click(row!);
+    expect(checkbox(panel(r.container), "Slide 2").checked).toBe(true);
   });
 });

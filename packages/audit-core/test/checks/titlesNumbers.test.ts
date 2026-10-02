@@ -17,10 +17,10 @@ function ofKind<K extends Finding["kind"]>(fs: Finding[], kind: K): FindingOf<K>
 }
 
 describe("titleNumberChecks: registration", () => {
-  it("exports one fonts check and one review check with unique ids", () => {
+  it("exports one fonts check and one review check, registered in CHECKS with unique ids", () => {
     expect(titleNumberChecks.map((c) => c.area).sort()).toEqual(["fonts", "review"]);
-    const ids = new Set([...CHECKS, ...titleNumberChecks].map((c) => c.id));
-    expect(ids.size).toBe(CHECKS.length + titleNumberChecks.length);
+    for (const c of titleNumberChecks) expect(CHECKS).toContain(c);
+    expect(new Set(CHECKS.map((c) => c.id)).size).toBe(CHECKS.length);
   });
 });
 
@@ -184,12 +184,12 @@ describe("slide-numbers", () => {
 
 describe("integration with the runner", () => {
   it("adds no warnings to the clean corpus deck", async () => {
-    const res = await runChecks(await corpusDeck("clean"), {}, { checks: [...CHECKS, ...titleNumberChecks] });
+    const res = await runChecks(await corpusDeck("clean"), {}, { checks: CHECKS });
     const mine = res.findings.filter((f) => ["slide-titles", "title-sizes-inconsistent", "title-autofit-shrinks", "slide-numbers"].includes(f.kind));
     expect(mine.map((f) => f.kind)).toEqual(["slide-titles"]);
     expect(mine.every((f) => f.severity === "info")).toBe(true);
     expect(res.errors).toEqual([]);
-    const base = await runChecks(await corpusDeck("clean"), {}, { checks: CHECKS });
+    const base = await runChecks(await corpusDeck("clean"), {}, { checks: CHECKS.filter((c) => !titleNumberChecks.includes(c)) });
     expect(res.stats.perArea.fonts.warning).toBe(base.stats.perArea.fonts.warning);
     expect(res.stats.perArea.review.warning).toBe(base.stats.perArea.review.warning);
   });
