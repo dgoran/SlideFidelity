@@ -14,6 +14,11 @@ path = "src/main.rs"
 name = "slidecheck_helper"
 path = "src/lib.rs"
 
+[features]
+# Accept the dev add-in origin (https://localhost:3000) in a release build. For local test packages
+# only (packaging/mac/build.sh --dev); never enabled for shipped installers.
+dev-origin = []
+
 [dependencies]
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
 axum-server = { version = "0.7", features = ["tls-rustls-no-provider"] }

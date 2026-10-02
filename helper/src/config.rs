@@ -9,9 +9,9 @@ pub const PREFS_DOMAIN: &str = "io.slidecheck.helper";
 pub const PREFS_KEY: &str = r"Software\SlideCheck\Helper";
 
 const PROD_ORIGINS: &[&str] = &["https://app.slidecheck.io"];
-#[cfg(debug_assertions)]
+#[cfg(any(debug_assertions, feature = "dev-origin"))]
 const DEV_ORIGINS: &[&str] = &["https://localhost:3000"];
-#[cfg(not(debug_assertions))]
+#[cfg(not(any(debug_assertions, feature = "dev-origin")))]
 const DEV_ORIGINS: &[&str] = &[];
 
 /// Whether `origin` may call the API. Exact match only: scheme, host and port.

@@ -93,10 +93,10 @@ fn config_ports_and_origins() {
     assert!(config::allowed_origin("https://app.slidecheck.io"));
     assert!(!config::allowed_origin("https://example.com"));
     assert!(!config::allowed_origin("http://app.slidecheck.io"));
-    // The dev origin is accepted only in debug builds (tests build in debug).
+    // The dev origin is accepted only in debug builds or with the dev-origin feature.
     assert_eq!(
         config::allowed_origin("https://localhost:3000"),
-        cfg!(debug_assertions)
+        cfg!(any(debug_assertions, feature = "dev-origin"))
     );
 }
 

@@ -1,0 +1,17 @@
+#!/bin/sh
+# Runs as root. Creates this computer's localhost certificate and tries to trust it. macOS refuses
+# trust changes from a root process without a user session (Jamf), so `install-cert` then leaves
+# the certificate untrusted and the helper asks the user once at sign-in (decision H2).
+set -u
+H="/Library/Application Support/SlideCheck/Helper"
+"$H/bin/slidecheck-helper" install-cert || exit 1
+
+install -m 0644 -o root -g wheel "$H/io.slidecheck.helper.plist" /Library/LaunchAgents/io.slidecheck.helper.plist
+
+# Start it now for every logged-in user; others get it at their next sign-in.
+for uid in $(ps -axo uid=,comm= | awk '/loginwindow$/ {print $1}' | sort -u); do
+  [ "$uid" -ne 0 ] || continue
+  launchctl bootout "gui/$uid/io.slidecheck.helper" 2>/dev/null
+  launchctl bootstrap "gui/$uid" /Library/LaunchAgents/io.slidecheck.helper.plist
+done
+exit 0
