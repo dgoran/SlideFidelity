@@ -105,3 +105,11 @@ Record for each answer: host build (for example "PowerPoint for Mac 16.9x, M365 
 - `getFileAsync` slices can be up to 4194304 bytes (4 MB) on non-iPad hosts. The reader requests exactly that size.
 - Only two files can be open in memory at once, or `getFileAsync` fails. The reader therefore always calls `closeAsync`, including on error.
 - The reader fetches slices one at a time and feeds each one into an incremental SHA-256 (`@noble/hashes`). The hash of the full file is the scan-freshness key (KTD6).
+
+## Observed on real hosts
+
+### PowerPoint for Mac 16.113 (2026-10-01, dev build sideloaded from https://localhost:3000)
+
+- The add-in loads from the XML manifest, and the ribbon button **Check Deck** appears on the Home tab. The production-shaped CSP did not block office.js; the development CSP adds localhost.
+- **Q1, partly answered:** `getFileAsync(Compressed)` returned the file for a new, never-saved presentation ("Presentation1", 95 KB), and the full scan completed with the result "Ready for show". This test did not check whether *unsaved edits to a saved file* are included.
+- Still pending: Q2 (live id formats, through Show in PowerPoint on a real deck), Q3 (hyperlink identity), Q4 (read time on a 50 MB deck), Q5 (whether `font.name` changes ea/cs fonts), Q6 (undo stack), Q7 (theme reference writes).
