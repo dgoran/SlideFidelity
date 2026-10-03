@@ -199,3 +199,26 @@ After the fix the helper reports 329 families and 1028 names; every GDI face nam
 - U2 gate passes: a machine-wide root added by an elevated installer is trusted by WebView2 in PowerPoint with no user prompt, and its purpose is limited to Server Authentication. U9 (MSI) can proceed.
 - The shipped helper triggers no firewall prompt.
 - **Still open: Local Network Access.** This test pane was served from https://localhost:3000, so pane-to-helper was local-to-local. Production serves the pane from https://app.slidecheck.io (public), and Chromium (WebView2 154) restricts public-to-loopback requests (Local Network Access permission). Test with the production origin before release.
+### Helper plan U9 smoke test: dev MSI, PowerPoint for Windows 16.0.20430.20092 (2026-10-02)
+
+`SlideCheckHelper-0.1.0-dev.msi` from `helper/packaging/windows/build.ps1 -Dev` (unsigned; WiX 5.0.2), installed from a non-admin PowerShell with `msiexec /i … /l*v`. Final build: 0b23c3a.
+
+| Check | Result |
+|---|---|
+| Install: root in Local Computer > Trusted Root, Intended Purposes | new root per install, **Server Authentication** only; thumbprint matches `C:\ProgramData\SlideCheck\Helper\root.sha1` |
+| Install: Run value | `HKLM\…\Run` "SlideCheck Helper" = `"C:\Program Files\SlideCheck Helper\slidecheck-helper.exe" serve` |
+| Helper after an interactive install | running as the signed-in user, **not elevated** (TokenElevation 0), **no window**, answering on 47317 within 1 s |
+| Pane (dev add-in) | Fonts row: **"Exact font check: on (SlideCheck Helper v0.1.0)"** |
+| Repair (`msiexec /i` of the installed build) | certificate kept (`install-cert: Unchanged`); helper stopped and restarted |
+| Uninstall (`msiexec /x`) | running helper stopped; root removed from the store; program files, Run value and `C:\ProgramData\SlideCheck` deleted (the next install started from an empty state folder). Per-user logs in `%LOCALAPPDATA%\SlideCheck\Helper` stay |
+| Sign-out and sign-in (Run entry) | pending |
+| UAC prompts | one per `msiexec` run (user-reported count pending) |
+
+Bugs found and fixed during the smoke test:
+1. **Helper started elevated.** For an admin installing a per-machine MSI with no dialogs, Windows Installer elevates the whole client ("Product installation will be elevated because user is admin and product is being installed per-machine"), so the UI sequence is elevated too. An EXE custom action left no running helper; `WixShellExec` started it elevated (TokenElevation 1) with the installer's environment. Fixed: the MSI runs `explorer.exe "<helper>"`, which the running shell launches unelevated as the console user (6220638).
+2. **Per-user folder from the environment.** The elevated helper wrote its port file and logs into another profile. `runtime_dir()` now uses `SHGetKnownFolderPath(FOLDERID_LocalAppData)` (6220638).
+3. **Console window.** As a console program the helper opened a console window at start, and closing it killed the helper. It is now a Windows-subsystem program that attaches to the parent console for CLI use (0b23c3a).
+
+Dev setup notes for this PC:
+- PowerPoint silently ignores a developer manifest whose path contains a comma (`…\Open IT Systems,LLC\…`): no manifest parsing in `OfficeAddins.log.txt`, and the sideload document shows "This add-in is no longer available". Registering a copy at `%LOCALAPPDATA%\SlideCheckDev\manifest.xml` under `HKCU\Software\Microsoft\Office\16.0\WEF\Developer` fixed it; insert it from Home > Add-ins > Developer Add-ins.
+- `office-addin-debugging start` ends its webpack child when it exits; run `npm run dev-server --workspace @slidecheck/addin` in its own terminal.

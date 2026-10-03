@@ -34,4 +34,4 @@ Install the newer MSI over the old one (Intune supersedence, or `msiexec /i … 
 Intune: assign the app as Uninstall. By hand: `msiexec /x SlideCheckHelper-<version>.msi /qn` (or by product code). Running helpers are stopped, then the root is removed from Trusted Root Certification Authorities and the program files, Run entry and `C:\ProgramData\SlideCheck` are deleted. Per-user logs in `%LOCALAPPDATA%\SlideCheck\Helper` stay behind.
 
 ## Verified on the dev PC
-See "Helper plan U2 gate" and the U9 smoke test in `docs/notes/office-js-platform-behavior.md`. Not yet verified: an Azure Artifact Signing-signed MSI (SmartScreen publisher) and an Intune push to a managed device.
+See "Helper plan U2 gate" and "Helper plan U9 smoke test" in `docs/notes/office-js-platform-behavior.md`: interactive install, repair and uninstall verified with an unsigned dev MSI. Not yet verified: an Azure Artifact Signing-signed MSI (SmartScreen publisher), a silent `/qn` install as SYSTEM, and an Intune push to a managed device.
