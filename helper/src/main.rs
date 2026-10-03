@@ -1,3 +1,7 @@
+// No console window on Windows: the helper starts at sign-in and from the installer, and closing a
+// console window would kill it. Command-line use attaches to the caller's console instead.
+#![cfg_attr(windows, windows_subsystem = "windows")]
+
 use std::process::ExitCode;
 use std::sync::Arc;
 use std::time::Duration;
@@ -19,6 +23,8 @@ commands:
   version          print the helper and API versions";
 
 fn main() -> ExitCode {
+    #[cfg(windows)]
+    attach_parent_console();
     let cmd = std::env::args().nth(1).unwrap_or_else(|| "serve".into());
     match cmd.as_str() {
         "version" | "--version" => {
@@ -181,6 +187,21 @@ async fn serve() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+/// Run from a terminal, a GUI-subsystem program has no standard handles: borrow the parent's console so
+/// `fonts`, `version` and errors still print. Pipes (the installer, tests) are left alone.
+#[cfg(windows)]
+fn attach_parent_console() {
+    use windows_sys::Win32::System::Console::{
+        AttachConsole, GetStdHandle, ATTACH_PARENT_PROCESS, STD_OUTPUT_HANDLE,
+    };
+    // SAFETY: plain Win32 calls without pointers.
+    unsafe {
+        if GetStdHandle(STD_OUTPUT_HANDLE).is_null() {
+            AttachConsole(ATTACH_PARENT_PROCESS);
+        }
+    }
+}
+
 async fn shutdown_signal() {
     #[cfg(unix)]
     {
@@ -191,6 +212,10 @@ async fn shutdown_signal() {
             _ = term.recv() => {},
         }
     }
+    // Without a console the handler may never fire, or fail to register; a failure must not read
+    // as "stop now".
     #[cfg(not(unix))]
-    let _ = tokio::signal::ctrl_c().await;
+    if tokio::signal::ctrl_c().await.is_err() {
+        std::future::pending::<()>().await;
+    }
 }
