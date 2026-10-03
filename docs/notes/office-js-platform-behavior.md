@@ -222,3 +222,23 @@ Bugs found and fixed during the smoke test:
 Dev setup notes for this PC:
 - PowerPoint silently ignores a developer manifest whose path contains a comma (`…\Open IT Systems,LLC\…`): no manifest parsing in `OfficeAddins.log.txt`, and the sideload document shows "This add-in is no longer available". Registering a copy at `%LOCALAPPDATA%\SlideCheckDev\manifest.xml` under `HKCU\Software\Microsoft\Office\16.0\WEF\Developer` fixed it; insert it from Home > Add-ins > Developer Add-ins.
 - `office-addin-debugging start` ends its webpack child when it exits; run `npm run dev-server --workspace @slidecheck/addin` in its own terminal.
+### Font probe experiment: PowerPoint for Windows 16.0.20430.20092, WebView2 154 (2026-10-02)
+
+Two methods ran in the dev pane without the helper: the canvas width probe used on Mac, and Chromium's Local Font Access API (`window.queryLocalFonts()`, called from a button click). The code is in commit 308b72e and was removed afterwards (8d19146). Sources are what the helper reported on this PC.
+
+| Family | Source | Canvas probe | `queryLocalFonts()` |
+|---|---|---|---|
+| Arial, Segoe UI | Windows | detected | listed |
+| Bahnschrift, Bahnschrift SemiBold, Segoe UI Variable Display, Sitka Heading | Windows, variable fonts and named instances | detected | listed |
+| Avenir, Barlow | user-installed | detected | listed |
+| Nunito Sans, Nunito Sans 10pt | user-installed (variable and static) | not detected | not listed |
+| Leelawadee, Microsoft Uighur | Office private fonts | not detected | not listed |
+| Aptos, Aptos Narrow, Abadi | Office cloud fonts | not detected | not listed |
+| a made-up name | nowhere | not detected | not listed |
+
+`queryLocalFonts` exists in PowerPoint's WebView2 and returned 1218 faces (1287 family and full names) after one click.
+
+**Conclusions:**
+- Unlike WKWebView on Mac, WebView2 exposes Windows and most user-installed fonts, including variable-font instance names, and `queryLocalFonts()` returns a real installed list without the helper.
+- Both methods miss every Office private and cloud font, Aptos (Office's default) included, and they missed the user's Nunito Sans. A missing-font check built on them alone would raise false alarms for exactly the fonts decks use most, so they could only ever reduce the show-machine-list warnings on Windows, not replace the helper.
+- Not tested: whether the permission prompt appears or persists across sessions, behaviour from the production origin, and Office on the web.
