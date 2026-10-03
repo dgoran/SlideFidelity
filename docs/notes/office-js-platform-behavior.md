@@ -236,9 +236,9 @@ Two methods ran in the dev pane without the helper: the canvas width probe used 
 | Aptos, Aptos Narrow, Abadi | Office cloud fonts | not detected | not listed |
 | a made-up name | nowhere | not detected | not listed |
 
-`queryLocalFonts` exists in PowerPoint's WebView2 and returned 1218 faces (1287 family and full names) after one click.
+`queryLocalFonts` exists in PowerPoint's WebView2. The first click showed a permission prompt; once allowed, it returned 1218 faces (1287 family and full names).
 
 **Conclusions:**
 - Unlike WKWebView on Mac, WebView2 exposes Windows and most user-installed fonts, including variable-font instance names, and `queryLocalFonts()` returns a real installed list without the helper.
 - Both methods miss every Office private and cloud font, Aptos (Office's default) included, and they missed the user's Nunito Sans. A missing-font check built on them alone would raise false alarms for exactly the fonts decks use most, so they could only ever reduce the show-machine-list warnings on Windows, not replace the helper.
-- Not tested: whether the permission prompt appears or persists across sessions, behaviour from the production origin, and Office on the web.
+- Not tested: whether the permission persists across sessions, behaviour from the production origin, and Office on the web.
