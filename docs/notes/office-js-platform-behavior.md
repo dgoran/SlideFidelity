@@ -211,7 +211,7 @@ After the fix the helper reports 329 families and 1028 names; every GDI face nam
 | Pane (dev add-in) | Fonts row: **"Exact font check: on (SlideCheck Helper v0.1.0)"** |
 | Repair (`msiexec /i` of the installed build) | certificate kept (`install-cert: Unchanged`); helper stopped and restarted |
 | Uninstall (`msiexec /x`) | running helper stopped; root removed from the store; program files, Run value and `C:\ProgramData\SlideCheck` deleted (the next install started from an empty state folder). Per-user logs in `%LOCALAPPDATA%\SlideCheck\Helper` stay |
-| Sign-out and sign-in (Run entry) | pending |
+| Reboot and sign-in (Run entry) | helper started 34 s after boot, as the user, not elevated, no window; answering on 47317 |
 | UAC prompts | one per `msiexec` run (user-reported count pending) |
 
 Bugs found and fixed during the smoke test:
