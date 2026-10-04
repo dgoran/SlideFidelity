@@ -242,3 +242,17 @@ Two methods ran in the dev pane without the helper: the canvas width probe used 
 - Unlike WKWebView on Mac, WebView2 exposes Windows and most user-installed fonts, including variable-font instance names, and `queryLocalFonts()` returns a real installed list without the helper.
 - Both methods miss every Office private and cloud font, Aptos (Office's default) included, and they missed the user's Nunito Sans. A missing-font check built on them alone would raise false alarms for exactly the fonts decks use most, so they could only ever reduce the show-machine-list warnings on Windows, not replace the helper.
 - Not tested: whether the permission persists across sessions, behaviour from the production origin, and Office on the web.
+### Helper plan U9: SmartScreen on the signed release MSI (2026-10-03)
+
+`SlideCheckHelper-0.1.0.msi` (release build b297d25, SHA-256 `75C8FB85…6A2D12`), signed through Azure Artifact Signing (account `openitsystems-signing`, profile `sliderelay-public`) and verified with `signtool verify /pa`. Downloaded in the browser from a private GitHub pre-release (`helper-v0.1.0-smartscreen-test`) and run.
+
+| Check | Result |
+|---|---|
+| Publisher shown | **US, Florida, Orlando, "Open IT Systems, LLC"**: the verified identity, not "Unknown publisher" |
+| SmartScreen | **"Microsoft Defender SmartScreen prevented an unrecognized app from starting"**: the new file and publisher have no download reputation yet |
+| Downloaded file | identical SHA-256; no `Zone.Identifier` stream was present when checked afterwards |
+
+**Conclusions:**
+- Signing works end to end; users see the company as publisher.
+- The "unrecognized app" warning is reputation, not a signing problem, and is expected for a new installer. It clears as the signed installer is downloaded and run; Artifact Signing ties reputation to the validated identity rather than to the short-lived leaf certificates. Until then, the download page should tell users to choose "More info > Run anyway", or Microsoft can be asked to review the file (Microsoft Security Intelligence submission as a software developer).
+- Intune and other MDM installs are not affected: SmartScreen checks files downloaded from the internet, not apps an MDM deploys.
