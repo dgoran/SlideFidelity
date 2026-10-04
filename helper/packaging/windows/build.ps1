@@ -11,6 +11,9 @@ Signing (Azure Artifact Signing through signtool): set SLIDECHECK_SIGN_DLIB to t
 Azure.CodeSigning.Dlib.dll and SLIDECHECK_SIGN_METADATA to its metadata.json (endpoint, account,
 certificate profile). signtool comes from the Windows SDK; set SIGNTOOL if it is not on PATH.
 Without both variables the MSI is built unsigned with a warning (local testing only).
+
+The signing identity needs the "Artifact Signing Certificate Profile Signer" role on the signing account
+(Owner alone is refused with 403). Sign in first with `az login`; the dlib uses that session.
 #>
 param([switch]$Dev)
 $ErrorActionPreference = 'Stop'
