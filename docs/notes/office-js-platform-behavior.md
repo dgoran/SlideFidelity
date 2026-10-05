@@ -198,7 +198,7 @@ After the fix the helper reports 329 families and 1028 names; every GDI face nam
 **Conclusions:**
 - U2 gate passes: a machine-wide root added by an elevated installer is trusted by WebView2 in PowerPoint with no user prompt, and its purpose is limited to Server Authentication. U9 (MSI) can proceed.
 - The shipped helper triggers no firewall prompt.
-- **Still open: Local Network Access.** This test pane was served from https://localhost:3000, so pane-to-helper was local-to-local. Production serves the pane from https://app.slidefidelity.com (public), and Chromium (WebView2 154) restricts public-to-loopback requests (Local Network Access permission). Test with the production origin before release.
+- **Local Network Access: passed** (see "Helper plan: Local Network Access from the production origin" below).
 ### Helper plan U9 smoke test: dev MSI, PowerPoint for Windows 16.0.20430.20092 (2026-10-02)
 
 `SlideFidelityHelper-0.1.0-dev.msi` from `helper/packaging/windows/build.ps1 -Dev` (unsigned; WiX 5.0.2), installed from a non-admin PowerShell with `msiexec /i … /l*v`. Final build: 0b23c3a.
@@ -256,3 +256,15 @@ Two methods ran in the dev pane without the helper: the canvas width probe used 
 - Signing works end to end; users see the company as publisher.
 - The "unrecognized app" warning is reputation, not a signing problem, and is expected for a new installer. It clears as the signed installer is downloaded and run; Artifact Signing ties reputation to the validated identity rather than to the short-lived leaf certificates. Until then, the download page should tell users to choose "More info > Run anyway", or Microsoft can be asked to review the file (Microsoft Security Intelligence submission as a software developer).
 - Intune and other MDM installs are not affected: SmartScreen checks files downloaded from the internet, not apps an MDM deploys.
+
+### Helper plan: Local Network Access from the production origin, PowerPoint for Windows 16.0.20430.20092, WebView2 154 (2026-10-04)
+
+The production add-in (Worker `slidefidelity-addin`, https://app.slidefidelity.com, production manifest registered as a developer add-in) and the signed release helper `SlideFidelityHelper-0.1.0.msi` (accepts only `Origin: https://app.slidefidelity.com`; `https://localhost:3000` gets 403).
+
+| Check | Result |
+|---|---|
+| Pane origin | https://app.slidefidelity.com (public) |
+| Pane to `https://localhost:47317` | reached: Fonts row **"Exact font check: on (SlideFidelity Helper v0.1.0)"** |
+| Local Network Access prompt | none reported |
+
+**Conclusion:** WebView2 154 in PowerPoint for Windows lets the public production origin call the loopback helper over HTTPS with no prompt. The goal-capsule stop condition does not apply. Still to check the same way: PowerPoint for Mac (WKWebView) and Office on the web (Chrome's Local Network Access prompt and iframe permission delegation).
