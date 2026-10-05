@@ -1,5 +1,5 @@
-//! SlideCheck Helper: serves this computer's font families to the SlideCheck PowerPoint add-in
-//! over HTTPS on localhost (plan: docs/plans/2026-10-01-2113-feat-slidecheck-helper-plan.md).
+//! SlideFidelity Helper: serves this computer's font families to the SlideFidelity PowerPoint add-in
+//! over HTTPS on localhost (plan: docs/plans/2026-10-01-2113-feat-slidefidelity-helper-plan.md).
 
 pub mod cert;
 pub mod config;

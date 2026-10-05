@@ -17,19 +17,19 @@ describe("CORS (KTD8)", () => {
 
   it("a preflight from a listed origin is allowed", async () => {
     const h = makeHarness();
-    const res = await h.request("/linkcheck", preflight("https://app.slidecheck.test"));
+    const res = await h.request("/linkcheck", preflight("https://app.slidefidelity.test"));
     expect(res.status).toBe(204);
-    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://app.slidecheck.test");
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://app.slidefidelity.test");
     expect(res.headers.get("Access-Control-Allow-Headers")?.toLowerCase()).toContain("authorization");
     expect(res.headers.get("Access-Control-Allow-Credentials")).toBeNull();
   });
 
   it("actual responses only echo listed origins", async () => {
     const h = makeHarness();
-    const ok = await h.request("/health", { headers: { Origin: "https://slidecheck.test" } });
+    const ok = await h.request("/health", { headers: { Origin: "https://slidefidelity.test" } });
     expect(ok.status).toBe(200);
-    expect(ok.headers.get("Access-Control-Allow-Origin")).toBe("https://slidecheck.test");
-    const bad = await h.request("/health", { headers: { Origin: "https://slidecheck.test.evil.example" } });
+    expect(ok.headers.get("Access-Control-Allow-Origin")).toBe("https://slidefidelity.test");
+    const bad = await h.request("/health", { headers: { Origin: "https://slidefidelity.test.evil.example" } });
     expect(bad.headers.get("Access-Control-Allow-Origin")).toBeNull();
   });
 });

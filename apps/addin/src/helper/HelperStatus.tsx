@@ -1,15 +1,15 @@
 /**
- * SlideCheck Helper status (helper plan U12, R1, R5; H1, H5, H7): shown in the Problems view's
+ * SlideFidelity Helper status (helper plan U12, R1, R5; H1, H5, H7): shown in the Problems view's
  * Fonts category and in Settings.
  *
- * - Probing: "Checking for SlideCheck Helper…".
- * - Connected: "Exact font check: on (SlideCheck Helper vX)", plus a notify-only update notice (H5)
+ * - Probing: "Checking for SlideFidelity Helper…".
+ * - Connected: "Exact font check: on (SlideFidelity Helper vX)", plus a notify-only update notice (H5)
  *   and a certificate-renewal note when fewer than 90 days remain (H1).
  * - Offered: the install offer (`HelperOffer`).
- * - Waiting: "Waiting for SlideCheck Helper…" with Cancel.
+ * - Waiting: "Waiting for SlideFidelity Helper…" with Cancel.
  * - Silent (web, iPad, mobile, or dismissed): "Using show-machine list". In Settings, a dismissed
  *   user on desktop can still start the install.
- * - Outdated: "SlideCheck Helper vX is too old for this version of SlideCheck" with a download.
+ * - Outdated: "SlideFidelity Helper vX is too old for this version of SlideFidelity" with a download.
  *
  * Helper-reported strings (versions, notes) are untrusted and rendered as React text only; pages
  * open only through the store (https-checked, `openBrowserWindow`).
@@ -42,12 +42,12 @@ export function useHelperSnapshot(store: Pick<HelperStore, "getSnapshot" | "subs
 }
 
 export function connectedText(version: string): string {
-  return `Exact font check: on (SlideCheck Helper v${version})`;
+  return `Exact font check: on (SlideFidelity Helper v${version})`;
 }
 
 export function certText(days: number): string {
   const n = Math.max(0, days);
-  return `The helper's certificate expires in ${n} ${n === 1 ? "day" : "days"}. Reinstall SlideCheck Helper to renew it.`;
+  return `The helper's certificate expires in ${n} ${n === 1 ? "day" : "days"}. Reinstall SlideFidelity Helper to renew it.`;
 }
 
 export interface HelperStatusProps {
@@ -60,8 +60,8 @@ export function HelperStatus({ store, placement }: HelperStatusProps) {
   const snap = useHelperSnapshot(store);
   const inSettings = placement === "settings";
   return (
-    <section className={inSettings ? s.root : `${s.root} ${s.framed}`} aria-label="SlideCheck Helper" data-helper-status={snap.phase} data-placement={placement}>
-      {inSettings && <span className={s.heading}>SlideCheck Helper</span>}
+    <section className={inSettings ? s.root : `${s.root} ${s.framed}`} aria-label="SlideFidelity Helper" data-helper-status={snap.phase} data-placement={placement}>
+      {inSettings && <span className={s.heading}>SlideFidelity Helper</span>}
       <Body snap={snap} store={store} inSettings={inSettings} />
     </section>
   );
@@ -73,7 +73,7 @@ function Body({ snap, store, inSettings }: { snap: HelperSnapshot; store: Helper
     case "probing":
       return (
         <p className={s.note} role="status">
-          Checking for SlideCheck Helper…
+          Checking for SlideFidelity Helper…
         </p>
       );
     case "connected": {
@@ -96,7 +96,7 @@ function Body({ snap, store, inSettings }: { snap: HelperSnapshot; store: Helper
             <div className={s.bar} data-helper-cert="">
               <p className={s.note}>{certText(h.certDaysRemaining)}</p>
               <Button size="small" appearance="secondary" onClick={() => store.openDownloadPage()}>
-                Download SlideCheck Helper
+                Download SlideFidelity Helper
               </Button>
             </div>
           )}
@@ -109,9 +109,9 @@ function Body({ snap, store, inSettings }: { snap: HelperSnapshot; store: Helper
       return (
         <>
           <p className={s.line} role="status">
-            Waiting for SlideCheck Helper…
+            Waiting for SlideFidelity Helper…
           </p>
-          <p className={s.note}>Run the installer you downloaded. SlideCheck connects to the helper automatically.</p>
+          <p className={s.note}>Run the installer you downloaded. SlideFidelity connects to the helper automatically.</p>
           <div className={s.bar}>
             <Button size="small" appearance="secondary" onClick={() => store.cancelInstall()}>
               Cancel
@@ -123,11 +123,11 @@ function Body({ snap, store, inSettings }: { snap: HelperSnapshot; store: Helper
       return (
         <>
           <p className={s.line} role="status">
-            {`SlideCheck Helper v${snap.health?.version ?? "?"} is too old for this version of SlideCheck`}
+            {`SlideFidelity Helper v${snap.health?.version ?? "?"} is too old for this version of SlideFidelity`}
           </p>
           <div className={s.bar}>
             <Button size="small" appearance="primary" onClick={() => store.install()}>
-              Download the latest SlideCheck Helper
+              Download the latest SlideFidelity Helper
             </Button>
           </div>
         </>
@@ -141,7 +141,7 @@ function Body({ snap, store, inSettings }: { snap: HelperSnapshot; store: Helper
           {inSettings && snap.reason !== "host" && (
             <div className={s.bar}>
               <Button size="small" appearance="secondary" onClick={() => store.install()}>
-                Install SlideCheck Helper
+                Install SlideFidelity Helper
               </Button>
             </div>
           )}

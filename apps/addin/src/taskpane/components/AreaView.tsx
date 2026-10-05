@@ -4,7 +4,7 @@
  */
 import { useMemo } from "react";
 import { makeStyles, tokens } from "@fluentui/react-components";
-import type { Area, AuditResult, Finding } from "@slidecheck/audit-core";
+import type { Area, AuditResult, Finding } from "@slidefidelity/audit-core";
 import { featureForFinding, usePlan, type Feature } from "../../license/gate";
 import { AREA_LABELS, usePaneSlots } from "../context";
 import { filterFindings } from "../model/tree";
@@ -94,7 +94,7 @@ export function AreaView({ area, result, viewportHeight }: AreaViewProps) {
         <LockedSection
           title={lockedTitle}
           counts={countSeverities(locked)}
-          description="Details and fixes for these findings are part of SlideCheck Pro."
+          description="Details and fixes for these findings are part of SlideFidelity Pro."
         />
       )}
     </div>

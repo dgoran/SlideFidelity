@@ -1,5 +1,5 @@
 {
-  "name": "slidecheck",
+  "name": "slidefidelity",
   "private": true,
   "workspaces": [
     "packages/*",

@@ -29,7 +29,7 @@ import {
   titleSources,
   type Draft,
 } from "./model";
-import type { AuditResult, Finding } from "@slidecheck/audit-core";
+import type { AuditResult, Finding } from "@slidefidelity/audit-core";
 
 const usePickerStyles = makeStyles({
   fieldset: {

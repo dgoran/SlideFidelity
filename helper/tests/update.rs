@@ -8,8 +8,8 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use semver::Version;
-use slidecheck_helper::config::Managed;
-use slidecheck_helper::update::{
+use slidefidelity_helper::config::Managed;
+use slidefidelity_helper::update::{
     check, check_once, run_scheduler, Fetch, FetchError, HttpFetch, Platform, UpdateError,
     UpdateInfo, UpdateState, FEED_PUBLIC_KEY, FEED_URL, SIGNATURE_URL,
 };
@@ -67,7 +67,7 @@ fn v(s: &str) -> Version {
 
 #[test]
 fn feed_urls_are_https_and_signature_sits_next_to_feed() {
-    assert_eq!(FEED_URL, "https://app.slidecheck.io/helper/latest.json");
+    assert_eq!(FEED_URL, "https://app.slidefidelity.com/helper/latest.json");
     assert_eq!(SIGNATURE_URL, format!("{FEED_URL}.minisig"));
 }
 
@@ -82,13 +82,13 @@ async fn newer_signed_feed_yields_update_info() {
         info,
         UpdateInfo {
             version: "0.2.0".into(),
-            page: "https://slidecheck.io/helper".into(),
+            page: "https://slidefidelity.com/helper".into(),
             notes: Some("Faster font scan.".into()),
         }
     );
     let json = serde_json::to_value(&info).unwrap();
     assert_eq!(json["version"], "0.2.0");
-    assert_eq!(json["page"], "https://slidecheck.io/helper");
+    assert_eq!(json["page"], "https://slidefidelity.com/helper");
 }
 
 #[tokio::test]
@@ -136,7 +136,7 @@ async fn verifying_with_another_public_key_is_rejected() {
 #[tokio::test]
 async fn tampered_feed_is_rejected() {
     let feed = String::from_utf8(fixture("newer.json")).unwrap().replace(
-        "https://slidecheck.io/helper",
+        "https://slidefidelity.com/helper",
         "https://evil.example/helper",
     );
     let f = FakeFetch::new(feed.into_bytes(), fixture("newer.json.minisig"));

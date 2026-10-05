@@ -1,12 +1,12 @@
 /* global window, document, sessionStorage, fetch, setInterval, clearInterval, setTimeout, clearTimeout, URL */
-// SlideCheck account page (D6): email-code sign-in, plan display, Paddle checkout, customer portal.
+// SlideFidelity account page (D6): email-code sign-in, plan display, Paddle checkout, customer portal.
 // Every string from the API or the user is rendered with textContent only. No inline scripts (CSP).
 (function () {
   "use strict";
 
-  var config = window.SLIDECHECK_CONFIG || {};
+  var config = window.SLIDEFIDELITY_CONFIG || {};
   var API = String(config.API_BASE_URL || "").replace(/\/+$/, "");
-  var SESSION_KEY = "slidecheck.account.session";
+  var SESSION_KEY = "slidefidelity.account.session";
   var DEFAULT_RESEND_SECONDS = 30;
 
   var state = { email: "", session: null, plan: null, resendTimer: null, pollTimer: null, sendSeq: 0, paddleReady: false };
@@ -88,7 +88,7 @@
       case "invalid_email":
         return "Enter a valid email address.";
       case "invalid_code":
-        return "That code is not correct. Check the most recent email from SlideCheck and try again.";
+        return "That code is not correct. Check the most recent email from SlideFidelity and try again.";
       case "code_expired":
         return "That code has expired. Choose Resend code to get a new one.";
       case "code_locked":
@@ -104,9 +104,9 @@
       case "unauthorized":
         return "Your session has ended. Sign in again.";
       case "network":
-        return "Cannot reach SlideCheck. Check your connection and try again.";
+        return "Cannot reach SlideFidelity. Check your connection and try again.";
       default:
-        return "Something went wrong. Try again, or contact support@slidecheck.io.";
+        return "Something went wrong. Try again, or contact support@slidefidelity.com.";
     }
   }
 
@@ -191,7 +191,7 @@
     var plan = ent && typeof ent.plan === "string" ? ent.plan : "free";
     state.plan = plan;
     $("account-email").textContent = state.session.email || "";
-    var labels = { pro: "SlideCheck Pro", trial: "Pro trial", free: "Free" };
+    var labels = { pro: "SlideFidelity Pro", trial: "Pro trial", free: "Free" };
     $("account-plan").textContent = labels[plan] || plan;
 
     var detail = "";
@@ -342,7 +342,7 @@
       loadEntitlement().then(function (ent) {
         if (state.session !== session) return;
         if (ent && ent.plan === "pro") {
-          showStatus("Pro is active. In PowerPoint, open SlideCheck > Account and choose Refresh.");
+          showStatus("Pro is active. In PowerPoint, open SlideFidelity > Account and choose Refresh.");
         } else if (attempts < 6) {
           state.pollTimer = setTimeout(poll, 5000);
         } else {

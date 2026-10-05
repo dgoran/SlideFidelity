@@ -4,7 +4,7 @@
  * focus (D15), and untrusted deck strings rendered as text.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AuditResult, Finding } from "@slidecheck/audit-core";
+import type { AuditResult, Finding } from "@slidefidelity/audit-core";
 import type { RescanForFixResult } from "../../office/scan";
 import {
   colorUsageFinding,

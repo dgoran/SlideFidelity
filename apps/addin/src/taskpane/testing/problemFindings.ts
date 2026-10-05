@@ -2,7 +2,7 @@
  * Test-only builders for the Graphics Ops "Problems" finding kinds (playback, font availability,
  * layout). Loosely typed like `fakeFinding`; data carries only the fields the UI reads.
  */
-import type { Finding, FindingTarget, Severity } from "@slidecheck/audit-core";
+import type { Finding, FindingTarget, Severity } from "@slidefidelity/audit-core";
 import { fakeFinding, slideShape } from "./fixtures";
 
 type MediaKind = "media-missing" | "media-linked" | "media-online" | "media-format" | "media-poster-missing" | "media-playback-settings";

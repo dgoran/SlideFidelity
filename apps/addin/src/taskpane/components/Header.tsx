@@ -63,7 +63,7 @@ export function Header({ scan, onScan, accountSlot, settingsSlot, formatTime = d
       <div className={s.brand}>
         <Image width={24} height={24} src="assets/logo-filled.png" alt="" />
         <div className={s.titles}>
-          <h1 className={s.title}>SlideCheck</h1>
+          <h1 className={s.title}>SlideFidelity</h1>
           <p className={s.status} data-scan-status="">
             {statusText(scan, formatTime)}
             {outdated && <span className={s.hint}> · The presentation may have changed since this scan.</span>}

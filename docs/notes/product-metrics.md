@@ -1,6 +1,6 @@
 # Product metrics (D17)
 
-SlideCheck measures product success only from license-API (D1) data and Paddle. There is no in-pane tracking: the add-in sends no analytics, telemetry, or usage events, and deck content never leaves the device (R18).
+SlideFidelity measures product success only from license-API (D1) data and Paddle. There is no in-pane tracking: the add-in sends no analytics, telemetry, or usage events, and deck content never leaves the device (R18).
 
 ## Metrics and success criteria
 
@@ -20,15 +20,15 @@ Success for v1: trial-to-paid conversion at or above 3% and 90-day paid retentio
 - `subscriptions.first_active_at` and `subscriptions.canceled_at` (migration `0002_subscription_lifecycle.sql`) are written by the Paddle subscription webhooks. `first_active_at` uses Paddle's `first_billed_at`, falling back to the time of the first `active`/`past_due` event. `canceled_at` uses Paddle's `canceled_at` when the status is `canceled`.
 - Subscriptions stored before migration 0002 have NULL lifecycle columns until their next webhook. Paddle includes `first_billed_at` on every subscription event, so they fill in at the next renewal or update.
 - Deleted accounts (`DELETE /account`) are removed with their subscriptions, so the numbers describe accounts that still exist. Use Paddle for historical revenue.
-- The AppSource reviewer account (`appsource-review@slidecheck.io`) is excluded. If `REVIEWER_EMAIL` changes in `wrangler.toml`, update `scripts/metrics.sql`.
+- The AppSource reviewer account (`appsource-review@slidefidelity.com`) is excluded. If `REVIEWER_EMAIL` changes in `wrangler.toml`, update `scripts/metrics.sql`.
 
 ## Running the queries
 
 From `apps/license-api`:
 
 ```sh
-npx wrangler d1 migrations apply slidecheck-license --remote   # once, to add the lifecycle columns
-npx wrangler d1 execute slidecheck-license --remote --file scripts/metrics.sql
+npx wrangler d1 migrations apply slidefidelity-license --remote   # once, to add the lifecycle columns
+npx wrangler d1 execute slidefidelity-license --remote --file scripts/metrics.sql
 ```
 
 The script is read-only. It prints six result sets in order: sign-ups per week, trial starts per week, conversion by weekly cohort, overall conversion, 90-day retention, and active paid accounts. `test/metrics.test.ts` runs the same file against the test database to keep it in step with the schema.

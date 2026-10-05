@@ -6,14 +6,16 @@ use std::process::ExitCode;
 use std::sync::Arc;
 use std::time::Duration;
 
-use slidecheck_helper::cert::{self, CertPaths, InstallOptions, InstallOutcome, SystemTrustStore};
-use slidecheck_helper::config::{self, Managed};
-use slidecheck_helper::fonts::{self, FontCache};
-use slidecheck_helper::server::{self, ServerState};
-use slidecheck_helper::update::{self, HttpFetch, Platform, UpdateState};
-use slidecheck_helper::{logging, paths, API_VERSION};
+use slidefidelity_helper::cert::{
+    self, CertPaths, InstallOptions, InstallOutcome, SystemTrustStore,
+};
+use slidefidelity_helper::config::{self, Managed};
+use slidefidelity_helper::fonts::{self, FontCache};
+use slidefidelity_helper::server::{self, ServerState};
+use slidefidelity_helper::update::{self, HttpFetch, Platform, UpdateState};
+use slidefidelity_helper::{logging, paths, API_VERSION};
 
-const USAGE: &str = "usage: slidecheck-helper <command>
+const USAGE: &str = "usage: slidefidelity-helper <command>
 
 commands:
   serve            run the HTTPS font service (default; started at login)
@@ -29,7 +31,7 @@ fn main() -> ExitCode {
     match cmd.as_str() {
         "version" | "--version" => {
             println!(
-                "slidecheck-helper {} (api {API_VERSION})",
+                "slidefidelity-helper {} (api {API_VERSION})",
                 env!("CARGO_PKG_VERSION")
             );
             ExitCode::SUCCESS
@@ -80,7 +82,7 @@ fn main() -> ExitCode {
             let _guard = logging::init(false);
             match cert::uninstall_cert(&SystemTrustStore, &paths::state_dir()) {
                 Ok(()) => {
-                    // %ProgramData%\SlideCheck, if now empty.
+                    // %ProgramData%\SlideFidelity, if now empty.
                     #[cfg(windows)]
                     let _ = std::fs::remove_dir(paths::state_lock_root());
                     ExitCode::SUCCESS

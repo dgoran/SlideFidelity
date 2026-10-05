@@ -80,7 +80,7 @@ Record for each answer: host build (for example "PowerPoint for Mac 16.9x, M365 
 
 ### Q6. Do API edits join the host undo stack?
 
-- Why it matters: This decides whether "Undo" in the fix UI can rely on Ctrl/Cmd+Z, or whether SlideCheck needs its own reversal.
+- Why it matters: This decides whether "Undo" in the fix UI can rely on Ctrl/Cmd+Z, or whether SlideFidelity needs its own reversal.
 - How to test: Run a fix that changes a font and deletes a shape in one `PowerPoint.run`. Press Ctrl/Cmd+Z once and then again. Record what comes back and how many steps it takes.
 
 | Host | Undoable? | Steps per `PowerPoint.run` | Status |
@@ -131,7 +131,7 @@ Windows (WebView2/Edge) normally exposes user-installed fonts, but not Office's 
 
 ### Local helper connection spike: PowerPoint for Mac 16.113 (2026-10-01)
 
-A stand-in "SlideCheck Helper" (Node) served the installed font list on two loopback endpoints. The task pane, a development build served from https://localhost:3000 with a CSP that allowed both endpoints, fetched each one. The code is in commit 73da3ed and was removed afterwards.
+A stand-in "SlideFidelity Helper" (Node) served the installed font list on two loopback endpoints. The task pane, a development build served from https://localhost:3000 with a CSP that allowed both endpoints, fetched each one. The code is in commit 73da3ed and was removed afterwards.
 
 | Endpoint | Result in the pane | Helper log |
 |---|---|---|
@@ -152,7 +152,7 @@ The spike is the Rust binary in `helper/spikes/mac/` (rcgen 0.14, axum-server wi
 | Leaf valid for 826 days (825 + 1-day backdate), and 3650 days | **rejected**: "Certificate exceeds maximum temporal validity period", even with the root trusted |
 | Leaf valid for 825 days in total (824 + 1-day backdate), and 398 days | accepted |
 | `nscurl` (NSURLSession) to https://localhost:47317 with the 825-day chain trusted | 200 |
-| SlideCheck pane in PowerPoint, origin https://localhost:3000 | health 200; fonts 200, 991 families; no preflight |
+| SlideFidelity pane in PowerPoint, origin https://localhost:3000 | health 200; fonts 200, 991 families; no preflight |
 | Trust step run as root from a LaunchDaemon, no user session (Jamf stand-in) | **fails**: `SecTrustSettingsSetTrustSettings: The authorization was denied since no user interaction was possible.` exit 1. The certificate is added to the keychain but not trusted |
 | Trust step run with `sudo` in Terminal (logged-in admin) | succeeds with only the sudo password, no extra dialog |
 | Office and user font folders read from the LaunchAgent (DFonts, Office FontCache, ~/Library/Fonts, /Library/Fonts) | 991 families, 0 read errors, no privacy prompt; identical to the list read from Terminal |
@@ -169,7 +169,7 @@ The real helper ran as a debug build on https://localhost:47317, serving the tru
 
 | Case | Result in the pane |
 |---|---|
-| Blank deck | Fonts row: "Exact font check: on (SlideCheck Helper v0.1.0)"; Ready for show |
+| Blank deck | Fonts row: "Exact font check: on (SlideFidelity Helper v0.1.0)"; Ready for show |
 | Corpus deck using MS Gothic (Windows-only, delivered to Mac as an Office cloud font) | 1 note: the show-machine finding says "It is installed on this computer" — the helper found it in the Office FontCache |
 | Generated deck using "Futura PT" (not installed) and Arial | "1 problem to fix": **Font missing on this computer: Futura PT**, with Replace missing fonts; the show-machine finding is a note |
 
@@ -177,7 +177,7 @@ The pane negotiated HTTP/2 with the helper. The host guard had to accept `:autho
 
 ### Helper plan U2 gate: Windows trust and font access, PowerPoint for Windows 16.0.20430.20092 (2026-10-02)
 
-Windows 11 Pro 10.0.26300, PowerPoint for Microsoft 365 16.0.20430.20092 (Current Channel, x64), WebView2 Runtime 154.0.4258.48. The real helper (debug build, branch `feat/slidecheck-addin` after 95097ad) replaced the spike binary. `install-cert` ran from an elevated PowerShell with `SLIDECHECK_HELPER_STATE_DIR=%TEMP%\sc-state`; `serve` ran unelevated with the same variable. The pane was the dev add-in sideloaded by `npm run start --workspace @slidecheck/addin` (origin https://localhost:3000).
+Windows 11 Pro 10.0.26300, PowerPoint for Microsoft 365 16.0.20430.20092 (Current Channel, x64), WebView2 Runtime 154.0.4258.48. The real helper (debug build, branch `feat/slidefidelity-addin` after 95097ad) replaced the spike binary. `install-cert` ran from an elevated PowerShell with `SLIDEFIDELITY_HELPER_STATE_DIR=%TEMP%\sc-state`; `serve` ran unelevated with the same variable. The pane was the dev add-in sideloaded by `npm run start --workspace @slidefidelity/addin` (origin https://localhost:3000).
 
 | Check | Result |
 |---|---|
@@ -185,9 +185,9 @@ Windows 11 Pro 10.0.26300, PowerPoint for Microsoft 365 16.0.20430.20092 (Curren
 | State folder ACL after `install-cert` | owner Administrators; `SYSTEM` and `Administrators` full, `Users` read/execute; no inherited entries |
 | `serve` unelevated | listens on `127.0.0.1:47317` and `[::1]:47317` only; leaf 823 days left |
 | Schannel (`curl.exe`) to `localhost`, `[::1]` | chain trusted; `/v1/health` 200, `/v1/fonts` 200; origin `https://evil.example` gets 403. curl's Schannel backend hard-fails the revocation check (`CRYPT_E_NO_REVOCATION_CHECK`: the leaf has no CRL/OCSP) unless `--ssl-no-revoke`; WebView2 does not |
-| SlideCheck pane in PowerPoint (WebView2), root in `LocalMachine\Root` | Fonts row: **"Exact font check: on (SlideCheck Helper v0.1.0)"** |
+| SlideFidelity pane in PowerPoint (WebView2), root in `LocalMachine\Root` | Fonts row: **"Exact font check: on (SlideFidelity Helper v0.1.0)"** |
 | Root in `CurrentUser\Root` instead | not tested (the product only uses `LocalMachine\Root`) |
-| Windows Firewall prompt | one prompt, for **`node.exe`** (the webpack dev server listens on all interfaces). None for `slidecheck-helper.exe`: loopback-only listeners need no rule |
+| Windows Firewall prompt | one prompt, for **`node.exe`** (the webpack dev server listens on all interfaces). None for `slidefidelity-helper.exe`: loopback-only listeners need no rule |
 
 **Font parity** against `tools/list-fonts-windows.ps1` (GDI+ `InstalledFontCollection` plus Office private and cloud folders): the script listed 643 names. The first file-only scan missed about 100, all **named instances of variable fonts**, which Windows lists as separate legacy families cut to 31 characters: Bahnschrift SemiBold, Segoe UI Variable Display Semib, Sitka Heading, Cascadia Code Light, Rubik Black, Acumin Variable Concept Black I (cloud font). PowerPoint stores these names in decks. Fixed in 95097ad:
 - each `fvar` named instance adds "<family> <subfamily>" without "Regular", plus the 31-character cut;
@@ -198,19 +198,19 @@ After the fix the helper reports 329 families and 1028 names; every GDI face nam
 **Conclusions:**
 - U2 gate passes: a machine-wide root added by an elevated installer is trusted by WebView2 in PowerPoint with no user prompt, and its purpose is limited to Server Authentication. U9 (MSI) can proceed.
 - The shipped helper triggers no firewall prompt.
-- **Still open: Local Network Access.** This test pane was served from https://localhost:3000, so pane-to-helper was local-to-local. Production serves the pane from https://app.slidecheck.io (public), and Chromium (WebView2 154) restricts public-to-loopback requests (Local Network Access permission). Test with the production origin before release.
+- **Still open: Local Network Access.** This test pane was served from https://localhost:3000, so pane-to-helper was local-to-local. Production serves the pane from https://app.slidefidelity.com (public), and Chromium (WebView2 154) restricts public-to-loopback requests (Local Network Access permission). Test with the production origin before release.
 ### Helper plan U9 smoke test: dev MSI, PowerPoint for Windows 16.0.20430.20092 (2026-10-02)
 
-`SlideCheckHelper-0.1.0-dev.msi` from `helper/packaging/windows/build.ps1 -Dev` (unsigned; WiX 5.0.2), installed from a non-admin PowerShell with `msiexec /i … /l*v`. Final build: 0b23c3a.
+`SlideFidelityHelper-0.1.0-dev.msi` from `helper/packaging/windows/build.ps1 -Dev` (unsigned; WiX 5.0.2), installed from a non-admin PowerShell with `msiexec /i … /l*v`. Final build: 0b23c3a.
 
 | Check | Result |
 |---|---|
-| Install: root in Local Computer > Trusted Root, Intended Purposes | new root per install, **Server Authentication** only; thumbprint matches `C:\ProgramData\SlideCheck\Helper\root.sha1` |
-| Install: Run value | `HKLM\…\Run` "SlideCheck Helper" = `"C:\Program Files\SlideCheck Helper\slidecheck-helper.exe" serve` |
+| Install: root in Local Computer > Trusted Root, Intended Purposes | new root per install, **Server Authentication** only; thumbprint matches `C:\ProgramData\SlideFidelity\Helper\root.sha1` |
+| Install: Run value | `HKLM\…\Run` "SlideFidelity Helper" = `"C:\Program Files\SlideFidelity Helper\slidefidelity-helper.exe" serve` |
 | Helper after an interactive install | running as the signed-in user, **not elevated** (TokenElevation 0), **no window**, answering on 47317 within 1 s |
-| Pane (dev add-in) | Fonts row: **"Exact font check: on (SlideCheck Helper v0.1.0)"** |
+| Pane (dev add-in) | Fonts row: **"Exact font check: on (SlideFidelity Helper v0.1.0)"** |
 | Repair (`msiexec /i` of the installed build) | certificate kept (`install-cert: Unchanged`); helper stopped and restarted |
-| Uninstall (`msiexec /x`) | running helper stopped; root removed from the store; program files, Run value and `C:\ProgramData\SlideCheck` deleted (the next install started from an empty state folder). Per-user logs in `%LOCALAPPDATA%\SlideCheck\Helper` stay |
+| Uninstall (`msiexec /x`) | running helper stopped; root removed from the store; program files, Run value and `C:\ProgramData\SlideFidelity` deleted (the next install started from an empty state folder). Per-user logs in `%LOCALAPPDATA%\SlideFidelity\Helper` stay |
 | Reboot and sign-in (Run entry) | helper started 34 s after boot, as the user, not elevated, no window; answering on 47317 |
 | UAC prompts | one per `msiexec` run (user-reported count pending) |
 
@@ -220,8 +220,8 @@ Bugs found and fixed during the smoke test:
 3. **Console window.** As a console program the helper opened a console window at start, and closing it killed the helper. It is now a Windows-subsystem program that attaches to the parent console for CLI use (0b23c3a).
 
 Dev setup notes for this PC:
-- PowerPoint silently ignores a developer manifest whose path contains a comma (`…\Open IT Systems,LLC\…`): no manifest parsing in `OfficeAddins.log.txt`, and the sideload document shows "This add-in is no longer available". Registering a copy at `%LOCALAPPDATA%\SlideCheckDev\manifest.xml` under `HKCU\Software\Microsoft\Office\16.0\WEF\Developer` fixed it; insert it from Home > Add-ins > Developer Add-ins.
-- `office-addin-debugging start` ends its webpack child when it exits; run `npm run dev-server --workspace @slidecheck/addin` in its own terminal.
+- PowerPoint silently ignores a developer manifest whose path contains a comma (`…\Open IT Systems,LLC\…`): no manifest parsing in `OfficeAddins.log.txt`, and the sideload document shows "This add-in is no longer available". Registering a copy at `%LOCALAPPDATA%\SlideFidelityDev\manifest.xml` under `HKCU\Software\Microsoft\Office\16.0\WEF\Developer` fixed it; insert it from Home > Add-ins > Developer Add-ins.
+- `office-addin-debugging start` ends its webpack child when it exits; run `npm run dev-server --workspace @slidefidelity/addin` in its own terminal.
 ### Font probe experiment: PowerPoint for Windows 16.0.20430.20092, WebView2 154 (2026-10-02)
 
 Two methods ran in the dev pane without the helper: the canvas width probe used on Mac, and Chromium's Local Font Access API (`window.queryLocalFonts()`, called from a button click). The code is in commit 308b72e and was removed afterwards (8d19146). Sources are what the helper reported on this PC.
@@ -244,7 +244,7 @@ Two methods ran in the dev pane without the helper: the canvas width probe used 
 - Not tested: whether the permission persists across sessions, behaviour from the production origin, and Office on the web.
 ### Helper plan U9: SmartScreen on the signed release MSI (2026-10-03)
 
-`SlideCheckHelper-0.1.0.msi` (release build b297d25, SHA-256 `75C8FB85…6A2D12`), signed through Azure Artifact Signing (account `openitsystems-signing`, profile `sliderelay-public`) and verified with `signtool verify /pa`. Downloaded in the browser from a private GitHub pre-release (`helper-v0.1.0-smartscreen-test`) and run.
+`SlideFidelityHelper-0.1.0.msi` (release build b297d25, SHA-256 `75C8FB85…6A2D12`), signed through Azure Artifact Signing (account `openitsystems-signing`, profile `sliderelay-public`) and verified with `signtool verify /pa`. Downloaded in the browser from a private GitHub pre-release (`helper-v0.1.0-smartscreen-test`) and run.
 
 | Check | Result |
 |---|---|

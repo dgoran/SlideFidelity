@@ -65,7 +65,7 @@ export interface LinkCheckReport {
 export interface LinkCheckDeps {
   /** Injected for tests; defaults to the global `fetch`. */
   fetch?: typeof fetch;
-  /** License API origin, e.g. `https://api.slidecheck.io`. */
+  /** License API origin, e.g. `https://api.slidefidelity.com`. */
   baseUrl: string;
   /** Current session token, or null when signed out. */
   getToken: () => string | null | undefined | Promise<string | null | undefined>;

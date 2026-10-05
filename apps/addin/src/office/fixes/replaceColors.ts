@@ -10,7 +10,7 @@
  * tint, ...) colors, effects, bullets, list styles, grouped shapes, layouts, masters, charts, and
  * SmartArt are listed unreachable.
  */
-import type { Finding, FindingTarget } from "@slidecheck/audit-core";
+import type { Finding, FindingTarget } from "@slidefidelity/audit-core";
 import {
   containerReason,
   findFontRanges,

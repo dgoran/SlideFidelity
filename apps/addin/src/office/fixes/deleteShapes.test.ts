@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { targetKey, type Finding } from "@slidecheck/audit-core";
+import { targetKey, type Finding } from "@slidefidelity/audit-core";
 import { previewFix, runFix } from "./engine";
 import { deleteShapesKind } from "./deleteShapes";
 import type { RunFixDeps } from "./types";

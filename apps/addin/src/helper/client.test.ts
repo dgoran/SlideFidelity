@@ -1,5 +1,5 @@
 /**
- * SlideCheck Helper client (U12): parallel port probe with a timeout, health validation, and the
+ * SlideFidelity Helper client (U12): parallel port probe with a timeout, health validation, and the
  * flattened font list. Fake fetch only; nothing here talks to a real helper.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -88,13 +88,13 @@ describe("probeHelper", () => {
 
 describe("parseHealth", () => {
   it("accepts the documented shape", () => {
-    const h = parseHealth(health({ platform: "windows", certDaysRemaining: null, update: { version: "0.2.0", page: "https://slidecheck.io/helper", notes: "Faster" } }));
+    const h = parseHealth(health({ platform: "windows", certDaysRemaining: null, update: { version: "0.2.0", page: "https://slidefidelity.com/helper", notes: "Faster" } }));
     expect(h).toEqual({
       version: "0.1.0",
       apiVersion: 1,
       platform: "windows",
       certDaysRemaining: null,
-      update: { version: "0.2.0", page: "https://slidecheck.io/helper", notes: "Faster" },
+      update: { version: "0.2.0", page: "https://slidefidelity.com/helper", notes: "Faster" },
     });
   });
 

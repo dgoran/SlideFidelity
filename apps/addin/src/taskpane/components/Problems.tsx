@@ -16,7 +16,7 @@
 import { forwardRef, useId, useMemo, useState, type ReactNode } from "react";
 import { Button, makeStyles, mergeClasses, tokens } from "@fluentui/react-components";
 import { CheckmarkCircle16Filled, ChevronDown16Regular, ChevronRight16Regular, Flag16Filled, Info16Regular, SlideSearch16Regular } from "@fluentui/react-icons";
-import { formatBytes, type AuditResult, type Finding, type FindingTarget } from "@slidecheck/audit-core";
+import { formatBytes, type AuditResult, type Finding, type FindingTarget } from "@slidefidelity/audit-core";
 import { featureForFinding, usePlan, type Feature } from "../../license/gate";
 import { primaryTarget } from "../../office/navigate";
 import { navigateFromPane, usePaneServices, usePaneSlots } from "../context";
@@ -127,7 +127,7 @@ const PASS_TEXT: Record<ProblemCategoryId, string> = {
   size: "No oversized, distorted, or low-resolution images.",
 };
 
-/** Fonts passed with the SlideCheck Helper's list of this computer's fonts (helper plan U12). */
+/** Fonts passed with the SlideFidelity Helper's list of this computer's fonts (helper plan U12). */
 const FONTS_PASS_WITH_HELPER = "Every font is embedded, a standard Office font, or installed on this computer.";
 
 export interface ProblemsProps {
@@ -275,7 +275,7 @@ function CategoryBody({ category: c, model, onShow }: { category: ProblemCategor
         <LockedSection
           title={LOCKED_TITLES[c.id]}
           counts={{ warning: c.warnings, info: c.notes }}
-          description="Which items these are, where they are, and how to fix them is part of SlideCheck Pro."
+          description="Which items these are, where they are, and how to fix them is part of SlideFidelity Pro."
         />
       ) : (
         <>
@@ -345,7 +345,7 @@ function ProblemList({ findings, label, onShow }: { findings: readonly Finding[]
 }
 
 /**
- * The SlideCheck Helper status (helper plan U12), the show-machine font list status, and its
+ * The SlideFidelity Helper status (helper plan U12), the show-machine font list status, and its
  * editor. Shown on every plan: the settings only change which fonts the (free) counts include.
  * With the helper's list in use, the show-machine list is secondary (H7), so the "no list" hint
  * is not shown.

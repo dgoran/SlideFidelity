@@ -71,9 +71,9 @@ export function createEmailSender(env: { EMAIL_API_KEY: string; EMAIL_FROM: stri
 export function signInCodeEmail(to: string, code: string): EmailMessage {
   return {
     to,
-    subject: `${code} is your SlideCheck sign-in code`,
+    subject: `${code} is your SlideFidelity sign-in code`,
     text: [
-      `Your SlideCheck sign-in code is ${code}`,
+      `Your SlideFidelity sign-in code is ${code}`,
       "",
       "It expires in 10 minutes. If you did not try to sign in, you can ignore this email.",
     ].join("\n"),

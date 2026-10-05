@@ -4,7 +4,7 @@
  */
 import { makeStyles, mergeClasses, tokens } from "@fluentui/react-components";
 import { ChevronRight16Regular, LockClosed16Regular } from "@fluentui/react-icons";
-import { AREAS, formatBytes, type Area, type AuditResult, type FileSizeBreakdownData } from "@slidecheck/audit-core";
+import { AREAS, formatBytes, type Area, type AuditResult, type FileSizeBreakdownData } from "@slidefidelity/audit-core";
 import { areaAccess, usePlan } from "../../license/gate";
 import { AREA_LABELS } from "../context";
 import { SeverityIcon } from "./FindingRow";

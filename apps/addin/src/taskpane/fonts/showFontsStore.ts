@@ -7,13 +7,13 @@
  * missing. Stored and imported values are untrusted: every load goes through `normalizeFontList`
  * (strings only, trimmed, length-capped, de-duplicated case-insensitively, count-capped).
  */
-import { MAX_FONT_NAME_LENGTH, type AuditOptions } from "@slidecheck/audit-core";
+import { MAX_FONT_NAME_LENGTH, type AuditOptions } from "@slidefidelity/audit-core";
 import type { BrandStore, StorageLike } from "../brand/brandStore";
 
-export const SHOW_FONTS_STORAGE_KEY = "slidecheck:showFonts";
+export const SHOW_FONTS_STORAGE_KEY = "slidefidelity:showFonts";
 /**
  * Upper bound on the list: a show machine's installed font names, with room to spare. Matches the
- * SlideCheck Helper's cap, so "add its fonts" can take a whole machine's list (helper plan U12).
+ * SlideFidelity Helper's cap, so "add its fonts" can take a whole machine's list (helper plan U12).
  */
 export const MAX_SHOW_FONTS = 20_000;
 
@@ -41,7 +41,7 @@ function defaultStorage(): StorageLike | null {
     const s = globalThis.localStorage;
     if (!s) return null;
     // Some hosts expose localStorage but throw on use (privacy modes).
-    const probe = "slidecheck:probe";
+    const probe = "slidefidelity:probe";
     s.setItem(probe, "1");
     s.removeItem(probe);
     return s;
@@ -151,7 +151,7 @@ export function createShowFontsStore(options: ShowFontsStoreOptions = {}): ShowF
 
 /**
  * The scan service's `getOptions`: the brand profile (D9), the show-machine fonts (G3), and, when
- * the SlideCheck Helper is Connected, this computer's fonts (`localFonts`, helper plan U12).
+ * the SlideFidelity Helper is Connected, this computer's fonts (`localFonts`, helper plan U12).
  */
 export function composeAuditOptions(
   brand: Pick<BrandStore, "auditOptions">,

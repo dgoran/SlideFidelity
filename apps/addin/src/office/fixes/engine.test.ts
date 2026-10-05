@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Finding } from "@slidecheck/audit-core";
+import type { Finding } from "@slidefidelity/audit-core";
 import { BATCH_SIZE, makeBatches, previewFix, runFix, UNDO_NOTE } from "./engine";
 import { replaceFontsKind } from "./replaceFonts";
 import { deleteShapesKind } from "./deleteShapes";

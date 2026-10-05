@@ -6,9 +6,9 @@
  * value is re-validated with `parseBrandJson` on load, because storage is not trusted either.
  * `auditOptions()` is what the scan service's `getOptions` reads at the start of every scan.
  */
-import { parseBrandJson, serializeBrand, type AuditOptions, type BrandProfile } from "@slidecheck/audit-core";
+import { parseBrandJson, serializeBrand, type AuditOptions, type BrandProfile } from "@slidefidelity/audit-core";
 
-export const BRAND_STORAGE_KEY = "slidecheck:brand";
+export const BRAND_STORAGE_KEY = "slidefidelity:brand";
 
 export interface StorageLike {
   getItem(key: string): string | null;
@@ -40,7 +40,7 @@ function defaultStorage(): StorageLike | null {
     const s = globalThis.localStorage;
     if (!s) return null;
     // Some hosts expose localStorage but throw on use (privacy modes).
-    const probe = "slidecheck:probe";
+    const probe = "slidefidelity:probe";
     s.setItem(probe, "1");
     s.removeItem(probe);
     return s;

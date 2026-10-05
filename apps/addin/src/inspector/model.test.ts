@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { loadPresentation, runChecks, type AuditResult } from "@slidecheck/audit-core";
+import { loadPresentation, runChecks, type AuditResult } from "@slidefidelity/audit-core";
 import { corpusDeck, type CorpusName } from "../../../../packages/audit-core/test/helpers/corpus";
 import type { SelectedShape, SelectionResult } from "../office/selection";
 import { buildInspectorModel, buildScanInventory, type ScanInventory, type ShapeInspection } from "./model";

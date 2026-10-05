@@ -9,7 +9,7 @@
  * targets in the add-in.
  */
 import { describe, expect, it } from "vitest";
-import { runChecks, type AuditResult, type Finding } from "@slidecheck/audit-core";
+import { runChecks, type AuditResult, type Finding } from "@slidefidelity/audit-core";
 import { corpusDeck, SEEDS, type CorpusName } from "../../../../../packages/audit-core/test/helpers/corpus";
 import { emuToPoints } from "../ids";
 import { previewFix, runFix } from "./engine";

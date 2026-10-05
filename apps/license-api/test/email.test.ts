@@ -24,7 +24,7 @@ describe("ResendEmailSender", () => {
     const captured: Captured[] = [];
     const sender = new ResendEmailSender({
       apiKey: "re_test_123",
-      from: "SlideCheck <signin@slidecheck.io>",
+      from: "SlideFidelity <signin@slidefidelity.com>",
       fetch: fakeFetch(Response.json({ id: "email_1" }), captured),
     });
 
@@ -38,9 +38,9 @@ describe("ResendEmailSender", () => {
     expect(headers.get("Authorization")).toBe("Bearer re_test_123");
     expect(headers.get("Content-Type")).toBe("application/json");
     const body = JSON.parse(String(call.init.body)) as Record<string, unknown>;
-    expect(body.from).toBe("SlideCheck <signin@slidecheck.io>");
+    expect(body.from).toBe("SlideFidelity <signin@slidefidelity.com>");
     expect(body.to).toEqual(["ada@example.com"]);
-    expect(body.subject).toBe("123456 is your SlideCheck sign-in code");
+    expect(body.subject).toBe("123456 is your SlideFidelity sign-in code");
     expect(body.text).toContain("123456");
     expect(body.html).toContain("123456");
   });
@@ -49,7 +49,7 @@ describe("ResendEmailSender", () => {
     const captured: Captured[] = [];
     const sender = new ResendEmailSender({
       apiKey: "re_test_123",
-      from: "SlideCheck <signin@slidecheck.io>",
+      from: "SlideFidelity <signin@slidefidelity.com>",
       fetch: fakeFetch(Response.json({ id: "email_2" }), captured),
     });
 
@@ -63,7 +63,7 @@ describe("ResendEmailSender", () => {
   it("throws when Resend rejects the request", async () => {
     const sender = new ResendEmailSender({
       apiKey: "re_test_123",
-      from: "SlideCheck <signin@slidecheck.io>",
+      from: "SlideFidelity <signin@slidefidelity.com>",
       fetch: fakeFetch(Response.json({ name: "validation_error" }, { status: 422 }), []),
     });
 
@@ -73,7 +73,7 @@ describe("ResendEmailSender", () => {
   it("throws when the network call fails", async () => {
     const sender = new ResendEmailSender({
       apiKey: "re_test_123",
-      from: "SlideCheck <signin@slidecheck.io>",
+      from: "SlideFidelity <signin@slidefidelity.com>",
       fetch: (async () => {
         throw new TypeError("network down");
       }) as typeof fetch,
@@ -85,12 +85,12 @@ describe("ResendEmailSender", () => {
 
 describe("createEmailSender", () => {
   it("returns a Resend sender when an API key is configured", () => {
-    const sender = createEmailSender({ EMAIL_API_KEY: "re_live_abc", EMAIL_FROM: "SlideCheck <signin@slidecheck.io>" });
+    const sender = createEmailSender({ EMAIL_API_KEY: "re_live_abc", EMAIL_FROM: "SlideFidelity <signin@slidefidelity.com>" });
     expect(sender).toBeInstanceOf(ResendEmailSender);
   });
 
   it("fails closed when no API key is configured", async () => {
-    const sender = createEmailSender({ EMAIL_API_KEY: "", EMAIL_FROM: "SlideCheck <signin@slidecheck.io>" });
+    const sender = createEmailSender({ EMAIL_API_KEY: "", EMAIL_FROM: "SlideFidelity <signin@slidefidelity.com>" });
     expect(sender).toBeInstanceOf(UnconfiguredEmailSender);
     await expect(sender.send(signInCodeEmail("a@example.com", "000000"))).rejects.toBeInstanceOf(
       EmailNotConfiguredError,

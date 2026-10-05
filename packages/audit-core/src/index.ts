@@ -1,4 +1,4 @@
-// Public API of @slidecheck/audit-core.
+// Public API of @slidefidelity/audit-core.
 export * from "./package/index";
 export * from "./findings";
 export * from "./runner";

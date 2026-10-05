@@ -317,7 +317,7 @@ export class LicenseService {
         throw new LicenseError("session_expired", "Your session has expired. Sign in again to delete your account.", err);
       }
       if (err instanceof ApiError && err.code === "network") {
-        throw new LicenseError("network", "Can't reach SlideCheck. Check your connection and try again.", err);
+        throw new LicenseError("network", "Can't reach SlideFidelity. Check your connection and try again.", err);
       }
       throw new LicenseError("unknown", "Something went wrong and your account was not deleted. Try again.", err);
     }

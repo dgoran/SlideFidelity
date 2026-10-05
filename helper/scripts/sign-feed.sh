@@ -9,5 +9,5 @@ if [ "$#" -lt 2 ]; then
 fi
 key="$1"; shift
 for feed in "$@"; do
-  minisign -S -s "$key" -m "$feed" -x "$feed.minisig" -t "slidecheck helper feed $(basename "$feed")"
+  minisign -S -s "$key" -m "$feed" -x "$feed.minisig" -t "slidefidelity helper feed $(basename "$feed")"
 done

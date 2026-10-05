@@ -1,5 +1,5 @@
 ---
-title: SlideCheck PowerPoint Add-in - Plan
+title: SlideFidelity PowerPoint Add-in - Plan
 type: feat
 date: 2026-09-30
 artifact_contract: ce-unified-plan/v1
@@ -8,9 +8,9 @@ product_contract_source: ce-plan-bootstrap
 execution: code
 ---
 
-# SlideCheck PowerPoint Add-in - Plan
+# SlideFidelity PowerPoint Add-in - Plan
 
-**Target repo:** `SlideCheck` (greenfield; all paths below are relative to its root).
+**Target repo:** `SlideFidelity` (greenfield; all paths below are relative to its root).
 
 ---
 
@@ -18,7 +18,7 @@ execution: code
 
 - **Objective:** A presentation designer, consultant, or trainer who opens a messy deck in PowerPoint for Mac, Windows, or the web can see every hidden quality problem in the deck in one pane. The problems cover unwanted fonts, off-brand colors, oversized images, redundant masters, broken links, and hidden content. The user can fix the common ones in a few clicks. A paid tier funds the product.
 - **Means:** An Office.js task-pane add-in that audits a byte snapshot of the `.pptx` (KTD1, KTD2), applies fixes through the PowerPoint JavaScript API (KTD4), and licenses a Pro tier through its own small backend (KTD7).
-- **Reference product:** Neuxpower Slidewise (Windows-only VSTO add-in). SlideCheck matches its audit breadth and its safe-fix subset on all three desktop/web platforms.
+- **Reference product:** Neuxpower Slidewise (Windows-only VSTO add-in). SlideFidelity matches its audit breadth and its safe-fix subset on all three desktop/web platforms.
 - **Authority hierarchy:** Product Contract Requirements win on behavior. KTDs win on mechanism. Units implement; they never amend an R or KTD.
 - **Stop conditions:** Stop and ask when:
   - A required fix needs a preview-only API.
@@ -33,7 +33,7 @@ execution: code
 
 ### Summary
 
-Build SlideCheck, a cross-platform PowerPoint add-in that scans the open presentation and reports quality problems in six areas: fonts, colors, media and file size, slide masters, links, and a general file review. Each finding jumps to its slide and shape. An Inspector shows details for the selected shape. One-click fixes cover font replacement, color replacement, removal of hidden, off-slide, and empty content, and hyperlink cleanup. A free tier gives read-only insight. A Pro subscription (about $79/yr) with a 30-day trial unlocks all checks and fixes.
+Build SlideFidelity, a cross-platform PowerPoint add-in that scans the open presentation and reports quality problems in six areas: fonts, colors, media and file size, slide masters, links, and a general file review. Each finding jumps to its slide and shape. An Inspector shows details for the selected shape. One-click fixes cover font replacement, color replacement, removal of hidden, off-slide, and empty content, and hyperlink cleanup. A free tier gives read-only insight. A Pro subscription (about $79/yr) with a 30-day trial unlocks all checks and fixes.
 
 ### Problem Frame
 
@@ -59,7 +59,7 @@ Slidewise solves this well, but only on Windows. Mac and web users, a large shar
 
 **Scanning and navigation**
 
-- R1. SlideCheck scans the open presentation on demand and shows findings grouped by area. Each finding is either a warning (flag) or information (dot), and each group shows a count.
+- R1. SlideFidelity scans the open presentation on demand and shows findings grouped by area. Each finding is either a warning (flag) or information (dot), and each group shows a count.
 - R2. Every finding that refers to a slide or shape can take the user to that slide and select that shape in PowerPoint.
 - R3. The pane shows whether the scan is current or stale. When the deck changed after the last scan, the user can rescan with one action.
 - R4. An Inspector section shows the findings and key properties of the currently selected shape. Properties include fonts by script, colors, links, image dimensions/scale/crop, and autofit.
@@ -81,7 +81,7 @@ Slidewise solves this well, but only on Windows. Mac and web users, a large shar
   - Hidden slides, hidden shapes, off-slide shapes, empty placeholders, and empty sections.
   - Speaker notes, comments, and document and custom properties.
   - Animations, transitions, text autofit settings, and proofing languages.
-- R11. Pro users can check link reachability. URLs are sent to the SlideCheck backend, which reports broken links. The check runs only on explicit user action.
+- R11. Pro users can check link reachability. URLs are sent to the SlideFidelity backend, which reports broken links. The check runs only on explicit user action.
 
 **Fixes**
 
@@ -93,14 +93,14 @@ Slidewise solves this well, but only on Windows. Mac and web users, a large shar
 
 **Platform and privacy**
 
-- R17. SlideCheck runs on PowerPoint for Mac, Windows (Microsoft 365), and the web. It hides or disables features the host's API version does not support, with an explanation. It is not offered on iPad or mobile.
+- R17. SlideFidelity runs on PowerPoint for Mac, Windows (Microsoft 365), and the web. It hides or disables features the host's API version does not support, with an explanation. It is not offered on iPad or mobile.
 - R18. Deck content never leaves the user's device. The one exception is URLs the user sends for link checking (R11).
 
 **Licensing**
 
 - R19. Free tier: the Overview, the font list, and the media size breakdown, read-only, with no account.
 - R20. A new account gets a 30-day Pro trial with no card. The server tracks the trial per account.
-- R21. The user buys and manages a subscription on the SlideCheck website. The add-in reflects a new purchase within one minute of sign-in or refresh. It keeps Pro active offline for 7 days after the last successful check.
+- R21. The user buys and manages a subscription on the SlideFidelity website. The add-in reflects a new purchase within one minute of sign-in or refresh. It keeps Pro active offline for 7 days after the last successful check.
 - R22. Pro users can define a brand profile (allowed fonts and colors). The default profile is the deck's theme fonts and colors.
 
 ### Acceptance Examples
@@ -166,7 +166,7 @@ Slidewise solves this well, but only on Windows. Mac and web users, a large shar
 
 - KTD1. **Office.js task pane in TypeScript + React + Fluent UI v9, scaffolded from the `yo office` webpack template, with the add-in-only XML manifest.**
   - The XML manifest reaches the most hosts; the unified JSON manifest excludes perpetual Windows and lacks some events.
-  - The manifest declares minimum `PowerPointApi 1.3`. iPad only supports 1.1, so this keeps SlideCheck off iPad (R17). That also avoids certification rule 1120.2, which bans purchase UI on mobile.
+  - The manifest declares minimum `PowerPointApi 1.3`. iPad only supports 1.1, so this keeps SlideFidelity off iPad (R17). That also avoids certification rule 1120.2, which bans purchase UI on mobile.
   - Fluent UI v9 is Microsoft's recommended UI kit for add-ins and matches the host look.
   - (session-settled: user-directed — chosen over VSTO/COM: cross-platform reach.)
 - KTD2. **The audit reads an OOXML byte snapshot, not the live object model.**
@@ -194,16 +194,16 @@ Slidewise solves this well, but only on Windows. Mac and web users, a large shar
   - Before any fix, the fix engine re-resolves each target in the live model and skips targets it cannot resolve (R16).
   - The exact live ID format is verified in U2.
 - KTD6. **Scan freshness uses a document-changed signal plus a snapshot hash.**
-  - The pane marks the scan stale on `DocumentSelectionChanged` activity after an edit, and on any SlideCheck fix.
+  - The pane marks the scan stale on `DocumentSelectionChanged` activity after an edit, and on any SlideFidelity fix.
   - Rescan compares the SHA-256 of the new snapshot with the previous one, so an unchanged deck returns cached findings instantly.
   - Fix actions refuse to run on a stale scan (AE3).
 - KTD7. **Licensing uses a Cloudflare Worker + D1 license API, email one-time-code sign-in inside the Office dialog, and Paddle as merchant of record.**
-  - Microsoft only supports free-to-download Office add-ins, so SlideCheck is free on AppSource and sells the subscription itself.
+  - Microsoft only supports free-to-download Office add-ins, so SlideFidelity is free on AppSource and sells the subscription itself.
   - Email one-time codes work for both consumer and work accounts, where NAA support for personal accounts is unverified. NAA is deferred.
   - Paddle handles global VAT and sales tax for a solo seller.
   - The Worker issues Ed25519-signed entitlement tokens. The add-in verifies them with an embedded public key and caches them for 7 days of offline grace (R21).
   - Client-side gating is convenience only. Link checking (R11) is enforced on the server.
-- KTD8. **The add-in is hosted as static files on Cloudflare Pages.** The license API runs on Workers under the same domain (for example `app.slidecheck.io` and `api.slidecheck.io`). CORS allows only the add-in origin. Marketing, privacy, terms, and support pages live in the same Pages project.
+- KTD8. **The add-in is hosted as static files on Cloudflare Pages.** The license API runs on Workers under the same domain (for example `app.slidefidelity.com` and `api.slidefidelity.com`). CORS allows only the add-in origin. Marketing, privacy, terms, and support pages live in the same Pages project.
 - KTD9. **The link-check proxy is hardened against SSRF.**
   - It accepts only `http`/`https` URLs.
   - It resolves DNS and rejects private, loopback, link-local, and metadata ranges.
@@ -219,7 +219,7 @@ Component topology:
 flowchart TB
   subgraph Host[PowerPoint host: Mac / Windows / web]
     Doc[(Open presentation)]
-    subgraph Pane[SlideCheck task pane - apps/addin]
+    subgraph Pane[SlideFidelity task pane - apps/addin]
       UI[React + Fluent UI: areas, tree, Inspector]
       Snap[Snapshot reader - getFileAsync slices]
       Live[Live bridge - PowerPoint.run: navigate, select, fix]
@@ -290,7 +290,7 @@ stateDiagram-v2
 ### Output Structure
 
 ```text
-SlideCheck/
+SlideFidelity/
   package.json                 # pnpm workspace root
   pnpm-workspace.yaml
   packages/
@@ -863,7 +863,7 @@ The six phases run in order: A Foundation (U1–U3), B Audit checks (U4–U9), C
 1. CI runs typecheck, lint, unit tests, `office-addin-manifest validate`, and the Worker tests.
 2. The privacy page states that deck content stays on the device, and that only link URLs and the account email are sent (R18).
 3. The listing description discloses the Pro features. The terms and privacy pages contain no commerce UI, per the certification guidance.
-4. The production manifest points at `app.slidecheck.io`.
+4. The production manifest points at `app.slidefidelity.com`.
 
 **Test scenarios:** Test expectation: none -- CI and static content. Proven by a green CI run and a manifest validation pass.
 

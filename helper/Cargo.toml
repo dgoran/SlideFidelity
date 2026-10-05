@@ -1,17 +1,17 @@
 [package]
-name = "slidecheck-helper"
+name = "slidefidelity-helper"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.85"
-description = "SlideCheck Helper: serves this computer's font families to the SlideCheck add-in over HTTPS on localhost"
+description = "SlideFidelity Helper: serves this computer's font families to the SlideFidelity add-in over HTTPS on localhost"
 publish = false
 
 [[bin]]
-name = "slidecheck-helper"
+name = "slidefidelity-helper"
 path = "src/main.rs"
 
 [lib]
-name = "slidecheck_helper"
+name = "slidefidelity_helper"
 path = "src/lib.rs"
 
 [features]

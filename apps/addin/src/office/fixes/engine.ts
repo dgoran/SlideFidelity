@@ -11,8 +11,8 @@
  *   units are reported `unknown`, and the engine moves on to the next batch.
  * - Cancellation is checked between batches.
  */
-import type { Finding, FindingTarget } from "@slidecheck/audit-core";
-import { targetKey } from "@slidecheck/audit-core";
+import type { Finding, FindingTarget } from "@slidefidelity/audit-core";
+import { targetKey } from "@slidefidelity/audit-core";
 import { emuToPoints, isSafeForDestructiveFix, resolveShape, resolveSlide, type Resolution } from "../ids";
 import type {
   ApplyIO,

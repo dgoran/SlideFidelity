@@ -13,7 +13,7 @@
  * size…"), but are not a show-breaker. Slide numbers (`slide-numbers`) are a cleanup, not a
  * problem, and are not listed here (they stay in Review).
  *
- * Fonts with the SlideCheck Helper (helper plan U12, H7): `font-missing-here` (not installed on this
+ * Fonts with the SlideFidelity Helper (helper plan U12, H7): `font-missing-here` (not installed on this
  * computer) is the primary font problem; `font-maybe-missing` (not on the show-machine list) is
  * then info from the engine, so it is listed as a note. "Missing fonts" for the replace-font picker
  * are the missing-here ones when the helper's list was used, else the may-be-missing ones.
@@ -21,7 +21,7 @@
  * G6: a linked video is reported by the engine as both `linked-file` (Links) and `media-linked`
  * (Media); only `media-linked` is listed here, so it shows once, under Videos & audio.
  */
-import type { Finding } from "@slidecheck/audit-core";
+import type { Finding } from "@slidefidelity/audit-core";
 import { hasReachableTarget } from "../fixes/model";
 
 export const PROBLEM_CATEGORIES = ["playback", "fonts", "off-slide", "text-collision", "size"] as const;
@@ -91,7 +91,7 @@ export interface ProblemsModel {
   size?: SizeSummary;
   /**
    * From `font-availability-summary`, when the fonts check ran: whether the show-machine list was
-   * set, and whether the SlideCheck Helper's list of this computer's fonts was used.
+   * set, and whether the SlideFidelity Helper's list of this computer's fonts was used.
    */
   fontList?: { teamListProvided: boolean; localListProvided: boolean };
   /** Every font family that may be missing, in engine order. */

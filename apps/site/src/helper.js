@@ -1,5 +1,5 @@
 /* global window, document, navigator, URLSearchParams */
-// SlideCheck Helper download page (U13). Picks the platform from ?platform=mac|windows, else the user agent,
+// SlideFidelity Helper download page (U13). Picks the platform from ?platform=mac|windows, else the user agent,
 // and fills the download block from config.js (filled by the release pipeline, U10). Unfilled placeholders show
 // "Download coming soon" instead of a link. Phones and tablets never get a download link (AppSource policy 1120.2).
 // All values are written with textContent or as validated https URLs. No inline scripts (CSP).
@@ -7,7 +7,7 @@
   "use strict";
 
   var PLATFORMS = ["mac", "windows"];
-  var config = window.SLIDECHECK_CONFIG || {};
+  var config = window.SLIDEFIDELITY_CONFIG || {};
   var helper = config.helper || {};
 
   function $(id) {

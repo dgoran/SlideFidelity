@@ -4,7 +4,7 @@
  * engine's finding kinds or severities shows up here instead of silently emptying a category.
  */
 import { describe, expect, it } from "vitest";
-import { runChecks, type AuditOptions, type AuditResult } from "@slidecheck/audit-core";
+import { runChecks, type AuditOptions, type AuditResult } from "@slidefidelity/audit-core";
 import { corpusDeck, type CorpusName } from "../../../../../packages/audit-core/test/helpers/corpus";
 import { buildProblems, type ProblemCategoryId } from "./problems";
 

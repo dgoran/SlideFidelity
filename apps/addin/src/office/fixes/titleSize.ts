@@ -10,7 +10,7 @@
  * slide master (matched by position) are set too, so new slides match. Finding those placeholders
  * needs `Shape.placeholderFormat` (PowerPointApi 1.8); below that they are listed as unreachable.
  */
-import type { Finding, FindingOf, FindingTarget } from "@slidecheck/audit-core";
+import type { Finding, FindingOf, FindingTarget } from "@slidefidelity/audit-core";
 import {
   containerReason,
   isReachable,

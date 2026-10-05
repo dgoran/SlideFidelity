@@ -23,11 +23,11 @@ export interface LicenseConfig {
   keys: readonly EntitlementPublicKey[];
 }
 
-export const PROD_API_BASE = "https://api.slidecheck.io";
-export const PROD_SITE_URL = "https://slidecheck.io";
+export const PROD_API_BASE = "https://api.slidefidelity.com";
+export const PROD_SITE_URL = "https://slidefidelity.com";
 
 /**
- * REPLACE before release: the production key from `GET https://api.slidecheck.io/.well-known/entitlement-keys`.
+ * REPLACE before release: the production key from `GET https://api.slidefidelity.com/.well-known/entitlement-keys`.
  * Until replaced, no token verifies, so every signed-in user is treated as a free account (fail closed).
  */
 export const ENTITLEMENT_PUBLIC_KEYS: readonly EntitlementPublicKey[] = [
@@ -35,7 +35,7 @@ export const ENTITLEMENT_PUBLIC_KEYS: readonly EntitlementPublicKey[] = [
 ];
 
 /** localStorage key a developer can set on a local build to point the add-in at another API. */
-export const API_BASE_OVERRIDE_KEY = "slidecheck:apiBase";
+export const API_BASE_OVERRIDE_KEY = "slidefidelity:apiBase";
 
 const DEV_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 

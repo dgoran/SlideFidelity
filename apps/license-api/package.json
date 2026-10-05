@@ -1,5 +1,5 @@
 {
-  "name": "@slidecheck/license-api",
+  "name": "@slidefidelity/license-api",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,7 +8,7 @@
     "deploy": "wrangler deploy",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "db:migrate:local": "wrangler d1 migrations apply slidecheck-license --local",
+    "db:migrate:local": "wrangler d1 migrations apply slidefidelity-license --local",
     "keys:generate": "node scripts/generate-entitlement-key.mjs"
   },
   "dependencies": {

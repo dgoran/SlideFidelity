@@ -21,8 +21,8 @@ export interface SessionStore {
   readonly persistent: boolean;
 }
 
-export const SESSION_STORAGE_KEY = "slidecheck:session";
-export const ENTITLEMENT_STORAGE_KEY = "slidecheck:entitlement";
+export const SESSION_STORAGE_KEY = "slidefidelity:session";
+export const ENTITLEMENT_STORAGE_KEY = "slidefidelity:entitlement";
 
 function parseSession(raw: string | null): StoredSession | null {
   if (!raw) return null;

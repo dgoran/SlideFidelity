@@ -1,5 +1,5 @@
 /**
- * SlideCheck Helper status and offer (U12): one test per visible state, the buttons call the store,
+ * SlideFidelity Helper status and offer (U12): one test per visible state, the buttons call the store,
  * and the Problems Fonts row renders the status through `helperSlot`.
  */
 import { act } from "react";
@@ -33,19 +33,19 @@ const h = (o: Record<string, unknown> = {}) => ({ version: "0.1.0", apiVersion: 
 describe("HelperStatus", () => {
   it("probing", () => {
     const { container } = render(<HelperStatus store={fakeStore({})} placement="problems" />);
-    expect(container.textContent).toContain("Checking for SlideCheck Helper");
+    expect(container.textContent).toContain("Checking for SlideFidelity Helper");
   });
 
   it("connected: exact font check on, no notices when current", () => {
     const { container } = render(<HelperStatus store={fakeStore({ phase: "connected", health: h(), fonts: ["Arial"] })} placement="problems" />);
     expect(one(container, "[data-helper-status]").getAttribute("data-helper-status")).toBe("connected");
-    expect(container.textContent).toContain("Exact font check: on (SlideCheck Helper v0.1.0)");
+    expect(container.textContent).toContain("Exact font check: on (SlideFidelity Helper v0.1.0)");
     expect(container.querySelector("[data-helper-update]")).toBeNull();
     expect(container.querySelector("[data-helper-cert]")).toBeNull();
   });
 
   it("connected with an update (H5): notice and a button that opens the update page", () => {
-    const store = fakeStore({ phase: "connected", health: h({ update: { version: "0.2.0", page: "https://slidecheck.io/helper", notes: "<b>Faster</b>" } }) });
+    const store = fakeStore({ phase: "connected", health: h({ update: { version: "0.2.0", page: "https://slidefidelity.com/helper", notes: "<b>Faster</b>" } }) });
     const { container } = render(<HelperStatus store={store} placement="settings" />);
     expect(container.textContent).toContain("Helper update available (v0.2.0)");
     expect(container.textContent).toContain("<b>Faster</b>"); // text, not markup
@@ -57,8 +57,8 @@ describe("HelperStatus", () => {
   it("connected with a certificate expiring within 90 days (H1): note and download", () => {
     const store = fakeStore({ phase: "connected", health: h({ certDaysRemaining: 12 }) });
     const { container } = render(<HelperStatus store={store} placement="problems" />);
-    expect(container.textContent).toContain("The helper's certificate expires in 12 days. Reinstall SlideCheck Helper to renew it.");
-    click(button(container, "Download SlideCheck Helper"));
+    expect(container.textContent).toContain("The helper's certificate expires in 12 days. Reinstall SlideFidelity Helper to renew it.");
+    click(button(container, "Download SlideFidelity Helper"));
     expect(store.openDownloadPage).toHaveBeenCalledTimes(1);
   });
 
@@ -74,7 +74,7 @@ describe("HelperStatus", () => {
     const store = fakeStore({ phase: "offered" });
     const { container } = render(<HelperStatus store={store} placement="problems" />);
     expect(container.textContent).toContain(OFFER_TEXT);
-    expect(OFFER_TEXT).toBe("Install SlideCheck Helper for exact missing-font checks");
+    expect(OFFER_TEXT).toBe("Install SlideFidelity Helper for exact missing-font checks");
     expect(container.textContent).toContain(OFFER_SECONDARY);
     click(button(container, "Install"));
     click(button(container, "Not now"));
@@ -87,7 +87,7 @@ describe("HelperStatus", () => {
   it("waiting: text and Cancel", () => {
     const store = fakeStore({ phase: "waiting" });
     const { container } = render(<HelperStatus store={store} placement="problems" />);
-    expect(container.textContent).toContain("Waiting for SlideCheck Helper…");
+    expect(container.textContent).toContain("Waiting for SlideFidelity Helper…");
     click(button(container, "Cancel"));
     expect(store.cancelInstall).toHaveBeenCalledTimes(1);
   });
@@ -104,15 +104,15 @@ describe("HelperStatus", () => {
     const problems = render(<HelperStatus store={store} placement="problems" />);
     expect(problems.container.querySelectorAll("button")).toHaveLength(0);
     const settings = render(<HelperStatus store={store} placement="settings" />);
-    click(button(settings.container, "Install SlideCheck Helper"));
+    click(button(settings.container, "Install SlideFidelity Helper"));
     expect(store.install).toHaveBeenCalledTimes(1);
   });
 
   it("outdated: too old, with a download that starts the install", () => {
     const store = fakeStore({ phase: "outdated", health: h({ version: "0.0.9", apiVersion: 0 }) });
     const { container } = render(<HelperStatus store={store} placement="problems" />);
-    expect(container.textContent).toContain("SlideCheck Helper v0.0.9 is too old for this version of SlideCheck");
-    click(button(container, "Download the latest SlideCheck Helper"));
+    expect(container.textContent).toContain("SlideFidelity Helper v0.0.9 is too old for this version of SlideFidelity");
+    click(button(container, "Download the latest SlideFidelity Helper"));
     expect(store.install).toHaveBeenCalledTimes(1);
   });
 
@@ -125,12 +125,12 @@ describe("HelperStatus", () => {
       const { container } = render(<HelperStatus store={store} placement="problems" />);
       await act(async () => store.start());
       click(button(container, "Install"));
-      expect(open).toHaveBeenCalledWith("https://slidecheck.io/helper?platform=mac");
-      expect(container.textContent).toContain("Waiting for SlideCheck Helper…");
+      expect(open).toHaveBeenCalledWith("https://slidefidelity.com/helper?platform=mac");
+      expect(container.textContent).toContain("Waiting for SlideFidelity Helper…");
       routes["https://localhost:47317/v1/health"] = jsonResponse(health({ version: "0.1.0" }));
       routes["https://localhost:47317/v1/fonts"] = jsonResponse({ families: [{ name: "Arial", names: ["Arial"] }] });
       await act(async () => vi.advanceTimersByTimeAsync(3000));
-      expect(container.textContent).toContain("Exact font check: on (SlideCheck Helper v0.1.0)");
+      expect(container.textContent).toContain("Exact font check: on (SlideFidelity Helper v0.1.0)");
     } finally {
       vi.useRealTimers();
     }
@@ -145,7 +145,7 @@ describe("Problems Fonts row", () => {
     const fonts = one(container, '[data-category="fonts"]');
     expect(fonts.getAttribute("data-status")).toBe("warning");
     click(one(fonts, "[data-category-toggle]"));
-    expect(fonts.textContent).toContain("Exact font check: on (SlideCheck Helper v0.1.0)");
+    expect(fonts.textContent).toContain("Exact font check: on (SlideFidelity Helper v0.1.0)");
     expect(fonts.querySelector('[data-problem="font-missing-here"]')).not.toBeNull();
     // The helper list is in use: no "set a show-machine list" nag.
     expect(fonts.querySelector("[data-show-fonts-hint]")).toBeNull();

@@ -19,7 +19,7 @@ import {
   QuestionCircle16Regular,
   SubtractCircle16Regular,
 } from "@fluentui/react-icons";
-import type { Area, Finding } from "@slidecheck/audit-core";
+import type { Area, Finding } from "@slidefidelity/audit-core";
 import { usePlan } from "../../license/gate";
 import { checkableUrls, type LinkCheckResult, type LinkStatus } from "../../office/linkCheck";
 import { currentResult } from "../brand/themeBrand";
@@ -29,7 +29,7 @@ import { usePane } from "../state/PaneContext";
 import { useLinkCheck, viewFor, type LinkCheckController, type LinkCheckCounts, type LinkCheckState } from "./controller";
 
 export const DISCLOSURE_TEXT =
-  "Checking sends the web addresses (http/https only) in this deck to the SlideCheck service. Nothing else from the deck is sent.";
+  "Checking sends the web addresses (http/https only) in this deck to the SlideFidelity service. Nothing else from the deck is sent.";
 
 const useStyles = makeStyles({
   root: {
@@ -144,9 +144,9 @@ export function errorMessage(error: NonNullable<LinkCheckState["error"]>): strin
     case "unauthorized":
       return "Your sign-in has expired. Sign in again to check links.";
     case "pro_required":
-      return "SlideCheck says this account doesn't include link checking. Open Account to check your plan.";
+      return "SlideFidelity says this account doesn't include link checking. Open Account to check your plan.";
     case "network_error":
-      return "Couldn't reach SlideCheck. Check your connection and try again.";
+      return "Couldn't reach SlideFidelity. Check your connection and try again.";
     case "server_error":
       return "Some links couldn't be checked because of a problem on our side. Try again later.";
     case "invalid_urls":
@@ -178,7 +178,7 @@ export function LinkCheckPanel({ controller, area }: LinkCheckPanelProps) {
     if (!plan.isAllowed("area.links")) return null;
     return (
       <div data-linkcheck-panel="">
-        <LockedSection title="Check links (Pro)" description="Checking whether web links still work is part of SlideCheck Pro." />
+        <LockedSection title="Check links (Pro)" description="Checking whether web links still work is part of SlideFidelity Pro." />
       </div>
     );
   }

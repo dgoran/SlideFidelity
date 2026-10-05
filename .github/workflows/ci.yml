@@ -26,11 +26,11 @@ jobs:
       - name: Test (audit-core, add-in, license API)
         run: npm test
       - name: Validate add-in manifest
-        run: npm run validate --workspace @slidecheck/addin
+        run: npm run validate --workspace @slidefidelity/addin
       - name: Build add-in
-        run: npm run build --workspace @slidecheck/addin
+        run: npm run build --workspace @slidefidelity/addin
       - name: Build site
-        run: npm run build --workspace @slidecheck/site
+        run: npm run build --workspace @slidefidelity/site
       - name: Bundle license API (dry run)
         run: npx wrangler deploy --dry-run --outdir dist
         working-directory: apps/license-api

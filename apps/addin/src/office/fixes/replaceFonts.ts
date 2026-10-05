@@ -12,7 +12,7 @@
  * to find the maximal sub-ranges whose font is in `from`, and only those are set. Table cells
  * (PowerPointApi 1.9 `TableCell.font`) have no sub-range API, so a mixed cell is skipped.
  */
-import type { Finding, FontUsageRef } from "@slidecheck/audit-core";
+import type { Finding, FontUsageRef } from "@slidefidelity/audit-core";
 import {
   containerReason,
   findFontRanges,

@@ -48,7 +48,7 @@ fn main() {
 
 fn leaf_params(days: i64) -> CertificateParams {
     let mut p = CertificateParams::default();
-    p.distinguished_name.push(DnType::CommonName, "SlideCheck Helper (localhost)");
+    p.distinguished_name.push(DnType::CommonName, "SlideFidelity Helper (localhost)");
     p.subject_alt_names = vec![
         SanType::DnsName("localhost".try_into().unwrap()),
         SanType::IpAddress("127.0.0.1".parse().unwrap()),
@@ -70,7 +70,7 @@ fn gen(out: &Path, design: &str, days: i64) {
     let (root_pem, leaf_pem) = match design {
         "constrained" => {
             let mut ca = CertificateParams::default();
-            ca.distinguished_name.push(DnType::CommonName, "SlideCheck Helper Local Root (this computer only)");
+            ca.distinguished_name.push(DnType::CommonName, "SlideFidelity Helper Local Root (this computer only)");
             ca.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
             ca.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
             ca.name_constraints = Some(NameConstraints {

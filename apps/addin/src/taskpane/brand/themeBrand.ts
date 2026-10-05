@@ -4,7 +4,7 @@
  * The audit derives the same default itself when no custom profile is set; this is for display
  * and as the starting point of a custom profile.
  */
-import { DEFAULT_COLOR_TOLERANCE, normalizeHex, type AuditResult, type BrandProfile, type FindingOf } from "@slidecheck/audit-core";
+import { DEFAULT_COLOR_TOLERANCE, normalizeHex, type AuditResult, type BrandProfile, type FindingOf } from "@slidefidelity/audit-core";
 import type { ScanState } from "../state/store";
 
 export interface ThemeColorSwatch {

@@ -29,7 +29,7 @@ export const SIGNIN_MESSAGES: Record<SignInMessageCode, string> = {
   rate_limited: "Too many attempts. Wait a moment and try again.",
   too_many_signups: "Too many new accounts were created from this network. Try again later.",
   email_unavailable: "We couldn't send the email right now. Try again in a few minutes.",
-  network: "Can't reach SlideCheck. Check your connection and try again.",
+  network: "Can't reach SlideFidelity. Check your connection and try again.",
   unknown: "Something went wrong. Try again.",
 };
 

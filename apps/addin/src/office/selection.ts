@@ -6,7 +6,7 @@
  * - Reads the selection with `presentation.getSelectedSlides()` / `getSelectedShapes()`
  *   (PowerPointApi 1.5). Below 1.5 it reports `{ unsupported: true }` and never subscribes.
  * - `ignoreNext()` drops the next event burst inside a short window, so selection changes caused
- *   by SlideCheck's own "Show in PowerPoint" navigation do not repaint the Inspector.
+ *   by SlideFidelity's own "Show in PowerPoint" navigation do not repaint the Inspector.
  * - Selection changes never block anything (D4); they only drive the Inspector.
  *
  * Every dependency is injectable; the defaults use the `PowerPoint` / `Office` globals.
@@ -175,7 +175,7 @@ export interface SelectionWatcher {
   read(): Promise<SelectionResult>;
   /**
    * Drop the next event burst (all events within one debounce) if it starts within `windowMs`.
-   * Call right before SlideCheck's own navigation changes the selection.
+   * Call right before SlideFidelity's own navigation changes the selection.
    */
   ignoreNext(windowMs?: number): void;
   /** Remove the handler and cancel any pending read. Safe to call twice. */

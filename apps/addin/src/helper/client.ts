@@ -1,5 +1,5 @@
 /**
- * SlideCheck Helper client (U12, R1): find the local helper and read its font list.
+ * SlideFidelity Helper client (U12, R1): find the local helper and read its font list.
  *
  * The helper serves HTTPS on the first free port of 47317–47319 (host `localhost`). `probeHelper`
  * asks all three at once, each with its own timeout, and settles within `timeoutMs` whatever the

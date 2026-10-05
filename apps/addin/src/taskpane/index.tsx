@@ -12,7 +12,7 @@
  * `fixPanelSlot` / `renderRowActions` slots. The check authenticates with the license service's
  * session token and talks to the same API base as licensing.
  *
- * SlideCheck Helper (helper plan U12): one helper store, created once Office is ready (the offer
+ * SlideFidelity Helper (helper plan U12): one helper store, created once Office is ready (the offer
  * depends on the host platform) and probed once right away. Its font list joins the scan options
  * (`localFonts`) when Connected, and the scan service refreshes it before every full scan
  * (`beforeScan`, R4). Its status and offer render in the Problems Fonts row (`helperSlot`) and in

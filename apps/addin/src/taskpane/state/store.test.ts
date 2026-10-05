@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AREAS } from "@slidecheck/audit-core";
+import { AREAS } from "@slidefidelity/audit-core";
 import { fakeResult } from "../testing/fixtures";
 import { initialPaneState, isToggled, paneReducer, type PaneState } from "./store";
 

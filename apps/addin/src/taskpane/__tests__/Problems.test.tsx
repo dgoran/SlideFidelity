@@ -3,7 +3,7 @@
  */
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import type { AuditResult, Finding } from "@slidecheck/audit-core";
+import type { AuditResult, Finding } from "@slidefidelity/audit-core";
 import { createFakePowerPoint, fontUsageFinding, shapeReviewFinding, target } from "../../office/fixes/testing/fakePowerPoint";
 import { createFixSlots } from "../fixes";
 import { fakeFinding, fakeResult, slideShape } from "../testing/fixtures";

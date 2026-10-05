@@ -7,7 +7,7 @@
  * ambiguous match (the live slide has a different number of links with that address) is skipped.
  * All links with one address on one slide share a batch so occurrence numbers stay valid.
  */
-import type { Finding, FindingTarget } from "@slidecheck/audit-core";
+import type { Finding, FindingTarget } from "@slidefidelity/audit-core";
 import { matchHyperlink } from "../ids";
 import { containerReason, isReachable, makeSelector, mergeUnit, plannedUnit, resolveSlides, unreachable } from "./engine";
 import type { ApplyIO, EditHyperlinkParams, FixKindDef, FixKindId, KindPlan, PlannedTarget, RemoveHyperlinkParams, TargetOutcome, TargetSelection, UnreachableTarget } from "./types";

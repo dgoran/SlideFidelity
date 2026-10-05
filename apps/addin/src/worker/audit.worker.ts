@@ -8,7 +8,7 @@
  * is parsed once). Inventories are cached by snapshot hash next to the result cache, so a cache
  * hit returns the inventory without re-parsing (the inventory depends only on the bytes).
  */
-import { isPackageError, loadPresentation, runChecksCached, type Presentation } from "@slidecheck/audit-core";
+import { isPackageError, loadPresentation, runChecksCached, type Presentation } from "@slidefidelity/audit-core";
 import { buildScanInventory, type ScanInventory } from "../inspector/model";
 import type { ScanRequest, WorkerResponse } from "./client";
 

@@ -2,7 +2,7 @@
 List every font family PowerPoint for Windows can use on this computer, one per line.
 
 Covers fonts installed for all users and for the current user, plus the fonts Microsoft 365
-ships privately and its downloaded cloud fonts. Import the output into SlideCheck:
+ships privately and its downloaded cloud fonts. Import the output into SlideFidelity:
 Settings > Show-machine fonts > Import.
 
 Usage: powershell -ExecutionPolicy Bypass -File tools\list-fonts-windows.ps1 > show-machine-fonts.txt

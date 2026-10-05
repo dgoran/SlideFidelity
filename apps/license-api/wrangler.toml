@@ -1,13 +1,13 @@
-# SlideCheck license API (U14, KTD7/KTD8/KTD9).
-# Placeholders only: replace database_id after `wrangler d1 create slidecheck-license`.
-name = "slidecheck-license-api"
+# SlideFidelity license API (U14, KTD7/KTD8/KTD9).
+# Placeholders only: replace database_id after `wrangler d1 create slidefidelity-license`.
+name = "slidefidelity-license-api"
 main = "src/index.ts"
 compatibility_date = "2026-08-15"
 compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
 binding = "DB"
-database_name = "slidecheck-license"
+database_name = "slidefidelity-license"
 database_id = "00000000-0000-0000-0000-000000000000"
 migrations_dir = "migrations"
 
@@ -17,16 +17,16 @@ crons = ["17 3 * * *"]
 
 [vars]
 # Comma-separated list of browser origins allowed by CORS (add-in + site).
-ALLOWED_ORIGINS = "https://app.slidecheck.io,https://slidecheck.io"
+ALLOWED_ORIGINS = "https://app.slidefidelity.com,https://slidefidelity.com"
 # Public website base URL used for account-bound checkout links.
-SITE_URL = "https://slidecheck.io"
+SITE_URL = "https://slidefidelity.com"
 # Key id placed in entitlement tokens; bump when rotating ENTITLEMENT_PRIVATE_KEY.
 ENTITLEMENT_KID = "ent-2026-09"
 # "sandbox" or "production" (selects the Paddle API host).
 PADDLE_ENV = "sandbox"
-EMAIL_FROM = "SlideCheck <signin@slidecheck.io>"
+EMAIL_FROM = "SlideFidelity <signin@slidefidelity.com>"
 # AppSource reviewer account (code comes from the REVIEWER_CODE secret).
-REVIEWER_EMAIL = "appsource-review@slidecheck.io"
+REVIEWER_EMAIL = "appsource-review@slidefidelity.com"
 # Abuse limits (optional overrides; defaults live in src/ratelimit.ts).
 LINKCHECK_GLOBAL_DAILY_URL_CAP = "20000"
 

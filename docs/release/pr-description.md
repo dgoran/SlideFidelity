@@ -1,8 +1,8 @@
-# feat: SlideCheck PowerPoint add-in, license API, and website
+# feat: SlideFidelity PowerPoint add-in, license API, and website
 
 ## Summary
 
-SlideCheck is a cross-platform alternative to Neuxpower Slidewise. It is an Office.js add-in for PowerPoint for Mac, Windows (Microsoft 365), and the web, and it does not run on iPad or mobile.
+SlideFidelity is a cross-platform alternative to Neuxpower Slidewise. It is an Office.js add-in for PowerPoint for Mac, Windows (Microsoft 365), and the web, and it does not run on iPad or mobile.
 
 - **Audit engine** (`packages/audit-core`) parses a byte snapshot of the open `.pptx` in a Web Worker. It covers six areas:
   - Fonts: per script, plus bullet fonts, hidden list styles, theme fonts, charts, SmartArt, and embedding status.
@@ -30,7 +30,7 @@ SlideCheck is a cross-platform alternative to Neuxpower Slidewise. It is an Offi
   - Product-metrics SQL.
 - **Website** (`apps/site`) has the landing, pricing, account (Paddle checkout and portal), privacy, terms, refund, and support pages.
 
-Plan: `docs/plans/2026-09-30-1529-feat-slidecheck-powerpoint-addin-plan.md`. The user's review decisions, which supersede parts of the plan: `docs/notes/review-decisions.md`.
+Plan: `docs/plans/2026-09-30-1529-feat-slidefidelity-powerpoint-addin-plan.md`. The user's review decisions, which supersede parts of the plan: `docs/notes/review-decisions.md`.
 
 ## Testing
 

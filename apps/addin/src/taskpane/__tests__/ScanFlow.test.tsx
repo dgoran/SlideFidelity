@@ -52,7 +52,7 @@ describe("scan lifecycle in the pane (D10, D15)", () => {
   });
 
   it.each([
-    [new ScanError("read-failed", "x"), false, "SlideCheck couldn't read the presentation"],
+    [new ScanError("read-failed", "x"), false, "SlideFidelity couldn't read the presentation"],
     [new ScanError("read-failed", "x"), true, "Waiting for PowerPoint to save"],
     [new ScanError("empty", "x"), false, "This presentation is empty"],
     [new AuditClientError("not-a-pptx", "x"), false, "This file can't be scanned"],

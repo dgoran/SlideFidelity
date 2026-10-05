@@ -10,7 +10,7 @@
  *
  * Every dependency is injectable; the defaults use the `PowerPoint` / `Office` globals.
  */
-import type { Finding, FindingTarget } from "@slidecheck/audit-core";
+import type { Finding, FindingTarget } from "@slidefidelity/audit-core";
 import type { Capabilities } from "./capabilities";
 import { emuToPoints, resolveShape, resolveSlide, type MatchMethod } from "./ids";
 

@@ -4,11 +4,11 @@
 pub const PORTS: [u16; 3] = [47317, 47318, 47319];
 
 /// Managed-preferences domain on macOS and registry key under HKLM on Windows.
-pub const PREFS_DOMAIN: &str = "io.slidecheck.helper";
+pub const PREFS_DOMAIN: &str = "com.slidefidelity.helper";
 #[cfg(windows)]
-pub const PREFS_KEY: &str = r"Software\SlideCheck\Helper";
+pub const PREFS_KEY: &str = r"Software\SlideFidelity\Helper";
 
-const PROD_ORIGINS: &[&str] = &["https://app.slidecheck.io"];
+const PROD_ORIGINS: &[&str] = &["https://app.slidefidelity.com"];
 #[cfg(any(debug_assertions, feature = "dev-origin"))]
 const DEV_ORIGINS: &[&str] = &["https://localhost:3000"];
 #[cfg(not(any(debug_assertions, feature = "dev-origin")))]
@@ -93,7 +93,7 @@ mod platform {
 
 #[cfg(windows)]
 mod platform {
-    //! Intune / GPO policy: DWORD values under `HKLM\Software\SlideCheck\Helper`. The helper is a
+    //! Intune / GPO policy: DWORD values under `HKLM\Software\SlideFidelity\Helper`. The helper is a
     //! 64-bit binary, so this reads the native (not WOW6432Node) view, where the MSI writes too.
     use super::{Managed, PREFS_KEY};
     use std::ffi::c_void;

@@ -1,6 +1,6 @@
-# SlideCheck Helper: decisions made during implementation (2026-10-01)
+# SlideFidelity Helper: decisions made during implementation (2026-10-01)
 
-These decisions came from the helper plan's document review and the U1 spike (`docs/plans/2026-10-01-2113-feat-slidecheck-helper-plan.md`). Where this note and the plan differ, this note wins. Evidence is in `docs/notes/office-js-platform-behavior.md` under "Helper plan U1 gate".
+These decisions came from the helper plan's document review and the U1 spike (`docs/plans/2026-10-01-2113-feat-slidefidelity-helper-plan.md`). Where this note and the plan differ, this note wins. Evidence is in `docs/notes/office-js-platform-behavior.md` under "Helper plan U1 gate".
 
 - H1. **Certificate validity is 825 days or less in total, counting any backdating** (replaces the 10-year leaf in KTD2 and U6). macOS rejects longer leaves even under an admin-trusted root. Renewal happens through re-trust: when fewer than 90 days remain, `/v1/health` reports it and the pane tells the user to reinstall or approve renewal.
 - H2. **Managed Macs: one approval per machine** (user decision; changes R7, KTD3, U8). Jamf installs the helper silently, but macOS refuses to trust a certificate from a root process with no user session. At the user's first login the helper asks once for an administrator's approval to trust its certificate. Until approved, the pane treats the helper as present but not trusted, and falls back to the show-machine list. Interactive installs keep a single prompt: the installer's own.

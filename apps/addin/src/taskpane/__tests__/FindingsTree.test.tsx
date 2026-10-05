@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import type { Finding } from "@slidecheck/audit-core";
+import type { Finding } from "@slidefidelity/audit-core";
 import { all, button, changeValue, cleanup, click, flush, focus, keyDown, one, renderPane } from "../testing/render";
 import { fakeFinding, fakeResult, slideShape } from "../testing/fixtures";
 import { ROW_HEIGHT } from "../components/FindingsTree";

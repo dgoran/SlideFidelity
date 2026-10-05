@@ -1,5 +1,5 @@
 /** A small synthetic scan result touching every area, for component tests. */
-import type { AuditResult, Finding } from "@slidecheck/audit-core";
+import type { AuditResult, Finding } from "@slidefidelity/audit-core";
 import { fakeFinding, fakeResult, slideShape } from "../testing/fixtures";
 
 export function deckFindings(): Finding[] {

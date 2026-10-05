@@ -19,9 +19,9 @@ use serde::{Deserialize, Serialize};
 use crate::config::Managed;
 
 /// The signed feed.
-pub const FEED_URL: &str = "https://app.slidecheck.io/helper/latest.json";
+pub const FEED_URL: &str = "https://app.slidefidelity.com/helper/latest.json";
 /// Detached minisign signature over the exact bytes of [`FEED_URL`].
-pub const SIGNATURE_URL: &str = "https://app.slidecheck.io/helper/latest.json.minisig";
+pub const SIGNATURE_URL: &str = "https://app.slidefidelity.com/helper/latest.json.minisig";
 
 // TODO(U0/U10): replace with the production minisign public key (base64 line of the .pub file).
 // The production secret key lives only in CI secrets. Until then this placeholder is not valid
@@ -126,7 +126,7 @@ impl<T: Fetch + Sync> Fetch for &T {
 }
 
 /// HTTPS-only fetcher: platform certificate verifier, 10 s timeout, 1 MB cap, no plain-HTTP
-/// redirects, `User-Agent: slidecheck-helper/<version>`.
+/// redirects, `User-Agent: slidefidelity-helper/<version>`.
 #[derive(Debug, Clone)]
 pub struct HttpFetch {
     client: reqwest::Client,
@@ -139,7 +139,7 @@ impl HttpFetch {
         let client = reqwest::Client::builder()
             .https_only(true)
             .timeout(FETCH_TIMEOUT)
-            .user_agent(format!("slidecheck-helper/{current}"))
+            .user_agent(format!("slidefidelity-helper/{current}"))
             .build()
             .map_err(|e| FetchError(format!("building http client: {e}")))?;
         Ok(Self { client })

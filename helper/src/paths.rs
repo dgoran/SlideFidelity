@@ -9,10 +9,10 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 /// Development builds may point the state directory elsewhere, so the helper can run without an
-/// installer (`SLIDECHECK_HELPER_STATE_DIR`). Release builds ignore it.
+/// installer (`SLIDEFIDELITY_HELPER_STATE_DIR`). Release builds ignore it.
 fn dev_state_override() -> Option<PathBuf> {
     if cfg!(debug_assertions) {
-        std::env::var_os("SLIDECHECK_HELPER_STATE_DIR").map(PathBuf::from)
+        std::env::var_os("SLIDEFIDELITY_HELPER_STATE_DIR").map(PathBuf::from)
     } else {
         None
     }
@@ -21,12 +21,12 @@ fn dev_state_override() -> Option<PathBuf> {
 #[cfg(target_os = "macos")]
 pub fn state_dir() -> PathBuf {
     dev_state_override()
-        .unwrap_or_else(|| PathBuf::from("/Library/Application Support/SlideCheck/Helper"))
+        .unwrap_or_else(|| PathBuf::from("/Library/Application Support/SlideFidelity/Helper"))
 }
 
 #[cfg(target_os = "macos")]
 pub fn runtime_dir() -> PathBuf {
-    home().join("Library/Application Support/SlideCheck/Helper")
+    home().join("Library/Application Support/SlideFidelity/Helper")
 }
 
 #[cfg(windows)]
@@ -34,17 +34,17 @@ pub fn state_dir() -> PathBuf {
     if let Some(d) = dev_state_override() {
         return d;
     }
-    env_dir("ProgramData", r"C:\ProgramData").join(r"SlideCheck\Helper")
+    env_dir("ProgramData", r"C:\ProgramData").join(r"SlideFidelity\Helper")
 }
 
-/// `%LOCALAPPDATA%\SlideCheck\Helper` of the account the process runs as. Asked of the shell by
+/// `%LOCALAPPDATA%\SlideFidelity\Helper` of the account the process runs as. Asked of the shell by
 /// token rather than read from the environment: a helper started by an installer can inherit
 /// another profile's environment.
 #[cfg(windows)]
 pub fn runtime_dir() -> PathBuf {
     local_app_data()
         .unwrap_or_else(|| env_dir("LOCALAPPDATA", r"C:\Users\Default\AppData\Local"))
-        .join(r"SlideCheck\Helper")
+        .join(r"SlideFidelity\Helper")
 }
 
 #[cfg(windows)]
@@ -73,15 +73,15 @@ pub fn state_dir() -> PathBuf {
     if let Some(d) = dev_state_override() {
         return d;
     }
-    PathBuf::from("/var/lib/slidecheck-helper")
+    PathBuf::from("/var/lib/slidefidelity-helper")
 }
 
 #[cfg(not(any(target_os = "macos", windows)))]
 pub fn runtime_dir() -> PathBuf {
-    home().join(".local/state/slidecheck-helper")
+    home().join(".local/state/slidefidelity-helper")
 }
 
-/// The top directory `install-cert` locks down: `%ProgramData%\SlideCheck`, because whoever owns it
+/// The top directory `install-cert` locks down: `%ProgramData%\SlideFidelity`, because whoever owns it
 /// could rename `Helper` away and replace it. A development override locks only itself.
 #[cfg(windows)]
 pub fn state_lock_root() -> PathBuf {

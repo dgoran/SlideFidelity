@@ -6,7 +6,7 @@ describe("development unlock", () => {
     expect(isLocalHostname("localhost")).toBe(true);
     expect(isLocalHostname("127.0.0.1")).toBe(true);
     expect(isLocalHostname("[::1]")).toBe(true);
-    expect(isLocalHostname("app.slidecheck.io")).toBe(false);
+    expect(isLocalHostname("app.slidefidelity.com")).toBe(false);
     expect(isLocalHostname("localhost.evil.example")).toBe(false);
     expect(isLocalHostname("192.168.1.196")).toBe(false);
   });
@@ -14,7 +14,7 @@ describe("development unlock", () => {
   it("is active only in a development build served from localhost", () => {
     expect(devUnlockActive({ devBuild: true, hostname: "localhost" })).toBe(true);
     expect(devUnlockActive({ devBuild: false, hostname: "localhost" })).toBe(false);
-    expect(devUnlockActive({ devBuild: true, hostname: "app.slidecheck.io" })).toBe(false);
+    expect(devUnlockActive({ devBuild: true, hostname: "app.slidefidelity.com" })).toBe(false);
   });
 
   it("forces Pro while active and passes the real plan through otherwise", () => {

@@ -5,7 +5,7 @@
  * Every string taken from findings (font names, hex values, addresses, labels) is untrusted deck
  * text: the components render it as React text only.
  */
-import type { Area, AuditResult, Finding } from "@slidecheck/audit-core";
+import type { Area, AuditResult, Finding } from "@slidefidelity/audit-core";
 import {
   isReachable,
   normalizeHex,

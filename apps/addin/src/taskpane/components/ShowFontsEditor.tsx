@@ -1,12 +1,12 @@
 /**
- * Show-machine fonts editor (G3): the fonts installed on the presenting computer, so SlideCheck
+ * Show-machine fonts editor (G3): the fonts installed on the presenting computer, so SlideFidelity
  * doesn't report them as possibly missing. Free (it only changes what the free counts include).
  *
  * - Add / remove typed font names; paste a list (one per line).
  * - Import a `.txt` (one per line) or `.json` (array, or `{ "fonts": [...] }`) file; export either.
  * - "Add fonts used in this deck": the deck's fonts as unchecked checkboxes; only the ones the user
  *   confirms are installed are added.
- * - With the SlideCheck Helper Connected (helper plan U12, R15): "This is a show machine: add its
+ * - With the SlideFidelity Helper Connected (helper plan U12, R15): "This is a show machine: add its
  *   fonts to the list" merges this computer's font names into the list after a confirmation
  *   dialog; existing entries are kept and duplicates (case-insensitive) dropped.
  *
@@ -31,7 +31,7 @@ import {
   tokens,
 } from "@fluentui/react-components";
 import { Add16Regular, Dismiss12Regular } from "@fluentui/react-icons";
-import { MAX_FONT_NAME_LENGTH, type AuditResult } from "@slidecheck/audit-core";
+import { MAX_FONT_NAME_LENGTH, type AuditResult } from "@slidefidelity/audit-core";
 import { useHelperSnapshot } from "../../helper/HelperStatus";
 import type { HelperStore } from "../../helper/state";
 import { usePlan } from "../../license/gate";
@@ -117,7 +117,7 @@ export interface ShowFontsEditorProps {
   placement?: "settings" | "problems";
   /** Test hook for export. */
   download?: (filename: string, text: string, type?: string) => void;
-  /** The SlideCheck Helper (U12): when Connected, offers to add this computer's fonts. */
+  /** The SlideFidelity Helper (U12): when Connected, offers to add this computer's fonts. */
   helper?: Pick<HelperStore, "getSnapshot" | "subscribe">;
 }
 
@@ -255,7 +255,7 @@ export function ShowFontsEditor({ store, placement = "settings", download = down
         </span>
       )}
       <p className={s.note}>
-        Fonts installed on the presenting computer. SlideCheck won&apos;t report them as possibly missing.
+        Fonts installed on the presenting computer. SlideFidelity won&apos;t report them as possibly missing.
       </p>
 
       {fonts.length === 0 ? (

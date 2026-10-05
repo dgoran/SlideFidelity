@@ -12,7 +12,7 @@
  * targets, so the existing replace-font fix applies unchanged. One `font-availability-summary`
  * finding per deck carries the counts.
  *
- * Fonts on THIS computer (U11, H7): when the SlideCheck Helper is running, `AuditOptions.localFonts`
+ * Fonts on THIS computer (U11, H7): when the SlideFidelity Helper is running, `AuditOptions.localFonts`
  * lists every family PowerPoint can use here (an empty list still means "helper present"). The
  * helper is authoritative for this machine: a used font that is not embedded (fully or as a subset)
  * and not on that list gets a `font-missing-here` warning with the same targets and fix, even when
@@ -60,14 +60,14 @@ export interface FontMaybeMissingData {
   /** Plain-language recommended action. */
   suggestion: string;
   /**
-   * What the SlideCheck Helper found on this computer: true = not installed here (a separate
+   * What the SlideFidelity Helper found on this computer: true = not installed here (a separate
    * `font-missing-here` warning carries the problem), false = installed here, null = no helper
    * list (`AuditOptions.localFonts` absent). Any non-null value makes this finding info.
    */
   missingHere: boolean | null;
 }
 
-/** A used, non-embedded font the SlideCheck Helper did not report on this computer. */
+/** A used, non-embedded font the SlideFidelity Helper did not report on this computer. */
 export interface FontMissingHereData {
   typeface: string;
   /** Number of usages (= targets). */
@@ -103,7 +103,7 @@ export interface FontAvailabilitySummaryData {
   maybeMissing: number;
   /** Whether a non-empty show-machine font list was supplied. */
   teamListProvided: boolean;
-  /** Whether the SlideCheck Helper's local font list was supplied (`localFonts`, even empty). */
+  /** Whether the SlideFidelity Helper's local font list was supplied (`localFonts`, even empty). */
   localListProvided: boolean;
   /** Fonts with a `font-missing-here` finding (0 when no local list). */
   missingHere: number;
@@ -268,7 +268,7 @@ function missingHereFinding(usage: FindingOf<"font-usage">, officeFont: boolean,
   parts.push(
     cloud
       ? "It is an Office cloud font that is not downloaded on this computer; PowerPoint downloads it only when online (with connected experiences on). Until then PowerPoint shows a substitute font."
-      : "The SlideCheck Helper did not find it among the fonts PowerPoint can use on this computer, so PowerPoint shows a substitute font here.",
+      : "The SlideFidelity Helper did not find it among the fonts PowerPoint can use on this computer, so PowerPoint shows a substitute font here.",
   );
   if (symbolOnly) parts.push("Only used for bullet or symbol glyphs; a substitute changes how those glyphs look.");
   parts.push(suggestion);

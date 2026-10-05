@@ -5,7 +5,7 @@
  * fallback match is skipped as "identity uncertain" (`isSafeForDestructiveFix`, D4). A shape whose
  * group is also selected is folded into the group's unit (deleting the group removes it).
  */
-import type { Finding } from "@slidecheck/audit-core";
+import type { Finding } from "@slidefidelity/audit-core";
 import {
   absorbUnit,
   containerReason,

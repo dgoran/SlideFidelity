@@ -1,4 +1,4 @@
--- SlideCheck license API schema (U14). All timestamps are Unix epoch milliseconds.
+-- SlideFidelity license API schema (U14). All timestamps are Unix epoch milliseconds.
 -- Privacy: no link-check URLs, IP addresses, or webhook payloads are stored.
 
 CREATE TABLE accounts (

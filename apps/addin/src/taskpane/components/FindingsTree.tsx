@@ -15,7 +15,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Input, Label, Select, makeStyles, tokens } from "@fluentui/react-components";
 import { Search16Regular } from "@fluentui/react-icons";
-import type { Area, Finding, FindingTarget } from "@slidecheck/audit-core";
+import type { Area, Finding, FindingTarget } from "@slidefidelity/audit-core";
 import { primaryTarget, type NavigateResult } from "../../office/navigate";
 import { AREA_LABELS, navigateFromPane, usePaneServices, usePaneSlots } from "../context";
 import { describeTarget, filterFindings, flattenTree, groupFindings, type TreeRow } from "../model/tree";

@@ -4,7 +4,7 @@
  * scanned with `runChecks`) and applied to the fake PowerPoint model.
  */
 import { describe, expect, it } from "vitest";
-import { runChecks, type Finding } from "@slidecheck/audit-core";
+import { runChecks, type Finding } from "@slidefidelity/audit-core";
 import { buildDeck, para, run as xmlRun, sp } from "../../../../../packages/audit-core/test/helpers/buildDeck";
 import { emuToPoints } from "../ids";
 import { previewFix, runFix } from "./engine";

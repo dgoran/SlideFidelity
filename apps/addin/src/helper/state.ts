@@ -1,5 +1,5 @@
 /**
- * SlideCheck Helper pane state (U12, HTD "Pane helper-state machine"; R1, R3–R6; H5, H7).
+ * SlideFidelity Helper pane state (U12, HTD "Pane helper-state machine"; R1, R3–R6; H5, H7).
  *
  *   Probing → Connected (health ok, apiVersion compatible, font list read)
  *           → Outdated  (health ok, another apiVersion)
@@ -17,10 +17,10 @@
  * back to remembering the choice for this session only. Timers, fetch, storage, and the host
  * platform are injected for tests.
  */
-import type { AuditOptions } from "@slidecheck/audit-core";
+import type { AuditOptions } from "@slidefidelity/audit-core";
 import { fetchHelperFonts, HELPER_PORTS, isHttpsUrl, probeHelper, PROBE_TIMEOUT_MS, type FetchLike, type HelperHealth } from "./client";
 
-export const HELPER_DISMISS_KEY = "slidecheck:helperOfferDismissed";
+export const HELPER_DISMISS_KEY = "slidefidelity:helperOfferDismissed";
 export const HELPER_POLL_MS = 3000;
 export const HELPER_WAIT_MS = 5 * 60_000;
 /** Below this many days, the pane asks for a reinstall to renew the certificate (H1). */
@@ -96,7 +96,7 @@ export interface HelperStore {
 }
 
 export function helperDownloadUrl(platform: "mac" | "windows"): string {
-  return `https://slidecheck.io/helper?platform=${platform}`;
+  return `https://slidefidelity.com/helper?platform=${platform}`;
 }
 
 /** Map `Office.context.platform` to a helper platform. */

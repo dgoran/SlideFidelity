@@ -14,7 +14,7 @@ const connectSrc = (csp: string) => csp.split("; ").find((d) => d.startsWith("co
 describe("task pane CSP", () => {
   it("production: exactly the three helper ports on localhost, no wildcard", () => {
     const connect = connectSrc(contentSecurityPolicy(false));
-    expect(connect).toEqual(["'self'", "https://api.slidecheck.io", "https://localhost:47317", "https://localhost:47318", "https://localhost:47319"]);
+    expect(connect).toEqual(["'self'", "https://api.slidefidelity.com", "https://localhost:47317", "https://localhost:47318", "https://localhost:47319"]);
     expect(contentSecurityPolicy(false)).not.toMatch(/localhost:\*/);
     expect(contentSecurityPolicy(false)).not.toContain("wss:");
   });

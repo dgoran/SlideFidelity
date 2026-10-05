@@ -5,7 +5,7 @@
  * `{hash, bytes, result}` so fixes can rescan cheaply (`rescanForFix`, D4) and so the pre-fix
  * bytes stay available (D16). Every failure surfaces as a `ScanError` with a user-facing kind.
  */
-import { isPackageError, type AuditOptions, type AuditResult, type ProgressEvent } from "@slidecheck/audit-core";
+import { isPackageError, type AuditOptions, type AuditResult, type ProgressEvent } from "@slidefidelity/audit-core";
 import type { ScanInventory } from "../inspector/model";
 import { AuditClientError, createAuditClient, type AuditClient } from "../worker/client";
 import { SnapshotError, readSnapshot as defaultReadSnapshot, type Snapshot } from "./snapshot";
@@ -120,7 +120,7 @@ export interface ScanServiceDeps {
   /** Current audit options (brand profile). Read at the start of each scan. */
   getOptions?: () => AuditOptions;
   /**
-   * Async preparation before each full `scan()` (not `rescanForFix`), e.g. refreshing the SlideCheck
+   * Async preparation before each full `scan()` (not `rescanForFix`), e.g. refreshing the SlideFidelity
    * Helper's font list so the synchronous `getOptions` sees it (helper plan U12, R4). Failures
    * are ignored: the scan goes ahead with whatever options are current.
    */

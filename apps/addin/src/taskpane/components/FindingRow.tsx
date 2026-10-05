@@ -15,7 +15,7 @@ import {
   Info16Regular,
   SlideSearch16Regular,
 } from "@fluentui/react-icons";
-import type { Severity } from "@slidecheck/audit-core";
+import type { Severity } from "@slidefidelity/audit-core";
 import { describeTarget, type TreeRow } from "../model/tree";
 import { primaryTarget } from "../../office/navigate";
 

@@ -4,7 +4,7 @@
  * keeps going if the panel re-mounts.
  */
 import { useCallback, useMemo } from "react";
-import type { Finding } from "@slidecheck/audit-core";
+import type { Finding } from "@slidefidelity/audit-core";
 import {
   FIX_KINDS,
   openPreFixCopy,

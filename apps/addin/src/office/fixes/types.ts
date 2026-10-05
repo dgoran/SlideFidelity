@@ -5,7 +5,7 @@
  * plan to the live deck in batches. Everything in a plan is plain data so the UI can render the
  * preview (R16) and keep it across renders.
  */
-import type { Finding, FindingTarget, FixKind } from "@slidecheck/audit-core";
+import type { Finding, FindingTarget, FixKind } from "@slidefidelity/audit-core";
 
 export type FixKindId = FixKind;
 

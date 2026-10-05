@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Finding } from "@slidecheck/audit-core";
+import type { Finding } from "@slidefidelity/audit-core";
 import { previewFix, runFix } from "./engine";
 import { FIXED_COLOR_NOTE, replaceColorsKind } from "./replaceColors";
 import type { RunFixDeps } from "./types";

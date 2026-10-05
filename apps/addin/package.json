@@ -1,5 +1,5 @@
 {
-  "name": "@slidecheck/addin",
+  "name": "@slidefidelity/addin",
   "version": "0.1.0",
   "private": true,
   "config": {
@@ -21,7 +21,7 @@
     "@fluentui/react-components": "^9.55.1",
     "@fluentui/react-icons": "^2.0.264",
     "@noble/hashes": "^2.0.0",
-    "@slidecheck/audit-core": "*",
+    "@slidefidelity/audit-core": "*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

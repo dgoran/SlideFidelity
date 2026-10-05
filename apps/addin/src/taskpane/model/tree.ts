@@ -5,7 +5,7 @@
  * Levels: 1 = group, 2 = finding, 3 = target (only for findings with more than one target).
  * Groups start expanded, findings start collapsed; `toggled` holds keys flipped from that default.
  */
-import type { Area, Finding, FindingTarget } from "@slidecheck/audit-core";
+import type { Area, Finding, FindingTarget } from "@slidefidelity/audit-core";
 import type { SeverityFilter } from "../state/store";
 
 export interface FindingGroup {

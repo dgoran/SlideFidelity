@@ -5,7 +5,7 @@ mod support;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-use slidecheck_helper::fonts::{scan_dirs, FontCache, FontInventory, Source};
+use slidefidelity_helper::fonts::{scan_dirs, FontCache, FontInventory, Source};
 use support::*;
 
 fn write(dir: &Path, name: &str, bytes: &[u8]) -> PathBuf {
@@ -14,7 +14,7 @@ fn write(dir: &Path, name: &str, bytes: &[u8]) -> PathBuf {
     p
 }
 
-fn family<'a>(inv: &'a FontInventory, key: &str) -> &'a slidecheck_helper::fonts::Family {
+fn family<'a>(inv: &'a FontInventory, key: &str) -> &'a slidefidelity_helper::fonts::Family {
     inv.families.get(key).unwrap_or_else(|| {
         panic!(
             "no family {key:?}; have {:?}",
@@ -372,10 +372,10 @@ fn registered_names_join_the_family_they_extend() {
 #[cfg(windows)]
 #[test]
 fn gdi_reports_installed_windows_fonts() {
-    let names = slidecheck_helper::fonts::windows::gdi_face_names();
+    let names = slidefidelity_helper::fonts::windows::gdi_face_names();
     assert!(names.contains("Arial"), "{names:?}");
     assert!(!names.iter().any(|n| n.starts_with('@')));
-    let (inv, _) = slidecheck_helper::fonts::collect();
+    let (inv, _) = slidefidelity_helper::fonts::collect();
     for n in &names {
         assert!(
             inv.find(n).is_some(),
@@ -445,7 +445,7 @@ fn cache_is_send_and_sync() {
 #[cfg(target_os = "macos")]
 #[test]
 fn collect_finds_system_and_office_fonts() {
-    let (inv, _errors) = slidecheck_helper::fonts::collect();
+    let (inv, _errors) = slidefidelity_helper::fonts::collect();
     assert!(
         inv.find("Helvetica Neue").is_some(),
         "Helvetica Neue missing"
@@ -484,7 +484,7 @@ fn parity_with_list_fonts_mac_script() {
         .filter(|l| !l.is_empty())
         .map(String::from)
         .collect();
-    let (inv, _) = slidecheck_helper::fonts::collect();
+    let (inv, _) = slidefidelity_helper::fonts::collect();
     // The script also lists Office's font-picker preview faces (msofp_*), which the helper skips.
     let missing: Vec<&String> = expected
         .iter()

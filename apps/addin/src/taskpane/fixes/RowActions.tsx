@@ -6,7 +6,7 @@
  */
 import { Button } from "@fluentui/react-components";
 import { Wrench16Regular } from "@fluentui/react-icons";
-import type { Finding } from "@slidecheck/audit-core";
+import type { Finding } from "@slidefidelity/audit-core";
 import { usePlan } from "../../license/gate";
 import { currentResult } from "../brand/themeBrand";
 import { useCapabilities, type RowActionContext } from "../context";

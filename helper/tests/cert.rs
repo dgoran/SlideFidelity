@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 
-use slidecheck_helper::cert::{
+use slidefidelity_helper::cert::{
     self, CertError, CertPaths, InstallOptions, InstallOutcome, OnTrustFailure, RootRef,
     TrustStatus, TrustStore, MAX_TOTAL_VALIDITY_DAYS, RENEW_BELOW_DAYS,
 };
@@ -231,12 +231,12 @@ fn install_writes_the_expected_files_and_trusts_the_root() {
     );
 
     // CertPaths for the real state dir agrees with paths.rs.
-    let real = CertPaths::in_dir(&slidecheck_helper::paths::state_dir());
-    assert_eq!(real.leaf_pem, slidecheck_helper::paths::leaf_cert_path());
-    assert_eq!(real.leaf_key, slidecheck_helper::paths::leaf_key_path());
+    let real = CertPaths::in_dir(&slidefidelity_helper::paths::state_dir());
+    assert_eq!(real.leaf_pem, slidefidelity_helper::paths::leaf_cert_path());
+    assert_eq!(real.leaf_key, slidefidelity_helper::paths::leaf_key_path());
     assert_eq!(
         real.root_sha256,
-        slidecheck_helper::paths::root_thumbprint_path()
+        slidefidelity_helper::paths::root_thumbprint_path()
     );
 }
 
@@ -549,7 +549,7 @@ fn windows_policy_failed_renewal_keeps_the_old_trusted_chain() {
 
 #[test]
 fn windows_policy_never_trusts_an_untrusted_chain_found_on_disk() {
-    // A standard user can pre-create %ProgramData%\SlideCheck\Helper and plant a consistent chain
+    // A standard user can pre-create %ProgramData%\SlideFidelity\Helper and plant a consistent chain
     // of their own. The elevated installer must replace it, not add the planted root to the store.
     let (_t, dir) = fresh();
     let planter = FakeStore::failing();
@@ -767,7 +767,7 @@ async fn generated_chain_serves_tls_for_localhost_names_only() {
 /// cargo test --test cert -- --ignored real_system_keychain_round_trip
 /// ```
 ///
-/// Then confirm `security dump-trust-settings -d` no longer lists "SlideCheck Helper Local Root".
+/// Then confirm `security dump-trust-settings -d` no longer lists "SlideFidelity Helper Local Root".
 #[cfg(target_os = "macos")]
 #[test]
 #[ignore = "modifies the real System keychain; run manually on a disposable machine"]
@@ -790,7 +790,7 @@ fn real_system_keychain_round_trip() {
 /// ```
 ///
 /// Then confirm certlm.msc > Trusted Root Certification Authorities no longer lists
-/// "SlideCheck Helper Local Root".
+/// "SlideFidelity Helper Local Root".
 #[cfg(windows)]
 #[test]
 #[ignore = "modifies the real LocalMachine\\Root store; run manually from an elevated prompt"]

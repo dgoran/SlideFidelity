@@ -1,5 +1,5 @@
 <!--
-  SlideCheck Helper: per-machine x64 MSI (WiX v5). Built by build.ps1:
+  SlideFidelity Helper: per-machine x64 MSI (WiX v5). Built by build.ps1:
     wix build -arch x64 -ext WixToolset.Util.wixext -d Version=<x.y.z> -d HelperExe=<path> helper.wxs
 
   Custom actions (docs/notes/helper-windows-handoff.md, U9):
@@ -11,29 +11,29 @@
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
-  <Package Name="SlideCheck Helper"
-           Manufacturer="SlideCheck"
+  <Package Name="SlideFidelity Helper"
+           Manufacturer="SlideFidelity"
            Version="$(Version)"
            UpgradeCode="8106F267-786C-4A82-BDF6-A9427B159176"
            Scope="perMachine"
            Compressed="yes">
     <!-- Never change the UpgradeCode: MajorUpgrade finds earlier versions by it. -->
-    <MajorUpgrade DowngradeErrorMessage="A newer version of SlideCheck Helper is already installed." />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of SlideFidelity Helper is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
     <Property Id="ARPNOMODIFY" Value="1" />
-    <Property Id="ARPURLINFOABOUT" Value="https://app.slidecheck.io" />
+    <Property Id="ARPURLINFOABOUT" Value="https://app.slidefidelity.com" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="INSTALLFOLDER" Name="SlideCheck Helper">
+      <Directory Id="INSTALLFOLDER" Name="SlideFidelity Helper">
         <Component Id="HelperBinary">
-          <File Id="HelperExe" Source="$(HelperExe)" Name="slidecheck-helper.exe" KeyPath="yes" />
+          <File Id="HelperExe" Source="$(HelperExe)" Name="slidefidelity-helper.exe" KeyPath="yes" />
         </Component>
         <Component Id="HelperAutoStart">
           <!-- Starts the helper for every user at sign-in, unelevated, in their own session. -->
           <RegistryValue Root="HKLM"
                          Key="Software\Microsoft\Windows\CurrentVersion\Run"
-                         Name="SlideCheck Helper"
+                         Name="SlideFidelity Helper"
                          Type="string"
                          Value="&quot;[#HelperExe]&quot; serve"
                          KeyPath="yes" />
@@ -41,13 +41,13 @@
       </Directory>
     </StandardDirectory>
 
-    <Feature Id="Main" Title="SlideCheck Helper" Level="1">
+    <Feature Id="Main" Title="SlideFidelity Helper" Level="1">
       <ComponentRef Id="HelperBinary" />
       <ComponentRef Id="HelperAutoStart" />
     </Feature>
 
     <!-- Deferred actions take their command line from a property named after the action. -->
-    <SetProperty Id="StopHelper" Value="&quot;[System64Folder]taskkill.exe&quot; /F /IM slidecheck-helper.exe"
+    <SetProperty Id="StopHelper" Value="&quot;[System64Folder]taskkill.exe&quot; /F /IM slidefidelity-helper.exe"
                  Sequence="execute" Before="StopHelper" />
     <CustomAction Id="StopHelper" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
                   Execute="deferred" Impersonate="no" Return="ignore" />

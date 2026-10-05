@@ -223,7 +223,7 @@ describe("font availability check", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// U11: fonts the SlideCheck Helper reports as installed on this computer (`AuditOptions.localFonts`).
+// U11: fonts the SlideFidelity Helper reports as installed on this computer (`AuditOptions.localFonts`).
 
 function missingHere(findings: Finding[]): FindingOf<"font-missing-here">[] {
   return findings.filter((f): f is FindingOf<"font-missing-here"> => f.kind === "font-missing-here");

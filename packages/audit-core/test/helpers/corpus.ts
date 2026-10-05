@@ -508,7 +508,7 @@ export function nestedGroupShapes(): string {
     y: IN,
     cx: 2 * IN,
     cy: 2 * IN,
-    uri: "urn:slidecheck:test-container",
+    uri: "urn:slidefidelity:test-container",
     data: outer,
   });
 }

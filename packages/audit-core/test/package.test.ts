@@ -233,7 +233,7 @@ describe("U3 package model — shape walker", () => {
     expect(deep?.xfrm).toEqual({ off: { x: 0, y: 0 }, ext: { cx: 457200, cy: 457200 } });
     // Frame at (1in,1in); groups at identity scale → deep shape sits at the frame origin.
     expect(deep?.bounds).toEqual({ x: 914400, y: 914400, cx: 457200, cy: 457200 });
-    expect(shapes[0]?.graphicDataUri).toBe("urn:slidecheck:test-container");
+    expect(shapes[0]?.graphicDataUri).toBe("urn:slidefidelity:test-container");
   });
 
   it("applies group child-space scaling to bounds and propagates hidden groups", async () => {

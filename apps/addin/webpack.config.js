@@ -6,18 +6,18 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const { DefinePlugin } = require("webpack");
 
 const urlDev = "https://localhost:3000/";
-const urlProd = "https://app.slidecheck.io/";
+const urlProd = "https://app.slidefidelity.com/";
 
-/** The SlideCheck Helper's ports (helper plan U12): exactly these three, never a wildcard. */
+/** The SlideFidelity Helper's ports (helper plan U12): exactly these three, never a wildcard. */
 const HELPER_ORIGINS = ["https://localhost:47317", "https://localhost:47318", "https://localhost:47319"];
 
 /**
  * Task-pane Content-Security-Policy (U10). Deck content is untrusted: it is rendered only as text,
  * and this policy is the second line of defence. Production may reach localhost only on the
- * SlideCheck Helper's three ports; development builds may talk to any localhost port.
+ * SlideFidelity Helper's three ports; development builds may talk to any localhost port.
  */
 function contentSecurityPolicy(dev) {
-  const connect = ["'self'", "https://api.slidecheck.io"];
+  const connect = ["'self'", "https://api.slidefidelity.com"];
   if (dev) connect.push("https://localhost:*", "wss://localhost:*");
   else connect.push(...HELPER_ORIGINS);
   return [
@@ -80,7 +80,7 @@ module.exports = async (env, options) => {
     },
     plugins: [
       // Development-only Pro unlock (src/license/devUnlock.ts); `false` strips it from production bundles.
-      new DefinePlugin({ __SLIDECHECK_DEV__: JSON.stringify(dev) }),
+      new DefinePlugin({ __SLIDEFIDELITY_DEV__: JSON.stringify(dev) }),
       new HtmlWebpackPlugin({
         filename: "taskpane.html",
         // "!!" + the plugin's own lodash loader, so html-loader (used for the HMR entry) does not

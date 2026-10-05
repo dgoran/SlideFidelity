@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { FindingTarget } from "@slidecheck/audit-core";
+import type { FindingTarget } from "@slidefidelity/audit-core";
 import { capabilitiesUpTo } from "./capabilities";
 import { createNavigator, type PptContextLike, type PowerPointRunLike } from "./navigate";
 

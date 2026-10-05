@@ -1,7 +1,7 @@
 /**
  * Test-only builders for findings and results. Not imported by production code.
  */
-import { summarize, type Area, type AuditResult, type Finding, type FindingTarget, type Severity } from "@slidecheck/audit-core";
+import { summarize, type Area, type AuditResult, type Finding, type FindingTarget, type Severity } from "@slidefidelity/audit-core";
 
 let seq = 0;
 

@@ -1,5 +1,5 @@
--- SlideCheck product metrics (D17). Read-only queries over the license-API D1 database.
--- Run:  npx wrangler d1 execute slidecheck-license --remote --file scripts/metrics.sql
+-- SlideFidelity product metrics (D17). Read-only queries over the license-API D1 database.
+-- Run:  npx wrangler d1 execute slidefidelity-license --remote --file scripts/metrics.sql
 -- See docs/notes/product-metrics.md for definitions and review thresholds.
 --
 -- Conventions: timestamps are epoch milliseconds; weeks are ISO-like Monday-start weeks labeled by
@@ -11,7 +11,7 @@
 SELECT date(created_at / 1000, 'unixepoch', 'weekday 0', '-6 days') AS week_start,
        COUNT(*) AS signups
 FROM accounts
-WHERE email <> 'appsource-review@slidecheck.io'
+WHERE email <> 'appsource-review@slidefidelity.com'
   AND created_at >= (CAST(strftime('%s', 'now') AS INTEGER) - 26 * 7 * 86400) * 1000
 GROUP BY week_start
 ORDER BY week_start;
@@ -21,7 +21,7 @@ ORDER BY week_start;
 SELECT date(a.created_at / 1000, 'unixepoch', 'weekday 0', '-6 days') AS week_start,
        COUNT(*) AS trial_starts
 FROM accounts a
-WHERE a.email <> 'appsource-review@slidecheck.io'
+WHERE a.email <> 'appsource-review@slidefidelity.com'
   AND a.created_at >= (CAST(strftime('%s', 'now') AS INTEGER) - 26 * 7 * 86400) * 1000
   AND NOT EXISTS (
     SELECT 1 FROM subscriptions s
@@ -43,7 +43,7 @@ FROM (
                    AND MIN(s.first_active_at) <= a.created_at + 45 * 86400000 THEN 1 ELSE 0 END AS converted
   FROM accounts a
   LEFT JOIN subscriptions s ON s.account_id = a.id
-  WHERE a.email <> 'appsource-review@slidecheck.io'
+  WHERE a.email <> 'appsource-review@slidefidelity.com'
     AND a.created_at <= (CAST(strftime('%s', 'now') AS INTEGER) - 45 * 86400) * 1000
   GROUP BY a.id
 )
@@ -59,7 +59,7 @@ FROM (
                    AND MIN(s.first_active_at) <= a.created_at + 45 * 86400000 THEN 1 ELSE 0 END AS converted
   FROM accounts a
   LEFT JOIN subscriptions s ON s.account_id = a.id
-  WHERE a.email <> 'appsource-review@slidecheck.io'
+  WHERE a.email <> 'appsource-review@slidefidelity.com'
     AND a.created_at <= (CAST(strftime('%s', 'now') AS INTEGER) - 45 * 86400) * 1000
   GROUP BY a.id
 );
@@ -72,7 +72,7 @@ SELECT COUNT(*) AS paid_subscriptions_90d_old,
              / MAX(COUNT(*), 1), 1) AS retention_pct
 FROM subscriptions s
 JOIN accounts a ON a.id = s.account_id
-WHERE a.email <> 'appsource-review@slidecheck.io'
+WHERE a.email <> 'appsource-review@slidefidelity.com'
   AND s.first_active_at IS NOT NULL
   AND s.first_active_at <= (CAST(strftime('%s', 'now') AS INTEGER) - 90 * 86400) * 1000;
 
@@ -80,5 +80,5 @@ WHERE a.email <> 'appsource-review@slidecheck.io'
 SELECT COUNT(DISTINCT s.account_id) AS active_paid_accounts
 FROM subscriptions s
 JOIN accounts a ON a.id = s.account_id
-WHERE a.email <> 'appsource-review@slidecheck.io'
+WHERE a.email <> 'appsource-review@slidefidelity.com'
   AND s.status IN ('active', 'past_due');

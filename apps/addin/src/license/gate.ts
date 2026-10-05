@@ -9,7 +9,7 @@
  * `setPlan`) and wires `onSignIn` / `onManageSubscription`.
  */
 import { createContext, createElement, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import type { Area, Finding } from "@slidecheck/audit-core";
+import type { Area, Finding } from "@slidefidelity/audit-core";
 
 // ---------------------------------------------------------------------------------------------
 // Plans and features

@@ -23,10 +23,10 @@ export function errorCopy(kind: ScanErrorKind, isWeb = false): Copy {
         ? {
             title: "Waiting for PowerPoint to save",
             message:
-              "PowerPoint on the web has to finish saving before SlideCheck can read the presentation. Wait a moment, then try again.",
+              "PowerPoint on the web has to finish saving before SlideFidelity can read the presentation. Wait a moment, then try again.",
           }
         : {
-            title: "SlideCheck couldn't read the presentation",
+            title: "SlideFidelity couldn't read the presentation",
             message: "PowerPoint didn't provide a copy of the file. If the presentation is still saving, wait a moment and try again.",
           };
     case "empty":
@@ -34,7 +34,7 @@ export function errorCopy(kind: ScanErrorKind, isWeb = false): Copy {
     case "not-a-presentation":
       return {
         title: "This file can't be scanned",
-        message: "SlideCheck reads PowerPoint presentations (.pptx). Save the file as a PowerPoint Presentation, then try again.",
+        message: "SlideFidelity reads PowerPoint presentations (.pptx). Save the file as a PowerPoint Presentation, then try again.",
       };
     case "damaged-file":
       return {
@@ -49,7 +49,7 @@ export function errorCopy(kind: ScanErrorKind, isWeb = false): Copy {
     case "cancelled":
       return { title: "Scan cancelled", message: "The scan was cancelled before it finished." };
     case "internal":
-      return { title: "Something went wrong", message: "SlideCheck hit an unexpected problem while scanning. Try again." };
+      return { title: "Something went wrong", message: "SlideFidelity hit an unexpected problem while scanning. Try again." };
   }
 }
 

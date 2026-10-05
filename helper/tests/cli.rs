@@ -3,7 +3,7 @@
 use std::process::Command;
 
 fn helper() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_slidecheck-helper"))
+    Command::new(env!("CARGO_BIN_EXE_slidefidelity-helper"))
 }
 
 #[test]
@@ -42,31 +42,31 @@ fn help_lists_every_subcommand() {
 #[cfg(target_os = "macos")]
 #[test]
 fn mac_paths_are_documented_locations() {
-    use slidecheck_helper::paths;
+    use slidefidelity_helper::paths;
     assert_eq!(
         paths::state_dir(),
-        std::path::Path::new("/Library/Application Support/SlideCheck/Helper")
+        std::path::Path::new("/Library/Application Support/SlideFidelity/Helper")
     );
     let home = std::env::var("HOME").unwrap();
     assert_eq!(
         paths::runtime_dir(),
-        std::path::Path::new(&home).join("Library/Application Support/SlideCheck/Helper")
+        std::path::Path::new(&home).join("Library/Application Support/SlideFidelity/Helper")
     );
 }
 
 #[cfg(windows)]
 #[test]
 fn windows_paths_are_documented_locations() {
-    use slidecheck_helper::paths;
+    use slidefidelity_helper::paths;
     let pd = std::env::var("ProgramData").unwrap();
     assert_eq!(
         paths::state_dir(),
-        std::path::Path::new(&pd).join(r"SlideCheck\Helper")
+        std::path::Path::new(&pd).join(r"SlideFidelity\Helper")
     );
     let la = std::env::var("LOCALAPPDATA").unwrap();
     assert_eq!(
         paths::runtime_dir(),
-        std::path::Path::new(&la).join(r"SlideCheck\Helper")
+        std::path::Path::new(&la).join(r"SlideFidelity\Helper")
     );
 }
 
@@ -74,7 +74,7 @@ fn windows_paths_are_documented_locations() {
 fn ensure_dir_creates_missing_directory_with_mode() {
     let tmp = tempfile::tempdir().unwrap();
     let dir = tmp.path().join("a/b");
-    slidecheck_helper::paths::ensure_dir(&dir, 0o700).unwrap();
+    slidefidelity_helper::paths::ensure_dir(&dir, 0o700).unwrap();
     assert!(dir.is_dir());
     #[cfg(unix)]
     {
@@ -88,11 +88,11 @@ fn ensure_dir_creates_missing_directory_with_mode() {
 
 #[test]
 fn config_ports_and_origins() {
-    use slidecheck_helper::config;
+    use slidefidelity_helper::config;
     assert_eq!(config::PORTS, [47317, 47318, 47319]);
-    assert!(config::allowed_origin("https://app.slidecheck.io"));
+    assert!(config::allowed_origin("https://app.slidefidelity.com"));
     assert!(!config::allowed_origin("https://example.com"));
-    assert!(!config::allowed_origin("http://app.slidecheck.io"));
+    assert!(!config::allowed_origin("http://app.slidefidelity.com"));
     // The dev origin is accepted only in debug builds or with the dev-origin feature.
     assert_eq!(
         config::allowed_origin("https://localhost:3000"),
@@ -102,7 +102,7 @@ fn config_ports_and_origins() {
 
 #[test]
 fn managed_port_outside_the_fixed_list_is_ignored() {
-    use slidecheck_helper::config::port_order;
+    use slidefidelity_helper::config::port_order;
     assert_eq!(port_order(None), vec![47317, 47318, 47319]);
     assert_eq!(port_order(Some(47318)), vec![47318, 47317, 47319]);
     assert_eq!(port_order(Some(8080)), vec![47317, 47318, 47319]);

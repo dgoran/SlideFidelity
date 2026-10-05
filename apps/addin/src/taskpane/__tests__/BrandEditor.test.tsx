@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { parseBrandJson, serializeBrand, summarize, type AuditOptions, type AuditResult } from "@slidecheck/audit-core";
+import { parseBrandJson, serializeBrand, summarize, type AuditOptions, type AuditResult } from "@slidefidelity/audit-core";
 import { createScanService } from "../../office/scan";
 import { BRAND_STORAGE_KEY, createBrandStore, type StorageLike } from "../brand/brandStore";
 import { BrandEditor, BrandSettingsEntry } from "../components/BrandEditor";

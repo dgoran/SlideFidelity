@@ -2,10 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>Label</key><string>io.slidecheck.helper</string>
+  <key>Label</key><string>com.slidefidelity.helper</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/Library/Application Support/SlideCheck/Helper/bin/slidecheck-helper</string>
+    <string>/Library/Application Support/SlideFidelity/Helper/bin/slidefidelity-helper</string>
     <string>serve</string>
   </array>
   <key>RunAtLoad</key><true/>

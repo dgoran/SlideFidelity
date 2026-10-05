@@ -5,7 +5,7 @@
  */
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Finding } from "@slidecheck/audit-core";
+import type { Finding } from "@slidefidelity/audit-core";
 import type { Plan } from "../../license/gate";
 import { hyperlinkFinding, target } from "../../office/fixes/testing/fakePowerPoint";
 import type { LinkCheckDeps, LinkCheckReport, LinkCheckResult } from "../../office/linkCheck";
@@ -138,7 +138,7 @@ describe("privacy disclosure (R18)", () => {
     const d = one(panel(container), "[data-linkcheck-disclosure]");
     expect(d.textContent).toContain(DISCLOSURE_TEXT);
     expect(DISCLOSURE_TEXT).toBe(
-      "Checking sends the web addresses (http/https only) in this deck to the SlideCheck service. Nothing else from the deck is sent.",
+      "Checking sends the web addresses (http/https only) in this deck to the SlideFidelity service. Nothing else from the deck is sent.",
     );
     click(button(d, "Cancel"));
     expect(container.querySelector("[data-linkcheck-disclosure]")).toBeNull();

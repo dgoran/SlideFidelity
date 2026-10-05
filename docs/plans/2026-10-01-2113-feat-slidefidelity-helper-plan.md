@@ -1,5 +1,5 @@
 ---
-title: SlideCheck Helper - Plan
+title: SlideFidelity Helper - Plan
 type: feat
 date: 2026-10-01
 artifact_contract: ce-unified-plan/v1
@@ -8,14 +8,14 @@ product_contract_source: ce-plan-bootstrap
 execution: code
 ---
 
-# SlideCheck Helper - Plan
+# SlideFidelity Helper - Plan
 
 ---
 
 ## Goal Capsule
 
-- **Objective:** A Graphics Ops reviewer using PowerPoint for Mac or Windows sees exactly which fonts in a deck PowerPoint on this computer cannot use, including fonts the user installed and fonts that ship inside Office. They no longer maintain a font list by hand. Getting the helper takes one click in the SlideCheck pane and one installer prompt. Managed show machines get it silently.
-- **Means:** An optional, signed Rust background app ("SlideCheck Helper") serves the computer's font families over HTTPS on localhost, using a machine-specific trusted certificate. The SlideCheck add-in detects it, uses it, offers it when absent, and falls back to the imported show-machine list (KTD1–KTD4).
+- **Objective:** A Graphics Ops reviewer using PowerPoint for Mac or Windows sees exactly which fonts in a deck PowerPoint on this computer cannot use, including fonts the user installed and fonts that ship inside Office. They no longer maintain a font list by hand. Getting the helper takes one click in the SlideFidelity pane and one installer prompt. Managed show machines get it silently.
+- **Means:** An optional, signed Rust background app ("SlideFidelity Helper") serves the computer's font families over HTTPS on localhost, using a machine-specific trusted certificate. The SlideFidelity add-in detects it, uses it, offers it when absent, and falls back to the imported show-machine list (KTD1–KTD4).
 - **Authority hierarchy:** Product Contract Requirements win on behavior. KTDs win on mechanism. Units implement; they never amend an R or KTD. `docs/notes/review-decisions.md` (G1–G6) remains authoritative for existing add-in behavior.
 - **Stop conditions:** Stop and ask when any of these happens:
   - The U1 spike shows PowerPoint for Mac rejects both certificate designs.
@@ -31,13 +31,13 @@ execution: code
 
 ### Summary
 
-Build SlideCheck Helper, a small background app for macOS and Windows. It starts at login, listens only on this computer, and answers one question for the SlideCheck add-in: which font families PowerPoint can use here. That covers operating-system fonts, user-installed fonts, and Microsoft Office's private and cloud fonts.
+Build SlideFidelity Helper, a small background app for macOS and Windows. It starts at login, listens only on this computer, and answers one question for the SlideFidelity add-in: which font families PowerPoint can use here. That covers operating-system fonts, user-installed fonts, and Microsoft Office's private and cloud fonts.
 
 The add-in detects the helper when the pane opens and reports fonts missing on this computer exactly. When the helper is absent, the add-in offers to install it. When the user declines, or on PowerPoint on the web, the add-in falls back to the imported show-machine font list. The helper updates itself, and administrators can deploy it silently with Jamf or Intune.
 
 ### Problem Frame
 
-Graphics Ops must know before a show whether a deck's fonts will render on the presenting computer. Today SlideCheck can only compare fonts against a hand-imported list.
+Graphics Ops must know before a show whether a deck's fonts will render on the presenting computer. Today SlideFidelity can only compare fonts against a hand-imported list.
 
 On this session's Mac, two in-pane approaches failed:
 
@@ -57,15 +57,15 @@ HTTPS to localhost with a trusted certificate did work (`docs/notes/office-js-pl
 
 **Detection and use**
 
-- R1. Within 2 s of the pane opening on PowerPoint for Mac or Windows, SlideCheck knows whether a compatible helper is running, without any prompt. The helper status is visible in Settings and in the Problems Fonts row.
+- R1. Within 2 s of the pane opening on PowerPoint for Mac or Windows, SlideFidelity knows whether a compatible helper is running, without any prompt. The helper status is visible in Settings and in the Problems Fonts row.
 - R2. With the helper running, a font used in the deck that is not embedded and that PowerPoint on this computer cannot use is reported as "Missing on this computer". The check covers OS-registered fonts, user-installed fonts, and Office private and cloud fonts. A font PowerPoint can use is never reported missing on this computer.
-- R3. Without a reachable helper, SlideCheck behaves as today. It uses the show-machine list, the Office cross-platform list, and embedding. It shows no errors.
+- R3. Without a reachable helper, SlideFidelity behaves as today. It uses the show-machine list, the Office cross-platform list, and embedding. It shows no errors.
 - R4. When the helper's font list changes, for example after the user installs a font, a rescan reflects it without restarting PowerPoint.
 
 **Offer and install**
 
-- R5. When no helper is found on desktop Mac or Windows, the Problems Fonts row and Settings offer "Install SlideCheck Helper for exact missing-font checks". Choices are Install, Not now, and Don't ask again.
-  - Install opens the slidecheck.io download page for the detected platform in the browser, using `openBrowserWindow`.
+- R5. When no helper is found on desktop Mac or Windows, the Problems Fonts row and Settings offer "Install SlideFidelity Helper for exact missing-font checks". Choices are Install, Not now, and Don't ask again.
+  - Install opens the slidefidelity.com download page for the detected platform in the browser, using `openBrowserWindow`.
   - The offer never appears on PowerPoint on the web, iPad, or mobile.
 - R6. After the user installs the helper, the open pane detects it within 10 s and switches to the exact check without a reload.
 - R7. Interactive install needs at most one administrator authorization: the installer's own prompt. Installs through Jamf (pkg) and Intune (MSI) need none.
@@ -76,7 +76,7 @@ HTTPS to localhost with a trusted certificate did work (`docs/notes/office-js-pl
 
 **Security and privacy**
 
-- R12. The helper listens only on loopback addresses. It answers only allowlisted SlideCheck origins and rejects every other origin and any non-loopback `Host`.
+- R12. The helper listens only on loopback addresses. It answers only allowlisted SlideFidelity origins and rejects every other origin and any non-loopback `Host`.
 - R13. The helper returns only font family names and its own version and status. It never reads presentations and sends nothing off the computer, except fetching its own update feed.
 
 **Disclosure and convenience**
@@ -92,7 +92,7 @@ HTTPS to localhost with a trusted certificate did work (`docs/notes/office-js-pl
   - **Then** only Futura PT is reported "Missing on this computer".
 - AE2. Covers R5, R6.
   - **Given** no helper on a Mac,
-  - **When** the user opens SlideCheck and selects Install, then completes the installer,
+  - **When** the user opens SlideFidelity and selects Install, then completes the installer,
   - **Then** within 10 s the Fonts row shows "Exact font check: on", with no pane reload.
 - AE3. Covers R3, R5.
   - **Given** PowerPoint on the web,
@@ -130,7 +130,7 @@ HTTPS to localhost with a trusted certificate did work (`docs/notes/office-js-pl
   - A **Developer ID Installer** certificate is also required to sign the `.pkg`, and may not exist yet.
 - Azure Artifact Signing for Windows Authenticode: not configured yet. GetAudienceResponse's `GAR_SIGNING_PROFILE` was never set.
 - A Windows machine with Microsoft 365 PowerPoint (the user has one) for U2 and Windows testing.
-- Hosting for `https://slidecheck.io/helper/` (download page) and `https://app.slidecheck.io/helper/latest.json` (update feed), on the same Cloudflare Pages projects as the site and add-in.
+- Hosting for `https://slidefidelity.com/helper/` (download page) and `https://app.slidefidelity.com/helper/latest.json` (update feed), on the same Cloudflare Pages projects as the site and add-in.
 
 ### Sources
 
@@ -167,13 +167,13 @@ HTTPS to localhost with a trusted certificate did work (`docs/notes/office-js-pl
   - Windows: a per-machine MSI deferred custom action adds the certificate to `LocalMachine\Root`.
   - The installer's own authorization is the single prompt (R7). Jamf and Intune run these as root or SYSTEM, silently.
 - KTD4. **Auto-start through the installer.**
-  - Mac: `/Library/LaunchAgents/io.slidecheck.helper.plist` (`RunAtLoad`, `KeepAlive`), bootstrapped for the console user in postinstall. Jamf can pre-approve it with a managed login items profile.
+  - Mac: `/Library/LaunchAgents/com.slidefidelity.helper.plist` (`RunAtLoad`, `KeepAlive`), bootstrapped for the console user in postinstall. Jamf can pre-approve it with a managed login items profile.
   - Windows: an `HKLM\...\Run` entry from the MSI.
   - No runtime auto-launch crate.
 - KTD5. **Built-in signed updater.**
-  - The helper checks `https://app.slidecheck.io/helper/latest.json` at start and every 24 h. The manifest holds `version`, `platform` URLs, `sha256`, and a minisign signature verified against a public key compiled into the binary.
+  - The helper checks `https://app.slidefidelity.com/helper/latest.json` at start and every 24 h. The manifest holds `version`, `platform` URLs, `sha256`, and a minisign signature verified against a public key compiled into the binary.
   - Updates install through the platform installer: a notarized, stapled `.pkg` via `installer -pkg`, run by a tiny privileged path only the pkg sets up, or an MSI major upgrade via `msiexec /i … /qn`. The binary is never replaced in place, because that would break the Mac code-signature seal.
-  - MDM can disable updates through a managed preference (`io.slidecheck.helper` `AutoUpdate=false`) or the registry (`HKLM\Software\SlideCheck\Helper\AutoUpdate=0`).
+  - MDM can disable updates through a managed preference (`com.slidefidelity.helper` `AutoUpdate=false`) or the registry (`HKLM\Software\SlideFidelity\Helper\AutoUpdate=0`).
   - (session-settled: user-directed — chosen over store or package-manager updates and manual updates: the user chose a built-in signed updater.)
   - The exact privileged-update mechanism on Mac is settled in U7. See Open Questions.
 - KTD6. **Font sources.**
@@ -184,7 +184,7 @@ HTTPS to localhost with a trusted certificate did work (`docs/notes/office-js-pl
   - The helper runs as the logged-in user, so per-user folders resolve.
 - KTD7. **The API is versioned, read-only, and origin-locked.**
   - Endpoints: `GET /v1/health` returns `{version, apiVersion, platform}`. `GET /v1/fonts` returns `{families:[{name, names[], sources[]}], generatedAt}`.
-  - Every request is rejected with 403 unless `Origin` is in the allowlist (`https://app.slidecheck.io`; plus `https://localhost:3000` in debug builds only) and `Host` is a loopback name with the helper's port.
+  - Every request is rejected with 403 unless `Origin` is in the allowlist (`https://app.slidefidelity.com`; plus `https://localhost:3000` in debug builds only) and `Host` is a loopback name with the helper's port.
   - It answers Private Network Access preflights, and sets `Vary: Origin` and `Cache-Control: no-store`.
   - No token in v1: the data is font names only, and local processes can already read the font folders. Add pairing before any endpoint returns anything beyond font families.
 - KTD8. **Fixed port with fallbacks.** The helper uses the first free port of `47317, 47318, 47319`, recorded in a state file. The add-in probes the three in parallel with a 1.5 s timeout each.
@@ -202,9 +202,9 @@ Components:
 flowchart TB
   subgraph Mac_or_Windows[Reviewer's computer]
     subgraph PPT[PowerPoint desktop]
-      Pane[SlideCheck pane: helper client, offer UI, scan options]
+      Pane[SlideFidelity pane: helper client, offer UI, scan options]
     end
-    subgraph Helper[SlideCheck Helper - runs as user at login]
+    subgraph Helper[SlideFidelity Helper - runs as user at login]
       API[HTTPS API on 127.0.0.1 / ::1 : 47317]
       Fonts[Font enumeration: OS API + Office font folders]
       Upd[Updater: signed manifest, platform installer]
@@ -213,8 +213,8 @@ flowchart TB
     OfficeFonts[(Office DFonts + cloud FontCache)]
     OSFonts[(System + user fonts)]
   end
-  Feed[app.slidecheck.io/helper/latest.json]
-  Download[slidecheck.io/helper download page]
+  Feed[app.slidefidelity.com/helper/latest.json]
+  Download[slidefidelity.com/helper download page]
   Pane -- GET /v1/health, /v1/fonts --> API
   API --> Fonts --> OSFonts
   Fonts --> OfficeFonts
@@ -228,15 +228,15 @@ Install, detection, and use:
 ```mermaid
 sequenceDiagram
   participant U as User
-  participant P as SlideCheck pane
+  participant P as SlideFidelity pane
   participant B as Browser
   participant I as Installer (pkg/MSI, elevated)
   participant H as Helper
   P->>H: probe https://localhost:47317-47319/v1/health (1.5 s)
   H--xP: no answer
-  P-->>U: Install SlideCheck Helper for exact font checks
+  P-->>U: Install SlideFidelity Helper for exact font checks
   U->>P: Install
-  P->>B: openBrowserWindow(slidecheck.io/helper?platform=mac)
+  P->>B: openBrowserWindow(slidefidelity.com/helper?platform=mac)
   U->>I: run installer (one admin prompt)
   I->>I: generate constrained CA + leaf, destroy CA key, trust CA (System/LocalMachine)
   I->>H: install auto-start, start for current user
@@ -279,7 +279,7 @@ helper/                         # new Rust crate (KTD1), outside the npm workspa
   src/update.rs                 # manifest, minisign, installer handoff
   src/config.rs                 # ports, paths, managed prefs
   tests/                        # unit + integration (font fixtures, TLS client tests)
-  packaging/mac/{build.sh,scripts/postinstall,scripts/preinstall,io.slidecheck.helper.plist,uninstall.sh,distribution.xml}
+  packaging/mac/{build.sh,scripts/postinstall,scripts/preinstall,com.slidefidelity.helper.plist,uninstall.sh,distribution.xml}
   packaging/windows/{helper.wxs,build.ps1}
 .github/workflows/helper-release.yml
 apps/addin/src/helper/{client.ts,useHelper.ts,offer.tsx}   # + tests
@@ -421,17 +421,17 @@ U11 and U12 can start once U5's API contract is fixed, in parallel with C.
    - `fonts`, which prints JSON for debugging;
    - `version`.
 2. Paths:
-   - Mac state: `/Library/Application Support/SlideCheck/Helper/` (machine-wide). The installer creates the certificate once, as root, and every user account on the Mac runs its own helper with it. The leaf certificate is readable by all; the leaf key is readable by all and writable by root only. A per-user location would break the helper for every account except the installer's.
-   - Per-user runtime data (logs, chosen port): `~/Library/Application Support/SlideCheck/Helper/`.
-   - Windows state: `%ProgramData%\SlideCheck\Helper\`, ACL'd to SYSTEM, Administrators, and Users read for the certificate, and the key readable by Users. Note: the key is per machine.
+   - Mac state: `/Library/Application Support/SlideFidelity/Helper/` (machine-wide). The installer creates the certificate once, as root, and every user account on the Mac runs its own helper with it. The leaf certificate is readable by all; the leaf key is readable by all and writable by root only. A per-user location would break the helper for every account except the installer's.
+   - Per-user runtime data (logs, chosen port): `~/Library/Application Support/SlideFidelity/Helper/`.
+   - Windows state: `%ProgramData%\SlideFidelity\Helper\`, ACL'd to SYSTEM, Administrators, and Users read for the certificate, and the key readable by Users. Note: the key is per machine.
 3. Managed preferences:
-   - Mac: `CFPreferences` domain `io.slidecheck.helper`.
-   - Windows: `HKLM\Software\SlideCheck\Helper`.
+   - Mac: `CFPreferences` domain `com.slidefidelity.helper`.
+   - Windows: `HKLM\Software\SlideFidelity\Helper`.
    - Settings: `AutoUpdate` and `Port`.
 4. Logging uses `tracing`, written to a rotating file in the state directory.
 
 **Test scenarios:**
-- Happy: `slidecheck-helper version` prints the semver and API version.
+- Happy: `slidefidelity-helper version` prints the semver and API version.
 - Happy: path resolution per platform returns the documented directories (cfg-gated tests).
 - Edge: a missing state directory is created with the right permissions.
 - Error: an unknown subcommand exits non-zero with usage text.
@@ -491,7 +491,7 @@ U11 and U12 can start once U5's API contract is fixed, in parallel with C.
 **Execution note:** Test-first. These guards are the security boundary.
 
 **Test scenarios:**
-- Happy: a request with `Origin: https://app.slidecheck.io` and `Host: localhost:47317` gets 200 with font JSON.
+- Happy: a request with `Origin: https://app.slidefidelity.com` and `Host: localhost:47317` gets 200 with font JSON.
 - Error (AE4): `Origin: https://example.com` gets 403 with an empty body. A missing Origin gets 403.
 - Error (DNS rebinding): `Host: evil.example:47317` gets 403 even with an allowed Origin.
 - Happy: the preflight carries `Access-Control-Allow-Private-Network: true` and the allowed origin.
@@ -546,7 +546,7 @@ U11 and U12 can start once U5's API contract is fixed, in parallel with C.
 **Approach:**
 1. At start and every 24 h, skipped when `AutoUpdate=false`: fetch `latest.json`, verify the minisign signature against the embedded public key, compare versions, download the platform package, and verify its SHA-256.
 2. Windows: launch `msiexec /i <msi> /qn` (major upgrade). The MSI's elevation applies on per-machine installs. Intune-managed machines set `AutoUpdate=0`.
-3. Mac (resolve OQ1 here): recommended is a root LaunchDaemon `io.slidecheck.helper.updater`, installed by the pkg. It watches a drop folder writable only by the helper's user, and runs `installer -pkg` only for packages signed by the SlideCheck Developer ID Installer identity (`pkgutil --check-signature`) with a matching SHA-256 from a verified manifest. Fallback: notify-only on unmanaged Macs.
+3. Mac (resolve OQ1 here): recommended is a root LaunchDaemon `com.slidefidelity.helper.updater`, installed by the pkg. It watches a drop folder writable only by the helper's user, and runs `installer -pkg` only for packages signed by the SlideFidelity Developer ID Installer identity (`pkgutil --check-signature`) with a matching SHA-256 from a verified manifest. Fallback: notify-only on unmanaged Macs.
 4. Before any download, the add-in can show "Helper update available" through `/v1/health`.
 
 **Execution note:** Test-first for the manifest and signature logic. The installer handoff is proved by an end-to-end upgrade on both machines.
@@ -569,7 +569,7 @@ U11 and U12 can start once U5's API contract is fixed, in parallel with C.
 **Dependencies:** U4–U7.
 
 **Files:**
-- `helper/packaging/mac/{build.sh,distribution.xml,io.slidecheck.helper.plist,io.slidecheck.helper.updater.plist}`
+- `helper/packaging/mac/{build.sh,distribution.xml,com.slidefidelity.helper.plist,com.slidefidelity.helper.updater.plist}`
 - `helper/packaging/mac/scripts/{preinstall,postinstall}`
 - `helper/packaging/mac/uninstall.sh`
 - `helper/packaging/mac/README-jamf.md`
@@ -578,11 +578,11 @@ U11 and U12 can start once U5's API contract is fixed, in parallel with C.
 1. Build:
    - build `lipo` universal binaries;
    - `codesign --options runtime --timestamp` with Developer ID Application;
-   - `pkgbuild` with an install location of `/Library/Application Support/SlideCheck/Helper`;
+   - `pkgbuild` with an install location of `/Library/Application Support/SlideFidelity/Helper`;
    - `productbuild --sign "Developer ID Installer"`;
    - `notarytool submit --wait` with the `notary` profile, then `stapler staple`.
 2. Postinstall:
-   - run `slidecheck-helper install-cert`;
+   - run `slidefidelity-helper install-cert`;
    - install both plists;
    - `launchctl bootstrap gui/<console uid>` for the agent and `system` for the daemon.
 3. Preinstall stops the old agent.
@@ -610,10 +610,10 @@ U11 and U12 can start once U5's API contract is fixed, in parallel with C.
 **Files:** `helper/packaging/windows/{helper.wxs,build.ps1,README-intune.md}`.
 
 **Approach:**
-1. Build the MSI with WiX (cargo-wix or WiX v4 CLI). Per-machine scope. Install to `%ProgramFiles%\SlideCheck\Helper`.
+1. Build the MSI with WiX (cargo-wix or WiX v4 CLI). Per-machine scope. Install to `%ProgramFiles%\SlideFidelity\Helper`.
 2. Elevated deferred custom actions: `install-cert` on install, `uninstall-cert` on remove.
-3. Add the `HKLM\...\Run` entry `"slidecheck-helper.exe" serve`. Start the helper for the installing user at the end of install.
-4. Sign `slidecheck-helper.exe` and the MSI with `signtool` through Azure Artifact Signing.
+3. Add the `HKLM\...\Run` entry `"slidefidelity-helper.exe" serve`. Start the helper for the installing user at the end of install.
+4. Sign `slidefidelity-helper.exe` and the MSI with `signtool` through Azure Artifact Signing.
 5. The Intune README covers: a line-of-business app with `msiexec /i … /qn`, the detection rule, and `AutoUpdate=0` through the registry when Intune manages updates.
 
 **Execution note:** Packaging. Prove it on the user's Windows machine.
@@ -644,7 +644,7 @@ U11 and U12 can start once U5's API contract is fixed, in parallel with C.
 1. Trigger on `helper-v*` tags.
 2. Mac job (`macos-14`): import certificates into a temporary keychain from secrets, run the U8 build, notarize.
 3. Windows job: run the U9 build and Azure signing.
-4. Publish job: attach the artifacts to a GitHub release, then generate `latest.json`, sign it with minisign from secrets, and deploy it to `app.slidecheck.io/helper/latest.json`.
+4. Publish job: attach the artifacts to a GitHub release, then generate `latest.json`, sign it with minisign from secrets, and deploy it to `app.slidefidelity.com/helper/latest.json`.
 5. Mirror the GetAudienceResponse download-proxy pattern on the site if useful.
 
 **Test scenarios:** Test expectation: none -- CI configuration. A dry-run tag on a fork produces signed, notarized artifacts and a verifiable manifest.
@@ -697,7 +697,7 @@ U11 and U12 can start once U5's API contract is fixed, in parallel with C.
 **Approach:**
 1. `client.ts` probes the three ports in parallel with a 1.5 s timeout. It treats only an allowlisted JSON health response with a compatible `apiVersion` as Connected, then fetches `/v1/fonts`.
 2. State machine per the HTD. The offer appears only when `Office.context.platform` is Mac or PC (never OfficeOnline, iOS, or Android) and the user hasn't chosen "Don't ask again" (localStorage, try/catch).
-3. Install opens `https://slidecheck.io/helper?platform=mac|windows` with `openBrowserWindow`, then polls health every 3 s for up to 5 minutes (R6).
+3. Install opens `https://slidefidelity.com/helper?platform=mac|windows` with `openBrowserWindow`, then polls health every 3 s for up to 5 minutes (R6).
 4. The scan service's `getOptions` adds `localFonts` when Connected.
 5. Problems Fonts row:
    - Connected shows "Exact font check: on (helper vX)".
@@ -765,7 +765,7 @@ U11 and U12 can start once U5's API contract is fixed, in parallel with C.
 | Rust build and lint | `cargo build --release`, `cargo clippy -- -D warnings`, `cargo fmt --check` in `helper/` | U3–U7 |
 | Rust tests | `cargo test` on macOS and Windows CI runners | U3–U7 |
 | JS gates | `npm run typecheck`, `npm run lint`, `npm test` | U11, U12 |
-| Add-in build | `npm run build --workspace @slidecheck/addin`, and confirm the prod CSP contains exactly the three localhost ports | U12 |
+| Add-in build | `npm run build --workspace @slidefidelity/addin`, and confirm the prod CSP contains exactly the three localhost ports | U12 |
 | Mac package | `spctl -a -vv -t install`, notarization log clean, smoke checklist (U8) | U8 |
 | Windows package | `signtool verify /pa`, smoke checklist (U9) | U9 |
 | Release dry run | tag on a fork: signed artifacts plus a minisign-verified `latest.json` | U10 |

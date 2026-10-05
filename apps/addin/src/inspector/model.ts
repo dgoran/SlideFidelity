@@ -36,7 +36,7 @@ import {
   type Presentation,
   type Severity,
   type TargetProperty,
-} from "@slidecheck/audit-core";
+} from "@slidefidelity/audit-core";
 import { emuToPoints, parseLiveShapeId, parseLiveSlideId, resolveShape, type MatchMethod } from "../office/ids";
 import type { SelectedShape, SelectedSlide, SelectionResult } from "../office/selection";
 

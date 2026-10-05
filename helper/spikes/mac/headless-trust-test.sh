@@ -2,7 +2,7 @@
 # U1 spike: run the trust step the way Jamf does - as root from launchd, with no user session.
 # Usage: sudo sh headless-trust-test.sh <root.pem>
 set -eu
-PEM="$1"; W=/private/tmp/sc-spike; L=io.slidecheck.spike.trusttest
+PEM="$1"; W=/private/tmp/sc-spike; L=com.slidefidelity.spike.trusttest
 mkdir -p "$W"; cp "$PEM" "$W/root.pem"; rm -f "$W/trust.log"
 cat > /Library/LaunchDaemons/$L.plist <<P
 <?xml version="1.0" encoding="UTF-8"?>

@@ -26,7 +26,7 @@ import {
   serializeBrand,
   type BrandFieldError,
   type BrandProfile,
-} from "@slidecheck/audit-core";
+} from "@slidefidelity/audit-core";
 import { usePlan } from "../../license/gate";
 import type { BrandStore } from "../brand/brandStore";
 import { currentResult, themeBrandFromResult, themeBrandProfile } from "../brand/themeBrand";
@@ -121,7 +121,7 @@ export function BrandEditor({ store, placement = "settings", download = download
     return (
       <LockedSection
         title="Brand profile (Pro)"
-        description="Set your brand's fonts and colors so SlideCheck flags everything off-brand."
+        description="Set your brand's fonts and colors so SlideFidelity flags everything off-brand."
       />
     );
   }
@@ -259,7 +259,7 @@ function BrandEditorBody({
       {!profile && (
         <>
           <p className={s.note}>
-            SlideCheck checks fonts and colors against the deck&apos;s theme. Customize to set your own brand.
+            SlideFidelity checks fonts and colors against the deck&apos;s theme. Customize to set your own brand.
           </p>
           <fieldset className={s.group}>
             <legend className={s.legend}>Theme fonts</legend>

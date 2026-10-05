@@ -9,7 +9,7 @@
 import { act, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import { FluentProvider, webLightTheme } from "@fluentui/react-components";
-import type { AuditResult, FindingTarget, ProgressEvent } from "@slidecheck/audit-core";
+import type { AuditResult, FindingTarget, ProgressEvent } from "@slidefidelity/audit-core";
 import { vi } from "vitest";
 import type { Plan } from "../../license/gate";
 import { capabilitiesUpTo, type ApiVersion } from "../../office/capabilities";

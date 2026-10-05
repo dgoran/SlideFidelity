@@ -38,7 +38,7 @@ pub const RENEW_BELOW_DAYS: i64 = 90;
 /// Leaf lifetime after `now`; with one hour of backdating the total stays under 825 days.
 const LEAF_DAYS: i64 = 824;
 const BACKDATE: Duration = Duration::hours(1);
-const ROOT_CN_PREFIX: &str = "SlideCheck Helper Local Root";
+const ROOT_CN_PREFIX: &str = "SlideFidelity Helper Local Root";
 
 // ---------------------------------------------------------------------------------------------
 // Errors
@@ -283,7 +283,7 @@ mod mac {
         fn is_trusted(&self, root: &RootRef<'_>) -> Result<bool, CertError> {
             // Trusted = this exact certificate (by SHA-1) is in the System keychain AND the admin
             // trust settings list a certificate with its common name. The common name embeds a
-            // per-root id, so an old SlideCheck root cannot satisfy the check for a new one.
+            // per-root id, so an old SlideFidelity root cannot satisfy the check for a new one.
             if !in_keychain(root)? {
                 return Ok(false);
             }
@@ -791,7 +791,7 @@ fn generate(now: OffsetDateTime) -> Result<Chain, CertError> {
     let mut leaf = CertificateParams::default();
     leaf.distinguished_name = DistinguishedName::new();
     leaf.distinguished_name
-        .push(DnType::CommonName, "SlideCheck Helper (localhost)");
+        .push(DnType::CommonName, "SlideFidelity Helper (localhost)");
     leaf.subject_alt_names = vec![
         SanType::DnsName("localhost".try_into()?),
         SanType::IpAddress(IpAddr::V4(Ipv4Addr::LOCALHOST)),
@@ -816,7 +816,7 @@ fn generate(now: OffsetDateTime) -> Result<Chain, CertError> {
             format!("{ROOT_CN_PREFIX} {id} (this computer only)"),
         );
         ca.distinguished_name
-            .push(DnType::OrganizationName, "SlideCheck");
+            .push(DnType::OrganizationName, "SlideFidelity");
         ca.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
         ca.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
         ca.name_constraints = Some(NameConstraints {

@@ -22,7 +22,7 @@ import {
   type FontUsageRef,
   type TargetContainerKind,
   type TargetLocator,
-} from "@slidecheck/audit-core";
+} from "@slidefidelity/audit-core";
 
 export interface FakeFont {
   name: string;

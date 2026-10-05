@@ -296,7 +296,7 @@ function formatDetail(kind: PlaybackMediaKind, a: Assessment, label: string, byt
     case "uncommon-codec":
       return `The ${noun} is ${label}. Some of its codecs are less widely supported than H.264/AAC; test it in Slide Show on the presenting computer, or ${CONVERT_TO[kind].charAt(0).toLowerCase()}${CONVERT_TO[kind].slice(1)}.`;
     case "unknown":
-      return `SlideCheck could not recognize the format of this ${noun} (${formatBytes(bytes)}). Play it in Slide Show on the presenting computer to confirm it works.`;
+      return `SlideFidelity could not recognize the format of this ${noun} (${formatBytes(bytes)}). Play it in Slide Show on the presenting computer to confirm it works.`;
   }
 }
 

@@ -9,7 +9,7 @@
  * - The check is user-triggered; `cancel()` aborts the request.
  */
 import { useSyncExternalStore } from "react";
-import type { AuditResult } from "@slidecheck/audit-core";
+import type { AuditResult } from "@slidefidelity/audit-core";
 import { checkLinks, type LinkCheckDeps, type LinkCheckErrorCode, type LinkCheckReport, type LinkCheckResult } from "../../office/linkCheck";
 
 export interface LinkCheckSlotDeps {

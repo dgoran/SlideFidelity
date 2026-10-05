@@ -4,7 +4,7 @@ List every font family PowerPoint for Mac can use on this computer, one per line
 
 Covers fonts registered with macOS (system and user-installed) plus the fonts Microsoft Office
 ships inside PowerPoint and its downloaded cloud fonts, which macOS does not register for other
-apps. Import the output into SlideCheck: Settings > Show-machine fonts > Import.
+apps. Import the output into SlideFidelity: Settings > Show-machine fonts > Import.
 
 Usage: python3 tools/list-fonts-mac.py > show-machine-fonts.txt
 """

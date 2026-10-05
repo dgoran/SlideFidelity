@@ -164,7 +164,7 @@ export function AccountPanel({ formatDate = defaultFormatDate, formatDateTime = 
               {ctaLabel("sign-in-trial")}
             </Button>
           </div>
-          {signingIn && <p className={s.sub}>Finish signing in in the SlideCheck window…</p>}
+          {signingIn && <p className={s.sub}>Finish signing in in the SlideFidelity window…</p>}
         </div>
       )}
 
@@ -192,21 +192,21 @@ export function AccountPanel({ formatDate = defaultFormatDate, formatDateTime = 
           {state.offline && state.graceUntil !== undefined && (
             <Banner data="offline-grace">
               <p className={s.text}>
-                You&apos;re offline. Pro stays active until {formatDate(state.graceUntil)}; connect before then so SlideCheck can check
+                You&apos;re offline. Pro stays active until {formatDate(state.graceUntil)}; connect before then so SlideFidelity can check
                 your subscription.
               </p>
             </Banner>
           )}
           {state.offline && state.graceUntil === undefined && (
             <p className={s.sub} data-offline="">
-              Can&apos;t reach SlideCheck right now. Your plan is shown as last checked.
+              Can&apos;t reach SlideFidelity right now. Your plan is shown as last checked.
             </p>
           )}
 
           {state.reason === "grace-ended" && (
             <Banner data="grace-ended">
               <p className={s.text}>
-                SlideCheck couldn&apos;t confirm your subscription for more than 7 days, so Pro features are paused. Connect to the
+                SlideFidelity couldn&apos;t confirm your subscription for more than 7 days, so Pro features are paused. Connect to the
                 internet and press Refresh.
               </p>
             </Banner>
@@ -229,7 +229,7 @@ export function AccountPanel({ formatDate = defaultFormatDate, formatDateTime = 
                   Your subscription has ended.
                 </p>
               )}
-              <p className={s.sub}>Subscribe or manage billing on the SlideCheck website.</p>
+              <p className={s.sub}>Subscribe or manage billing on the SlideFidelity website.</p>
               <div className={s.row}>
                 <Button appearance="primary" onClick={manageSubscription}>
                   {ctaLabel("manage-subscription")}
@@ -271,7 +271,7 @@ export function AccountPanel({ formatDate = defaultFormatDate, formatDateTime = 
           {confirmDelete && (
             <div className={s.section} role="group" aria-labelledby={confirmId} data-delete-confirm="">
               <p id={confirmId} className={s.text}>
-                Delete your SlideCheck account? Any subscription is cancelled and this can&apos;t be undone.
+                Delete your SlideFidelity account? Any subscription is cancelled and this can&apos;t be undone.
               </p>
               <div className={s.row}>
                 <Button appearance="primary" onClick={doDelete} disabled={deleting}>
@@ -293,7 +293,7 @@ export function AccountPanel({ formatDate = defaultFormatDate, formatDateTime = 
 
       {!state.persistent && (
         <p className={s.sub} data-not-persistent="">
-          This device doesn&apos;t let SlideCheck save your sign-in, so you&apos;ll need to sign in again next time.
+          This device doesn&apos;t let SlideFidelity save your sign-in, so you&apos;ll need to sign in again next time.
         </p>
       )}
     </div>
@@ -316,8 +316,8 @@ export function AccountNotices({ formatDate = defaultFormatDate }: Formatters) {
       kind: "trial-ending",
       body:
         state.trialDaysLeft === 0
-          ? "Your SlideCheck Pro trial ends today."
-          : `Your SlideCheck Pro trial ends in ${plural(state.trialDaysLeft, "day")}.`,
+          ? "Your SlideFidelity Pro trial ends today."
+          : `Your SlideFidelity Pro trial ends in ${plural(state.trialDaysLeft, "day")}.`,
       action: (
         <Button size="small" onClick={manageSubscription}>
           {ctaLabel("manage-subscription")}
@@ -331,7 +331,7 @@ export function AccountNotices({ formatDate = defaultFormatDate }: Formatters) {
   if (state.reason === "grace-ended") {
     notices.push({
       kind: "grace-ended",
-      body: "Pro features are paused because SlideCheck couldn't check your subscription for more than 7 days.",
+      body: "Pro features are paused because SlideFidelity couldn't check your subscription for more than 7 days.",
       action: (
         <Button size="small" onClick={() => void service.refresh().catch(() => {})}>
           Refresh

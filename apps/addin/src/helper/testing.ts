@@ -1,5 +1,5 @@
 /**
- * Test-only fakes for the SlideCheck Helper client and store (U12): a URL-routed fake fetch, health
+ * Test-only fakes for the SlideFidelity Helper client and store (U12): a URL-routed fake fetch, health
  * and JSON response builders, and a request that hangs until aborted.
  */
 import { vi } from "vitest";

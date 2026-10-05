@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { AREAS, summarize, type AuditResult, type ProgressEvent } from "@slidecheck/audit-core";
+import { AREAS, summarize, type AuditResult, type ProgressEvent } from "@slidefidelity/audit-core";
 import {
   AuditClientError,
   createAuditClient,
@@ -7,7 +7,7 @@ import {
   type WorkerLike,
   type WorkerResponse,
 } from "./client";
-import { createAuditCache, runChecksCached } from "@slidecheck/audit-core";
+import { createAuditCache, runChecksCached } from "@slidefidelity/audit-core";
 import { corpusDeck } from "../../../../packages/audit-core/test/helpers/corpus";
 import { createInventoryCache, handleWorkerMessage } from "./audit.worker";
 
@@ -228,7 +228,7 @@ describe("audit worker scan inventory (U11)", () => {
   function realWorker() {
     const cache = createAuditCache();
     const inventoryCache = createInventoryCache();
-    const parse = vi.fn(async (b: Uint8Array) => (await import("@slidecheck/audit-core")).loadPresentation(b));
+    const parse = vi.fn(async (b: Uint8Array) => (await import("@slidefidelity/audit-core")).loadPresentation(b));
     const run: typeof runChecksCached = (bytes, hash, options, o) => runChecksCached(bytes, hash, options, { ...o, cache });
     const client = createAuditClient({ createWorker: () => new InProcessWorker({ run, parse, inventoryCache }) });
     return { client, parse, inventoryCache };

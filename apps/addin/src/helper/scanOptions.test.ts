@@ -3,7 +3,7 @@
  * and the list is refetched before each user scan, so a rescan after a font install reflects it.
  */
 import { describe, expect, it, vi } from "vitest";
-import { summarize, type AuditResult } from "@slidecheck/audit-core";
+import { summarize, type AuditResult } from "@slidefidelity/audit-core";
 import { createScanService } from "../office/scan";
 import type { AuditClient } from "../worker/client";
 import { createBrandStore } from "../taskpane/brand/brandStore";

@@ -5,7 +5,7 @@
  */
 import { useId } from "react";
 import { Label, Select, makeStyles, tokens } from "@fluentui/react-components";
-import { AREAS, type Area, type AreaSummary } from "@slidecheck/audit-core";
+import { AREAS, type Area, type AreaSummary } from "@slidefidelity/audit-core";
 import { areaAccess, usePlan } from "../../license/gate";
 import { AREA_LABELS, VIEW_LABELS } from "../context";
 import type { PaneView } from "../state/store";

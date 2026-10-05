@@ -1,5 +1,5 @@
 /**
- * SlideCheck Helper pane state machine (U12, HTD "Pane helper-state machine"): Probing → Connected |
+ * SlideFidelity Helper pane state machine (U12, HTD "Pane helper-state machine"): Probing → Connected |
  * Outdated | Absent; Absent → Offered | Silent; Offered → WaitingForInstall → Connected | Offered;
  * Connected → Absent when a later probe fails. Fake fetch, fake timers, injected storage.
  */
@@ -75,7 +75,7 @@ describe("helper store: probing", () => {
     expect(store.getSnapshot()).toMatchObject({ phase: "outdated", health: { version: "0.9.0" } });
     expect(store.auditOptions()).toEqual({});
     store.openDownloadPage();
-    expect(open).toHaveBeenCalledWith("https://slidecheck.io/helper?platform=mac");
+    expect(open).toHaveBeenCalledWith("https://slidefidelity.com/helper?platform=mac");
   });
 
   it("no answer within 1.5 s on any port → offered on a desktop host", async () => {
@@ -110,8 +110,8 @@ describe("helper store: hosts (AE3)", () => {
   });
 
   it("the Windows download URL names the platform", () => {
-    expect(helperDownloadUrl("windows")).toBe("https://slidecheck.io/helper?platform=windows");
-    expect(helperDownloadUrl("mac")).toBe("https://slidecheck.io/helper?platform=mac");
+    expect(helperDownloadUrl("windows")).toBe("https://slidefidelity.com/helper?platform=windows");
+    expect(helperDownloadUrl("mac")).toBe("https://slidefidelity.com/helper?platform=mac");
   });
 });
 
@@ -123,7 +123,7 @@ describe("helper store: install (AE2, R6)", () => {
     await store.start();
     expect(store.getSnapshot().phase).toBe("offered");
     store.install();
-    expect(open).toHaveBeenCalledWith("https://slidecheck.io/helper?platform=windows");
+    expect(open).toHaveBeenCalledWith("https://slidefidelity.com/helper?platform=windows");
     expect(store.getSnapshot().phase).toBe("waiting");
     const healthCalls = () => fetch.mock.calls.filter((c) => String(c[0]).endsWith("/v1/health")).length;
     const before = healthCalls();
@@ -168,7 +168,7 @@ describe("helper store: install (AE2, R6)", () => {
     await store.start();
     expect(store.getSnapshot().phase).toBe("outdated");
     store.install();
-    expect(open).toHaveBeenCalledWith("https://slidecheck.io/helper?platform=mac");
+    expect(open).toHaveBeenCalledWith("https://slidefidelity.com/helper?platform=mac");
     Object.assign(routes, helperRoutes(47317));
     await vi.advanceTimersByTimeAsync(3000);
     expect(store.getSnapshot().phase).toBe("connected");

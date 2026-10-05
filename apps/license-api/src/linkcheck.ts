@@ -14,7 +14,7 @@ export const MAX_URL_LENGTH = 2048;
 export const MAX_REDIRECTS = 5;
 export const BYTE_CAP = 64 * 1024;
 export const CONCURRENCY = 6;
-const USER_AGENT = "SlideCheck-LinkChecker/1.0 (+https://slidecheck.io/linkcheck)";
+const USER_AGENT = "SlideFidelity-LinkChecker/1.0 (+https://slidefidelity.com/linkcheck)";
 
 export type LinkStatus = "ok" | "broken" | "unverified";
 

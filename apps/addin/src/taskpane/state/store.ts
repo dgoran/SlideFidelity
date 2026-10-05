@@ -3,7 +3,7 @@
  * A plain reducer, testable without React or Office. The plan lives in `PlanProvider`
  * (`license/gate.ts`) so gating has a single source of truth.
  */
-import { AREAS, type Area, type AuditResult, type ProgressEvent } from "@slidecheck/audit-core";
+import { AREAS, type Area, type AuditResult, type ProgressEvent } from "@slidefidelity/audit-core";
 import type { ScanInventory } from "../../inspector/model";
 import type { ScanErrorKind, ScanPhase } from "../../office/scan";
 

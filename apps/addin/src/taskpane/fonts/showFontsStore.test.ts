@@ -20,17 +20,17 @@ describe("show-machine fonts store", () => {
     expect(store.persistent).toBe(true);
   });
 
-  it("persists under slidecheck:showFonts and reloads", () => {
+  it("persists under slidefidelity:showFonts and reloads", () => {
     const storage = memoryStorage();
     const a = createShowFontsStore({ storage });
     a.set(["Helvetica Neue", "Gotham"]);
-    expect(SHOW_FONTS_STORAGE_KEY).toBe("slidecheck:showFonts");
-    expect(JSON.parse(storage.data.get("slidecheck:showFonts")!)).toEqual(["Helvetica Neue", "Gotham"]);
+    expect(SHOW_FONTS_STORAGE_KEY).toBe("slidefidelity:showFonts");
+    expect(JSON.parse(storage.data.get("slidefidelity:showFonts")!)).toEqual(["Helvetica Neue", "Gotham"]);
     const b = createShowFontsStore({ storage });
     expect(b.get()).toEqual(["Helvetica Neue", "Gotham"]);
     expect(b.auditOptions()).toEqual({ availableFonts: ["Helvetica Neue", "Gotham"] });
     b.set([]);
-    expect(storage.data.has("slidecheck:showFonts")).toBe(false);
+    expect(storage.data.has("slidefidelity:showFonts")).toBe(false);
   });
 
   it("normalizes: trims, drops blanks and case-insensitive duplicates, caps the length", () => {

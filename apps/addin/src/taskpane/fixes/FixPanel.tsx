@@ -10,7 +10,7 @@
  */
 import { useEffect, useId, useMemo, useRef } from "react";
 import { Button, makeStyles, tokens } from "@fluentui/react-components";
-import type { Area, Finding } from "@slidecheck/audit-core";
+import type { Area, Finding } from "@slidefidelity/audit-core";
 import { featureForFinding, usePlan } from "../../license/gate";
 import { currentResult } from "../brand/themeBrand";
 import { CapabilityButton } from "../components/CapabilityButton";
@@ -98,7 +98,7 @@ export function FixPanel({ controller, deps, area, placement = "area", initialSo
     return (
       <LockedSection
         title={`${FIX_AREA_TITLES[area]} (Pro)`}
-        description="Fixing these in place (with a preview first) is part of SlideCheck Pro."
+        description="Fixing these in place (with a preview first) is part of SlideFidelity Pro."
       />
     );
   }

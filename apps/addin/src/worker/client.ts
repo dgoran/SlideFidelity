@@ -3,7 +3,7 @@
  * progress, and supports cancellation by terminating the worker. The worker is reused across
  * scans so its snapshot-hash cache (KTD6) survives; it is recreated after cancel or a crash.
  */
-import type { AuditOptions, AuditResult, PackageErrorCode, ProgressEvent } from "@slidecheck/audit-core";
+import type { AuditOptions, AuditResult, PackageErrorCode, ProgressEvent } from "@slidefidelity/audit-core";
 import type { ScanInventory } from "../inspector/model";
 
 // ---------------------------------------------------------------------------------------------

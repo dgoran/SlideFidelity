@@ -4,7 +4,7 @@
  */
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { summarize, type AuditOptions, type AuditResult } from "@slidecheck/audit-core";
+import { summarize, type AuditOptions, type AuditResult } from "@slidefidelity/audit-core";
 import { createScanService } from "../../office/scan";
 import { createBrandStore } from "../brand/brandStore";
 import { BrandSettingsEntry } from "../components/BrandEditor";
@@ -171,7 +171,7 @@ describe("show-machine fonts editor", () => {
   });
 });
 
-describe("show-machine fonts editor with the SlideCheck Helper (U12, R15)", () => {
+describe("show-machine fonts editor with the SlideFidelity Helper (U12, R15)", () => {
   function helperStub(phase: "connected" | "offered", fonts: string[] | null) {
     const snap = { phase, platform: "mac", health: null, port: 47317, fonts, reason: null, dismissPersistent: true } as const;
     return { getSnapshot: () => snap, subscribe: () => () => {} };

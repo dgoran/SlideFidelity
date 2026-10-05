@@ -291,7 +291,7 @@ function warningsFor(address: string, linkKind: LinkKind, loc: Located): Finding
         kind: "unsafe-link-scheme",
         key: loc.key,
         title: `Link uses an unsafe ${info.unsafeScheme}: address`,
-        detail: "Script and data addresses can run code or hide content. SlideCheck never opens them.",
+        detail: "Script and data addresses can run code or hide content. SlideFidelity never opens them.",
         data: { address, scheme: info.unsafeScheme, linkKind },
       }),
     ];

@@ -1,6 +1,6 @@
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadPresentation, runChecks, type AuditResult } from "@slidecheck/audit-core";
+import { loadPresentation, runChecks, type AuditResult } from "@slidefidelity/audit-core";
 import { corpusDeck, type CorpusName } from "../../../../../packages/audit-core/test/helpers/corpus";
 import { buildScanInventory, type ScanInventory } from "../../inspector/model";
 import type { NavigateResult } from "../../office/navigate";

@@ -5,16 +5,16 @@ Status: not submitted. Items marked **You** need account access or a decision fr
 ## Accounts and hosting
 
 - [ ] **You:** Partner Center account enrolled for Office add-ins.
-- [ ] **You:** Cloudflare: Pages project for `apps/addin/dist` at `app.slidecheck.io`, and a Pages project for `apps/site/dist` at `slidecheck.io`. The Worker `apps/license-api` runs at `api.slidecheck.io`.
+- [ ] **You:** Cloudflare: Pages project for `apps/addin/dist` at `app.slidefidelity.com`, and a Pages project for `apps/site/dist` at `slidefidelity.com`. The Worker `apps/license-api` runs at `api.slidefidelity.com`.
 - [ ] **You:** Apply the D1 database and migrations:
 
   ```bash
-  npx wrangler d1 migrations apply slidecheck-license --remote
+  npx wrangler d1 migrations apply slidefidelity-license --remote
   ```
 
 - [ ] **You:** Set the Worker secrets. `wrangler.toml` lists each one:
   - `SESSION_SECRET`
-  - `ENTITLEMENT_PRIVATE_KEY` (from `npm run keys:generate -w @slidecheck/license-api`)
+  - `ENTITLEMENT_PRIVATE_KEY` (from `npm run keys:generate -w @slidefidelity/license-api`)
   - `PADDLE_WEBHOOK_SECRET`
   - `PADDLE_API_KEY`
   - `EMAIL_API_KEY` (Resend)
@@ -30,10 +30,10 @@ Status: not submitted. Items marked **You** need account access or a decision fr
 
 ## Manifest (`apps/addin/manifest.xml`)
 
-- [ ] `npm run validate --workspace @slidecheck/addin` passes. The production build rewrites `https://localhost:3000/` to `https://app.slidecheck.io/`.
+- [ ] `npm run validate --workspace @slidefidelity/addin` passes. The production build rewrites `https://localhost:3000/` to `https://app.slidefidelity.com/`.
 - [ ] The minimum requirement set is `PowerPointApi 1.3`. The validator then reports Mac, web, and Windows (Microsoft 365) only, with no iPad or mobile. This keeps certification policy 1120.2, which bans purchase UI on mobile, out of scope. Leave "support mobile apps" unticked at submission.
 - [ ] Icons at 16, 32, 64, 80, and 128 px are final artwork, not the template icons.
-- [ ] `SupportUrl` resolves (`https://slidecheck.io/support`).
+- [ ] `SupportUrl` resolves (`https://slidefidelity.com/support`).
 
 ## Listing and policy
 
@@ -44,7 +44,7 @@ Status: not submitted. Items marked **You** need account access or a decision fr
 
 ## Certification notes (paste into Partner Center)
 
-- [ ] Reviewer sign-in: email `appsource-review@slidecheck.io` (`REVIEWER_EMAIL`), code = the `REVIEWER_CODE` secret. This account always has Pro and never receives email.
+- [ ] Reviewer sign-in: email `appsource-review@slidefidelity.com` (`REVIEWER_EMAIL`), code = the `REVIEWER_CODE` secret. This account always has Pro and never receives email.
 - [ ] Test steps:
   1. Open any deck.
   2. Select **Home › Check Deck**, then **Scan**.
@@ -54,9 +54,9 @@ Status: not submitted. Items marked **You** need account access or a decision fr
   6. Remove a hidden shape.
 - [ ] Recommended versions: PowerPoint for Mac 16.105 or later, Windows Microsoft 365 2601 or later, or PowerPoint on the web. Older builds disable some fixes and show the reason.
 
-## SlideCheck Helper disclosure
+## SlideFidelity Helper disclosure
 
-The optional native helper (`docs/plans/2026-10-01-2113-feat-slidecheck-helper-plan.md` U13, R14; decisions in `docs/notes/helper-decisions.md`). Review each item against the current text of the Commercial marketplace certification policies before ticking it.
+The optional native helper (`docs/plans/2026-10-01-2113-feat-slidefidelity-helper-plan.md` U13, R14; decisions in `docs/notes/helper-decisions.md`). Review each item against the current text of the Commercial marketplace certification policies before ticking it.
 
 - [ ] **Optional and free.** The listing, the pane, and `helper.html` say the helper is optional and free, with no Pro gate on installing it.
 - [ ] **Add-in fully functional without it.** Every feature works without the helper. Without it, the Fonts check uses the show-machine font list (G3); with it, "Missing on this computer" is exact (H7).
@@ -68,19 +68,19 @@ The optional native helper (`docs/plans/2026-10-01-2113-feat-slidecheck-helper-p
 
 ### Listing text (paste into the listing description)
 
-> **Optional: SlideCheck Helper for exact font checks.** On PowerPoint for Mac and Windows, you can install the free SlideCheck Helper to see exactly which fonts in a deck are missing on this computer. SlideCheck works fully without it and checks fonts against your show-machine font list instead. The helper installs a small background app, a login item that starts it at sign-in, and a certificate valid only for this computer's own address (localhost). It reads only the names of installed fonts, never opens presentations, and sends nothing off the computer except a check for its own updates. It is not available for PowerPoint on the web, iPad, or phones. Details and uninstall steps: https://slidecheck.io/helper
+> **Optional: SlideFidelity Helper for exact font checks.** On PowerPoint for Mac and Windows, you can install the free SlideFidelity Helper to see exactly which fonts in a deck are missing on this computer. SlideFidelity works fully without it and checks fonts against your show-machine font list instead. The helper installs a small background app, a login item that starts it at sign-in, and a certificate valid only for this computer's own address (localhost). It reads only the names of installed fonts, never opens presentations, and sends nothing off the computer except a check for its own updates. It is not available for PowerPoint on the web, iPad, or phones. Details and uninstall steps: https://slidefidelity.com/helper
 
 ### Certification notes (paste into Partner Center)
 
-> SlideCheck Helper is an optional, free companion app for PowerPoint desktop on Mac and Windows. The add-in is fully functional without it; it only makes one font check exact. It is never offered on PowerPoint on the web, iPad, or mobile, and the download page shows no download link on mobile devices.
+> SlideFidelity Helper is an optional, free companion app for PowerPoint desktop on Mac and Windows. The add-in is fully functional without it; it only makes one font check exact. It is never offered on PowerPoint on the web, iPad, or mobile, and the download page shows no download link on mobile devices.
 >
-> Helper off (default): open any deck on PowerPoint desktop and select Home › Check Deck › Scan. Open Problems › Fonts. The status reads "Using show-machine list" and the pane offers "Install SlideCheck Helper for exact missing-font checks" with Install, Not now, and Don't ask again. Every feature works in this state.
+> Helper off (default): open any deck on PowerPoint desktop and select Home › Check Deck › Scan. Open Problems › Fonts. The status reads "Using show-machine list" and the pane offers "Install SlideFidelity Helper for exact missing-font checks" with Install, Not now, and Don't ask again. Every feature works in this state.
 >
-> Helper on: install the helper from https://slidecheck.io/helper (one administrator prompt from the installer). Return to SlideCheck; the status changes to "Exact font check: on (SlideCheck Helper vX)". Rescan: fonts not installed on the computer are reported as "Missing on this computer".
+> Helper on: install the helper from https://slidefidelity.com/helper (one administrator prompt from the installer). Return to SlideFidelity; the status changes to "Exact font check: on (SlideFidelity Helper vX)". Rescan: fonts not installed on the computer are reported as "Missing on this computer".
 >
-> To return to helper off, uninstall: Mac `sudo "/Library/Application Support/SlideCheck/Helper/uninstall.sh"`; Windows Settings › Apps › Installed apps › SlideCheck Helper › Uninstall.
+> To return to helper off, uninstall: Mac `sudo "/Library/Application Support/SlideFidelity/Helper/uninstall.sh"`; Windows Settings › Apps › Installed apps › SlideFidelity Helper › Uninstall.
 >
-> What the helper installs: an app, a login item, and a certificate unique to the computer, valid only for localhost, 127.0.0.1 and ::1, trusted for SSL only; its signing key is destroyed after creation. It reads only installed font names, answers only the SlideCheck add-in over loopback, and sends nothing off the computer except an update check that administrators can turn off. Updates are offered in the pane and never install automatically.
+> What the helper installs: an app, a login item, and a certificate unique to the computer, valid only for localhost, 127.0.0.1 and ::1, trusted for SSL only; its signing key is destroyed after creation. It reads only installed font names, answers only the SlideFidelity add-in over loopback, and sends nothing off the computer except an update check that administrators can turn off. Updates are offered in the pane and never install automatically.
 
 ## Before submitting
 

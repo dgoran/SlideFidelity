@@ -67,7 +67,7 @@ export function signInFailureMessage(e: unknown): string {
       case "already-open":
         return "The sign-in window is already open. Finish signing in there, or close it and try again.";
       case "blocked":
-        return "The sign-in window was blocked. Allow pop-ups for SlideCheck in your browser, then try again.";
+        return "The sign-in window was blocked. Allow pop-ups for SlideFidelity in your browser, then try again.";
       case "load-failed":
         return "The sign-in page couldn't load. Check your connection and try again.";
       case "bad-message":

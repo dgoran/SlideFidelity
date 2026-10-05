@@ -21,7 +21,7 @@ export default defineConfig(async () => {
             PADDLE_API_KEY: "test-paddle-key",
             EMAIL_API_KEY: "test-email-key",
             REVIEWER_CODE: "reviewer-static-code-42",
-            ALLOWED_ORIGINS: "https://app.slidecheck.test,https://slidecheck.test",
+            ALLOWED_ORIGINS: "https://app.slidefidelity.test,https://slidefidelity.test",
           },
         },
       }),

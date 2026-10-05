@@ -45,7 +45,7 @@ describe("scripts/metrics.sql (D17)", () => {
     await account("a3", old); // converted too late (day 60): not a trial conversion
     await sub("s3", "a3", "past_due", old + 60 * DAY);
     await account("a4", old); // never paid
-    await account("rev", old, "appsource-review@slidecheck.io"); // excluded
+    await account("rev", old, "appsource-review@slidefidelity.com"); // excluded
     await account("new", now - DAY); // too young for conversion, counted as a sign-up
 
     const [signups, trials, byCohort, conversion, retention, active] = await runMetrics();

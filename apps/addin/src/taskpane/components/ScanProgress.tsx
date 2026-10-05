@@ -1,7 +1,7 @@
 /** Scanning state (D10): per-area progress with Cancel. */
 import { Button, ProgressBar, makeStyles, tokens } from "@fluentui/react-components";
 import { CheckmarkCircle16Regular, Circle16Regular } from "@fluentui/react-icons";
-import { AREAS, type Area } from "@slidecheck/audit-core";
+import { AREAS, type Area } from "@slidefidelity/audit-core";
 import type { ScanPhase } from "../../office/scan";
 import { AREA_LABELS } from "../context";
 import type { AreaProgress } from "../state/store";

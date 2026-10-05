@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { PackageError, summarize, type AuditOptions, type AuditResult, type ProgressEvent } from "@slidecheck/audit-core";
+import { PackageError, summarize, type AuditOptions, type AuditResult, type ProgressEvent } from "@slidefidelity/audit-core";
 import { AuditClientError, type AuditClient, type AuditScan } from "../worker/client";
 import { SnapshotError, type Snapshot } from "./snapshot";
 import { ScanError, createScanService, toScanError } from "./scan";

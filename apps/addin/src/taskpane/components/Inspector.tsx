@@ -14,7 +14,7 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { Button, makeStyles, mergeClasses, tokens } from "@fluentui/react-components";
 import { ChevronDown16Regular, ChevronUp16Regular, Open16Regular } from "@fluentui/react-icons";
-import { formatBytes } from "@slidecheck/audit-core";
+import { formatBytes } from "@slidefidelity/audit-core";
 import {
   buildInspectorModel,
   type ColorGroup,
@@ -206,7 +206,7 @@ function InspectorLive({
   return (
     <>
       {watchError && model.kind !== "unsupported" && (
-        <p className={s.sub}>SlideCheck can&apos;t follow selection changes on this host; the Inspector shows the selection when it opens.</p>
+        <p className={s.sub}>SlideFidelity can&apos;t follow selection changes on this host; the Inspector shows the selection when it opens.</p>
       )}
       <InspectorView
         model={model}

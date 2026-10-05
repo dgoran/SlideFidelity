@@ -7,8 +7,8 @@ use crate::paths;
 
 /// Initialise logging. Keep the guard alive for the life of the process.
 pub fn init(to_file: bool) -> Option<WorkerGuard> {
-    let filter =
-        EnvFilter::try_from_env("SLIDECHECK_HELPER_LOG").unwrap_or_else(|_| EnvFilter::new("info"));
+    let filter = EnvFilter::try_from_env("SLIDEFIDELITY_HELPER_LOG")
+        .unwrap_or_else(|_| EnvFilter::new("info"));
     let stderr = fmt::layer().with_writer(std::io::stderr).with_target(false);
     if to_file && paths::ensure_dir(&paths::log_dir(), 0o700).is_ok() {
         let appender = tracing_appender::rolling::Builder::new()

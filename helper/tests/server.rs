@@ -5,14 +5,14 @@ use std::sync::Arc;
 
 use axum::body::{to_bytes, Body};
 use axum::http::{Method, Request, StatusCode};
-use slidecheck_helper::config::{allowed_origin, allowed_origin_release};
-use slidecheck_helper::fonts::{FontCache, Source};
-use slidecheck_helper::server::{bind_first_free, router, ServerState};
-use slidecheck_helper::update::{UpdateInfo, UpdateState};
+use slidefidelity_helper::config::{allowed_origin, allowed_origin_release};
+use slidefidelity_helper::fonts::{FontCache, Source};
+use slidefidelity_helper::server::{bind_first_free, router, ServerState};
+use slidefidelity_helper::update::{UpdateInfo, UpdateState};
 use tower::ServiceExt;
 
 const PORT: u16 = 47317;
-const APP: &str = "https://app.slidecheck.io";
+const APP: &str = "https://app.slidefidelity.com";
 
 fn state(allow: fn(&str) -> bool) -> ServerState {
     let empty = tempfile::tempdir().unwrap().keep();
@@ -70,7 +70,7 @@ async fn health_reports_versions_platform_cert_and_update() {
     let st = state(allowed_origin);
     st.update.set(Some(UpdateInfo {
         version: "9.9.9".into(),
-        page: "https://slidecheck.io/helper".into(),
+        page: "https://slidefidelity.com/helper".into(),
         notes: None,
     }));
     let (s, _, b) = send(
@@ -91,7 +91,7 @@ async fn health_reports_versions_platform_cert_and_update() {
 async fn foreign_or_missing_origin_is_403_with_empty_body() {
     for origin in [
         Some("https://example.com"),
-        Some("http://app.slidecheck.io"),
+        Some("http://app.slidefidelity.com"),
         Some("null"),
         None,
     ] {
@@ -252,7 +252,9 @@ fn all_ports_taken_is_an_error() {
 /// fetches /v1/health over HTTPS with an allowed Origin.
 #[tokio::test]
 async fn https_round_trip_with_generated_certificate() {
-    use slidecheck_helper::cert::{install_cert, CertError, InstallOptions, RootRef, TrustStore};
+    use slidefidelity_helper::cert::{
+        install_cert, CertError, InstallOptions, RootRef, TrustStore,
+    };
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     struct Accept;
@@ -283,7 +285,7 @@ async fn https_round_trip_with_generated_certificate() {
     .await
     .unwrap();
     let handle = axum_server::Handle::new();
-    let server = slidecheck_helper::server::serve(bound, tls, router(st), handle.clone());
+    let server = slidefidelity_helper::server::serve(bound, tls, router(st), handle.clone());
     let task = tokio::spawn(server);
 
     let mut roots = rustls::RootCertStore::empty();

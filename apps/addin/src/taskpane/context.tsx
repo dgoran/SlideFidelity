@@ -17,11 +17,11 @@
  *   - `brandSlot` (brand editor, D9): entry point rendered in the Fonts and Colors areas.
  *   - `showFontsSlot` (show-machine fonts editor, G3): rendered in the Problems view's Fonts category
  *     (the settings entry renders its own copy).
- *   - `helperSlot` (SlideCheck Helper status and offer, helper plan U12): rendered in the Problems
+ *   - `helperSlot` (SlideFidelity Helper status and offer, helper plan U12): rendered in the Problems
  *     view's Fonts category (the settings entry renders its own copy).
  */
 import { createContext, Fragment, useContext, type ReactNode } from "react";
-import type { Area, Finding, FindingTarget } from "@slidecheck/audit-core";
+import type { Area, Finding, FindingTarget } from "@slidefidelity/audit-core";
 import { capabilitiesUpTo, type Capabilities } from "../office/capabilities";
 import type { NavigateResult, Navigator } from "../office/navigate";
 

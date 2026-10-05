@@ -32,7 +32,7 @@ export interface AuditOptions {
    */
   availableFonts?: string[];
   /**
-   * Every font family name the SlideCheck Helper reported as usable by PowerPoint on THIS computer
+   * Every font family name the SlideFidelity Helper reported as usable by PowerPoint on THIS computer
    * (system, user, Office private and Office cloud fonts that are present; family names from name
    * IDs 1/16/21 in all languages, so legacy and localized names are included), as a flat list.
    * Absent means "no helper"; an empty array means "helper present, nothing found". When present,
