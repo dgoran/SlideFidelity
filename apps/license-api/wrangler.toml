@@ -23,7 +23,7 @@ SITE_URL = "https://slidefidelity.com"
 # Key id placed in entitlement tokens; bump when rotating ENTITLEMENT_PRIVATE_KEY.
 ENTITLEMENT_KID = "ent-2026-09"
 # "sandbox" or "production" (selects the Paddle API host).
-PADDLE_ENV = "sandbox"
+PADDLE_ENV = "production"
 EMAIL_FROM = "SlideFidelity <signin@slidefidelity.com>"
 # AppSource reviewer account (code comes from the REVIEWER_CODE secret).
 REVIEWER_EMAIL = "appsource-review@slidefidelity.com"

@@ -20,9 +20,9 @@
 // The minimum OS strings are product decisions, not release values; change them only with the installers.
 window.SLIDEFIDELITY_CONFIG = Object.freeze({
   API_BASE_URL: "https://api.slidefidelity.com",
-  PADDLE_ENVIRONMENT: "sandbox",
-  PADDLE_CLIENT_TOKEN: "REPLACE_WITH_PADDLE_CLIENT_TOKEN",
-  PADDLE_PRICE_ID: "REPLACE_WITH_PADDLE_PRICE_ID",
+  PADDLE_ENVIRONMENT: "production",
+  PADDLE_CLIENT_TOKEN: "live_48d996f5026faf92da8c47312e1",
+  PADDLE_PRICE_ID: "pri_01m46m1ye39sje220r46fthmxs",
   helper: Object.freeze({
     version: "0.1.0",
     mac: Object.freeze({
