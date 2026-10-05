@@ -21,12 +21,14 @@ Status: not submitted. Items marked **You** need account access or a decision fr
   - `EMAIL_API_KEY` (Resend)
   - `REVIEWER_CODE` (a long random value)
 - [ ] **You:** Verify the sending domain in Resend, with SPF and DKIM.
-- [ ] **You:** Paddle setup:
-  - Create the Pro yearly price.
-  - Approve the checkout domain.
-  - Enable the customer portal.
-  - Point the webhook at `/paddle/webhook` with the `subscription.*` events.
-  - Fill in `apps/site/src/config.js`.
+- [ ] Paddle (live account, 2026-10-05):
+  - [x] Product `SlideFidelity Pro` (`pro_01m46m0ema3ap4wk8xkjwjsj2b`), price $79/year USD, excludes tax, quantity 1 (`pri_01m46m1ye39sje220r46fthmxs`).
+  - [x] Webhook destination `https://api.slidefidelity.com/paddle/webhook` (platform and simulation events); a simulated `subscription.created` was accepted (200) and stored.
+  - [x] Worker secrets `PADDLE_API_KEY` and `PADDLE_WEBHOOK_SECRET`; site config has the live client-side token and price ID; `PADDLE_ENV` / `PADDLE_ENVIRONMENT` = production.
+  - [x] Customer portal (on by default).
+  - [ ] **You:** website approval for `slidefidelity.com` (submitted, in review), then set the default payment link to `https://slidefidelity.com/account`.
+  - [ ] **You:** Paddle business verification.
+  - [ ] Optional: trim the webhook destination to the five `subscription.*` events the API handles.
 - [x] Entitlement public key (`kid` `ent-2026-09`) embedded in `apps/addin/src/license/config.ts` and deployed (2026-10-05).
 
 ## Manifest (`apps/addin/manifest.xml`)
