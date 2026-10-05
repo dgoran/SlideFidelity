@@ -5,7 +5,8 @@ Status: not submitted. Items marked **You** need account access or a decision fr
 ## Accounts and hosting
 
 - [ ] **You:** Partner Center account enrolled for Office add-ins.
-- [ ] **You:** Cloudflare: Pages project for `apps/addin/dist` at `app.slidefidelity.com`, and a Pages project for `apps/site/dist` at `slidefidelity.com`. The Worker `apps/license-api` runs at `api.slidefidelity.com`.
+- [x] Cloudflare: the add-in (`apps/addin/wrangler.toml`, Worker `slidefidelity-addin`) is live at `app.slidefidelity.com` and the site (`apps/site/wrangler.toml`, Worker `slidefidelity-site`) at `slidefidelity.com` and `www.slidefidelity.com`, deployed 2026-10-04 as Workers static assets (not Pages: the configs claim their custom domains themselves). Source maps are not published (`.assetsignore`).
+- [ ] **You:** The Worker `apps/license-api` runs at `api.slidefidelity.com` (needs the secrets below).
 - [ ] **You:** Apply the D1 database and migrations:
 
   ```bash

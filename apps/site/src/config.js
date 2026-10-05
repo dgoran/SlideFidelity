@@ -24,15 +24,15 @@ window.SLIDEFIDELITY_CONFIG = Object.freeze({
   PADDLE_CLIENT_TOKEN: "REPLACE_WITH_PADDLE_CLIENT_TOKEN",
   PADDLE_PRICE_ID: "REPLACE_WITH_PADDLE_PRICE_ID",
   helper: Object.freeze({
-    version: "REPLACE_WITH_HELPER_VERSION",
+    version: "0.1.0",
     mac: Object.freeze({
       url: "REPLACE_WITH_HELPER_MAC_PKG_URL",
       sha256: "REPLACE_WITH_HELPER_MAC_PKG_SHA256",
       minimumOs: "macOS 12 Monterey or later, Apple silicon or Intel",
     }),
     windows: Object.freeze({
-      url: "REPLACE_WITH_HELPER_WINDOWS_MSI_URL",
-      sha256: "REPLACE_WITH_HELPER_WINDOWS_MSI_SHA256",
+      url: "https://slidefidelity.com/downloads/SlideFidelityHelper-0.1.0.msi",
+      sha256: "CA40EDE7FE765A93DFEF692688C9CA3A08D15723E828CEA4B1DD9378AFF3E8FB",
       minimumOs: "Windows 10 or later, 64-bit (x64)",
     }),
   }),

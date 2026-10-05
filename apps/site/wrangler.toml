@@ -1,0 +1,14 @@
+# The marketing site, account page and helper downloads, served at https://slidefidelity.com.
+# Deploy after `npm run build --workspace @slidefidelity/site` (and copying the signed installers
+# into dist/downloads/):  npx wrangler deploy -c apps/site/wrangler.toml
+name = "slidefidelity-site"
+compatibility_date = "2026-10-01"
+routes = [
+  { pattern = "slidefidelity.com", custom_domain = true },
+  { pattern = "www.slidefidelity.com", custom_domain = true },
+]
+
+[assets]
+directory = "./dist"
+not_found_handling = "404-page"
+html_handling = "auto-trailing-slash"
