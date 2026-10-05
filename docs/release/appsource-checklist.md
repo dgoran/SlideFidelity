@@ -6,14 +6,14 @@ Status: not submitted. Items marked **You** need account access or a decision fr
 
 - [ ] **You:** Partner Center account enrolled for Office add-ins.
 - [x] Cloudflare: the add-in (`apps/addin/wrangler.toml`, Worker `slidefidelity-addin`) is live at `app.slidefidelity.com` and the site (`apps/site/wrangler.toml`, Worker `slidefidelity-site`) at `slidefidelity.com` and `www.slidefidelity.com`, deployed 2026-10-04 as Workers static assets (not Pages: the configs claim their custom domains themselves). Source maps are not published (`.assetsignore`).
-- [ ] **You:** The Worker `apps/license-api` runs at `api.slidefidelity.com` (needs the secrets below).
-- [ ] **You:** Apply the D1 database and migrations:
+- [x] The Worker `apps/license-api` (`slidefidelity-license-api`) is deployed at `api.slidefidelity.com` (2026-10-05). **You:** its daily cleanup cron needs a workers.dev subdomain: open Workers & Pages in the Cloudflare dashboard once, then redeploy.
+- [x] D1 database `slidefidelity-license` (`af1b7d85-…`) created and both migrations applied (2026-10-05):
 
   ```bash
   npx wrangler d1 migrations apply slidefidelity-license --remote
   ```
 
-- [ ] **You:** Set the Worker secrets. `wrangler.toml` lists each one:
+- [ ] Worker secrets (`wrangler.toml` lists each one). Set on 2026-10-05: `SESSION_SECRET`, `ENTITLEMENT_PRIVATE_KEY`, `REVIEWER_CODE` (generated; the reviewer code is kept outside the repo). **You:** the Paddle and Resend secrets:
   - `SESSION_SECRET`
   - `ENTITLEMENT_PRIVATE_KEY` (from `npm run keys:generate -w @slidefidelity/license-api`)
   - `PADDLE_WEBHOOK_SECRET`
@@ -27,7 +27,7 @@ Status: not submitted. Items marked **You** need account access or a decision fr
   - Enable the customer portal.
   - Point the webhook at `/paddle/webhook` with the `subscription.*` events.
   - Fill in `apps/site/src/config.js`.
-- [ ] Embed the entitlement public key (`x` and `kid`) in the add-in licensing client (U15).
+- [x] Entitlement public key (`kid` `ent-2026-09`) embedded in `apps/addin/src/license/config.ts` and deployed (2026-10-05).
 
 ## Manifest (`apps/addin/manifest.xml`)
 

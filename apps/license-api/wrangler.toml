@@ -1,14 +1,14 @@
 # SlideFidelity license API (U14, KTD7/KTD8/KTD9).
-# Placeholders only: replace database_id after `wrangler d1 create slidefidelity-license`.
 name = "slidefidelity-license-api"
 main = "src/index.ts"
 compatibility_date = "2026-08-15"
 compatibility_flags = ["nodejs_compat"]
+routes = [{ pattern = "api.slidefidelity.com", custom_domain = true }]
 
 [[d1_databases]]
 binding = "DB"
 database_name = "slidefidelity-license"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "af1b7d85-2dd8-43a6-a9ad-cb23f8c04d34"
 migrations_dir = "migrations"
 
 # Daily housekeeping: purge expired OTP codes, sessions, and rate-limit windows.

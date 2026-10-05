@@ -27,11 +27,11 @@ export const PROD_API_BASE = "https://api.slidefidelity.com";
 export const PROD_SITE_URL = "https://slidefidelity.com";
 
 /**
- * REPLACE before release: the production key from `GET https://api.slidefidelity.com/.well-known/entitlement-keys`.
- * Until replaced, no token verifies, so every signed-in user is treated as a free account (fail closed).
+ * The production key, as published at `GET https://api.slidefidelity.com/.well-known/entitlement-keys`.
+ * When rotating, list the old and the new key here before the Worker switches ENTITLEMENT_KID.
  */
 export const ENTITLEMENT_PUBLIC_KEYS: readonly EntitlementPublicKey[] = [
-  { kid: "REPLACE_WITH_PRODUCTION_KID", x: "REPLACE_WITH_BASE64URL_ED25519_PUBLIC_KEY_X" },
+  { kid: "ent-2026-09", x: "Cf3Y1UcsXzS3z1t0Jhnh00zOajb8gY8DS7VTP0eF3Zk" },
 ];
 
 /** localStorage key a developer can set on a local build to point the add-in at another API. */
