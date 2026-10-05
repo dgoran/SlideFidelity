@@ -1,0 +1,6 @@
+#!/bin/sh
+# Stop the helper for every logged-in user before files are replaced.
+for uid in $(ps -axo uid=,comm= | awk '/loginwindow$/ {print $1}' | sort -u); do
+  [ "$uid" -ne 0 ] && launchctl bootout "gui/$uid/com.slidefidelity.helper" 2>/dev/null
+done
+exit 0

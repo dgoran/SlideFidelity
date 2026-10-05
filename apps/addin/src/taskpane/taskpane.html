@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      Strict CSP (review decisions: untrusted deck strings render only as text). The policy is
+      built in webpack.config.js (templateParameters.csp): production allows only 'self',
+      office.js, the license API, and the SlideFidelity Helper's three localhost ports
+      (47317-47319); development builds add https://localhost:* to connect-src.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="<%= csp %>" />
+    <title>SlideFidelity</title>
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  </head>
+  <body style="width: 100%; height: 100%; margin: 0; padding: 0">
+    <div id="container"></div>
+  </body>
+</html>

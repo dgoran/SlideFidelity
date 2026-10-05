@@ -1,0 +1,12 @@
+# The add-in's task pane and commands as static files (KTD8), served at https://app.slidefidelity.com.
+# Deploy after `npm run build --workspace @slidefidelity/addin` (keep source maps private: put an
+# `.assetsignore` with `*.map` in dist/):  npx wrangler deploy -c apps/addin/wrangler.toml
+name = "slidefidelity-addin"
+compatibility_date = "2026-10-01"
+routes = [{ pattern = "app.slidefidelity.com", custom_domain = true }]
+
+[assets]
+directory = "./dist"
+not_found_handling = "404-page"
+# Office loads the exact URLs in the manifest (taskpane.html, commands.html): no pretty-URL redirects.
+html_handling = "none"

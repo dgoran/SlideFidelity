@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'" />
+<title>SlideFidelity support</title>
+<meta name="description" content="Install SlideFidelity and get help." />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header><a class="brand" href="index.html">SlideFidelity</a><nav><a href="pricing.html">Pricing</a><a href="support.html">Support</a><a href="account.html">Account</a></nav></header>
+<main>
+<h1>Support</h1>
+<h2 id="install">Install</h2>
+<p>In PowerPoint, open <strong>Home › Add-ins</strong>, search for SlideFidelity, and select <strong>Add</strong>. SlideFidelity needs PowerPoint for Mac 16.105 or later, PowerPoint for Windows (Microsoft 365, version 2601 or later), or PowerPoint for the web for every feature. Older versions show which features they cannot run.</p>
+<h2 id="account">Account and subscription</h2>
+<p>Sign in from the Account section in SlideFidelity with your email address. You receive a 6-digit code. New accounts get a 30-day Pro trial with no card needed.</p>
+<p>To subscribe, update payment details, download invoices, or cancel, sign in on the website with the same email address.</p>
+<p><a class="button" href="account.html">Start or manage your subscription</a></p>
+<p>After you subscribe, choose <strong>Refresh</strong> in the SlideFidelity Account section to unlock Pro. Refunds are covered by the <a href="refund.html">refund policy</a>.</p>
+<h2 id="helper">SlideFidelity Helper</h2>
+<p>SlideFidelity Helper is an optional, free app for PowerPoint on Mac and Windows computers. With it, SlideFidelity shows exactly which fonts are missing on this computer. Without it, SlideFidelity checks fonts against your show-machine font list. It is not available for PowerPoint on the web, iPad, or phones. Read <a href="helper.html">what it installs, reads, and sends</a>.</p>
+<h3>Install</h3>
+<p>Download the installer from the <a href="helper.html">SlideFidelity Helper page</a>, or choose <strong>Install</strong> when SlideFidelity offers it in the pane. The installer asks once for an administrator's approval. On Macs set up by Jamf or another MDM, you are asked once, when you first sign in, to approve the helper's certificate.</p>
+<h3>Uninstall</h3>
+<p><strong>Mac:</strong> in Terminal, run <code>sudo "/Library/Application Support/SlideFidelity/Helper/uninstall.sh"</code>. This removes the app, the login item, the certificate and its trust, and the helper's files.</p>
+<p><strong>Windows:</strong> open <strong>Settings › Apps › Installed apps</strong>, find <strong>SlideFidelity Helper</strong>, and select <strong>Uninstall</strong>.</p>
+<h3>Troubleshooting</h3>
+<p>If the SlideFidelity pane says <strong>Using show-machine list</strong> after you installed the helper, either the helper is not running or its certificate has not been approved yet.</p>
+<ul>
+<li><strong>Mac:</strong> approve the certificate prompt if you see one. If you dismissed it, sign out of your Mac and sign back in to see it again. Signing back in also starts the helper.</li>
+<li><strong>Windows:</strong> sign out and back in to start the helper, or reinstall it.</li>
+<li>The helper's certificate lasts about two years. When SlideFidelity says it needs renewing, reinstall the helper.</li>
+<li>When SlideFidelity says a helper update is available, download and run the new installer. Nothing installs automatically.</li>
+</ul>
+<h3 id="helper-it">For IT and MDM</h3>
+<ul>
+<li><strong>Silent install:</strong> deploy the pkg with Jamf or another Mac MDM, or the MSI with Intune. Neither needs a user prompt to install.</li>
+<li><strong>Mac certificate approval:</strong> each Mac needs one user approval of the helper's certificate, asked at the user's first sign-in after install. macOS does not allow changes to certificate trust without a user present.</li>
+<li><strong>Turn off update checks:</strong> on Mac, set the managed preference domain <code>com.slidefidelity.helper</code>, key <code>AutoUpdate</code>, to <code>false</code>. On Windows, set the registry value <code>HKLM\Software\SlideFidelity\Helper</code> <code>AutoUpdate</code> to <code>0</code>. Then deploy new versions through your MDM.</li>
+<li><strong>Uninstall:</strong> run the Mac uninstall script above as root, or remove the MSI with Intune.</li>
+</ul>
+<p>Contact <a href="mailto:support@slidefidelity.com">support@slidefidelity.com</a> for the Jamf and Intune deployment notes.</p>
+<h2>Why some items cannot be fixed</h2>
+<p>PowerPoint does not let add-ins change fonts and colors inside charts and SmartArt, fonts set only for Asian or complex scripts, or content on slide masters. SlideFidelity lists these so you can change them in PowerPoint.</p>
+<h2>Contact</h2>
+<p>Email <a href="mailto:support@slidefidelity.com">support@slidefidelity.com</a>.</p>
+</main>
+<footer><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="refund.html">Refunds</a><a href="support.html">Support</a></footer>
+</body>
+</html>

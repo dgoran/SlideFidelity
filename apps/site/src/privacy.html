@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'" />
+<title>SlideFidelity privacy policy</title>
+<meta name="description" content="How SlideFidelity handles your data." />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header><a class="brand" href="index.html">SlideFidelity</a><nav><a href="pricing.html">Pricing</a><a href="support.html">Support</a><a href="account.html">Account</a></nav></header>
+<main>
+<h1>Privacy policy</h1>
+<p class="note">Draft. Last updated 30 September 2026. This text needs legal review before launch.</p>
+<h2>Your presentations</h2>
+<p>SlideFidelity analyzes the open presentation inside PowerPoint on your device. The content of your presentation is never uploaded to SlideFidelity or to anyone else.</p>
+<h2>Link checking</h2>
+<p>When you choose to check links, SlideFidelity sends only the web addresses (http and https links) found in your deck to the SlideFidelity service, which requests each address and reports whether it works. We do not store or log these addresses. We keep only a count of checks per account and per network address to prevent abuse.</p>
+<h2 id="helper">SlideFidelity Helper (optional)</h2>
+<p>SlideFidelity Helper is an optional, free app for PowerPoint on Mac and Windows computers. SlideFidelity works fully without it. If you install it:</p>
+<ul>
+<li>It reads only the names of the fonts installed on your computer: system fonts, fonts you installed, and Microsoft Office's own and cloud fonts. It never opens your presentations.</li>
+<li>It gives those font names, its version, and its status only to the SlideFidelity add-in on the same computer (<code>https://app.slidefidelity.com</code>), over the computer's own loopback address. Nothing it reads leaves your computer.</li>
+<li>It sends nothing off your computer, except checking <code>https://app.slidefidelity.com/helper/latest.json</code> for a newer version. That request does not include your font names or anything from your presentations. Administrators can turn the check off. Updates are offered in the SlideFidelity pane; nothing installs automatically.</li>
+<li>It installs the helper app, a login item that starts it when you sign in, and a certificate unique to your computer that is valid only for <code>localhost</code>, <code>127.0.0.1</code>, and <code>::1</code> and trusted for website (SSL) use only. The key that could sign other certificates is destroyed after the certificate is created.</li>
+</ul>
+<p>Uninstalling removes the app, the login item, the certificate and its trust, and the helper's files. See <a href="helper.html">SlideFidelity Helper</a> for details and uninstall steps.</p>
+<h2>Your account</h2>
+<p>If you sign in, we store your email address, your sign-in sessions, your trial dates, and your subscription status. Sign-in codes are stored only as one-way hashes and expire after 10 minutes.</p>
+<h2>Payments</h2>
+<p>Paddle processes payments as merchant of record. SlideFidelity does not receive or store your card details. Paddle handles payment data under its own privacy policy.</p>
+<h2>Deleting your data</h2>
+<p>You can delete your account at any time from the Account section in SlideFidelity. Deleting your account removes your email, sessions, and subscription records, and cancels an active subscription.</p>
+<h2>Contact</h2>
+<p>Questions about privacy: see the <a href="support.html">support page</a>.</p>
+</main>
+<footer><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="refund.html">Refunds</a><a href="support.html">Support</a></footer>
+</body>
+</html>

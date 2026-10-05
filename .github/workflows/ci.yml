@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Test (audit-core, add-in, license API)
+        run: npm test
+      - name: Validate add-in manifest
+        run: npm run validate --workspace @slidefidelity/addin
+      - name: Build add-in
+        run: npm run build --workspace @slidefidelity/addin
+      - name: Build site
+        run: npm run build --workspace @slidefidelity/site
+      - name: Bundle license API (dry run)
+        run: npx wrangler deploy --dry-run --outdir dist
+        working-directory: apps/license-api
