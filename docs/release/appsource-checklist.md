@@ -28,7 +28,7 @@ Status: not submitted. Items marked **You** need account access or a decision fr
   - [x] Webhook destination `https://api.slidefidelity.com/paddle/webhook` (platform and simulation events); a simulated `subscription.created` was accepted (200) and stored.
   - [x] Worker secrets `PADDLE_API_KEY` and `PADDLE_WEBHOOK_SECRET`; site config has the live client-side token and price ID; `PADDLE_ENV` / `PADDLE_ENVIRONMENT` = production.
   - [x] Customer portal (on by default).
-  - [ ] **You:** website approval for `slidefidelity.com` (submitted, in review), then set the default payment link to `https://slidefidelity.com/account`.
+  - [x] Website approval for `slidefidelity.com` (approved 2026-10-06); default payment link `https://slidefidelity.com/account` (keeps `_ptxn`; the page initializes Paddle.js on load).
   - [ ] **You:** Paddle business verification.
   - [ ] Optional: trim the webhook destination to the five `subscription.*` events the API handles.
 - [x] Entitlement public key (`kid` `ent-2026-09`) embedded in `apps/addin/src/license/config.ts` and deployed (2026-10-05).
