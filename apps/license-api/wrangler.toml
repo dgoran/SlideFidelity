@@ -24,7 +24,8 @@ SITE_URL = "https://slidefidelity.com"
 ENTITLEMENT_KID = "ent-2026-09"
 # "sandbox" or "production" (selects the Paddle API host).
 PADDLE_ENV = "production"
-EMAIL_FROM = "SlideFidelity <signin@slidefidelity.com>"
+# Sent through Resend from openitsystems.com (verified there); move to @slidefidelity.com once that domain is added in Resend.
+EMAIL_FROM = "SlideFidelity <signin@openitsystems.com>"
 # AppSource reviewer account (code comes from the REVIEWER_CODE secret).
 REVIEWER_EMAIL = "appsource-review@slidefidelity.com"
 # Abuse limits (optional overrides; defaults live in src/ratelimit.ts).

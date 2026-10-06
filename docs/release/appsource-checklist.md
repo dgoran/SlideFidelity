@@ -20,7 +20,7 @@ Status: not submitted. Items marked **You** need account access or a decision fr
   - `PADDLE_API_KEY`
   - `EMAIL_API_KEY` (Resend)
   - `REVIEWER_CODE` (a long random value)
-- [ ] **You:** Verify the sending domain in Resend, with SPF and DKIM.
+- [x] Sign-in email through Resend, sent from `SlideFidelity <signin@openitsystems.com>` (openitsystems.com is verified there; the Resend plan has no free domain slot for slidefidelity.com). `EMAIL_API_KEY` is a sending-only key limited to openitsystems.com. A live code email was delivered on 2026-10-05. Later: add slidefidelity.com in Resend (Pro) or move to Cloudflare Email Sending (Workers Paid), then change `EMAIL_FROM`.
 - [ ] Paddle (live account, 2026-10-05):
   - [x] Product `SlideFidelity Pro` (`pro_01m46m0ema3ap4wk8xkjwjsj2b`), price $79/year USD, excludes tax, quantity 1 (`pri_01m46m1ye39sje220r46fthmxs`).
   - [x] Webhook destination `https://api.slidefidelity.com/paddle/webhook` (platform and simulation events); a simulated `subscription.created` was accepted (200) and stored.
