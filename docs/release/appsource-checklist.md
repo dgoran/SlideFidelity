@@ -20,6 +20,8 @@ Status: not submitted. Items marked **You** need account access or a decision fr
   - `PADDLE_API_KEY`
   - `EMAIL_API_KEY` (Resend)
   - `REVIEWER_CODE` (a long random value)
+- [x] Support mailbox: support@slidefidelity.com forwards to goran@openitsystems.com through Cloudflare Email Routing (rule `support to goran`; MX and SPF on slidefidelity.com). Test message received 2026-10-06.
+- [x] Terms of service, privacy policy and refund policy published as final (effective 5 October 2026, Florida law).
 - [x] Sign-in email through Resend, sent from `SlideFidelity <signin@openitsystems.com>` (openitsystems.com is verified there; the Resend plan has no free domain slot for slidefidelity.com). `EMAIL_API_KEY` is a sending-only key limited to openitsystems.com. A live code email was delivered on 2026-10-05. Later: add slidefidelity.com in Resend (Pro) or move to Cloudflare Email Sending (Workers Paid), then change `EMAIL_FROM`.
 - [ ] Paddle (live account, 2026-10-05):
   - [x] Product `SlideFidelity Pro` (`pro_01m46m0ema3ap4wk8xkjwjsj2b`), price $79/year USD, excludes tax, quantity 1 (`pri_01m46m1ye39sje220r46fthmxs`).
